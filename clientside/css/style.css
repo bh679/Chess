@@ -1,0 +1,235 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #312e2b;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Status bar */
+.status {
+  color: #e0e0e0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 8px 20px;
+  background: #272522;
+  border-radius: 6px;
+  text-align: center;
+  min-width: 200px;
+}
+
+.status.in-check {
+  color: #ff6b6b;
+}
+
+.status.game-over {
+  color: #ffd700;
+}
+
+/* Board */
+.board {
+  display: grid;
+  grid-template: repeat(8, 1fr) / repeat(8, 1fr);
+  width: min(80vw, 80vh);
+  height: min(80vw, 80vh);
+  border: 3px solid #1a1816;
+  border-radius: 2px;
+  touch-action: none;
+  user-select: none;
+}
+
+/* Squares */
+.square {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.square.light {
+  background-color: #f0d9b5;
+}
+
+.square.dark {
+  background-color: #b58863;
+}
+
+/* Square state highlights */
+.square.selected {
+  background-color: #f7ec5a !important;
+}
+
+.square.last-move {
+  background-color: rgba(255, 255, 0, 0.35);
+}
+
+.square.light.last-move {
+  background-color: #f7f18d;
+}
+
+.square.dark.last-move {
+  background-color: #cbc34d;
+}
+
+.square.check {
+  background: radial-gradient(ellipse at center, #ff0000 0%, #e70000 25%, rgba(169, 0, 0, 0) 89%);
+}
+
+/* Legal move dots */
+.square.legal-move::after {
+  content: '';
+  position: absolute;
+  width: 28%;
+  height: 28%;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Legal capture ring */
+.square.legal-capture::after {
+  content: '';
+  position: absolute;
+  width: 90%;
+  height: 90%;
+  border: 5px solid rgba(0, 0, 0, 0.25);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Pieces */
+.piece {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.piece.ghost {
+  opacity: 0.3;
+}
+
+/* Dragging piece (appended to body) */
+.piece-dragging {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+/* Coordinate labels */
+.coord {
+  position: absolute;
+  font-size: 0.65em;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.coord-rank {
+  top: 2px;
+  left: 3px;
+}
+
+.coord-file {
+  bottom: 2px;
+  right: 3px;
+}
+
+.square.light .coord { color: #b58863; }
+.square.dark .coord { color: #f0d9b5; }
+
+/* Promotion modal */
+.promotion-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.promotion-modal.hidden {
+  display: none;
+}
+
+.promotion-choices {
+  display: flex;
+  gap: 8px;
+  background: #272522;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.promotion-piece {
+  width: 72px;
+  height: 72px;
+  background: #f0d9b5;
+  border: 2px solid #b58863;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  transition: background-color 0.15s;
+}
+
+.promotion-piece:hover {
+  background: #ffd700;
+  border-color: #e6c200;
+}
+
+.promotion-piece img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 12px;
+}
+
+.controls button {
+  padding: 8px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #4a9e5c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.controls button:hover {
+  background: #3d8a4e;
+}
+
+.controls button:active {
+  background: #347a43;
+}
