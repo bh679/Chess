@@ -13,7 +13,7 @@ class Combat {
   _createOverlay() {
     this.overlay = document.createElement('div');
     this.overlay.className = 'combat-overlay hidden';
-    this.container.appendChild(this.overlay);
+    document.body.appendChild(this.overlay);
   }
 
   /**
