@@ -71,7 +71,6 @@ class Game {
 
   _setupChess960() {
     const backRank = this._generateChess960Position();
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
     // Build FEN string for Chess960 position
     const rank8 = backRank.map(p => p.toUpperCase()).join('');
@@ -79,7 +78,10 @@ class Game {
     const rank2 = 'pppppppp';
     const rank1 = backRank.join('');
 
-    const fen = `${rank8}/${rank7}/8/8/8/8/${rank2}/${rank1} w KQkq - 0 1`;
+    // For Chess960, we disable castling rights initially
+    // Players can still castle in Chess960, but the implementation
+    // in chess.js doesn't support Chess960 castling rules fully
+    const fen = `${rank8}/${rank7}/8/8/8/8/${rank2}/${rank1} w - - 0 1`;
 
     this.chess.load(fen);
   }

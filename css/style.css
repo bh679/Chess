@@ -272,8 +272,24 @@ body {
 /* Controls */
 .controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .controls select,
+  .controls button,
+  .control-checkbox {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .control-checkbox {

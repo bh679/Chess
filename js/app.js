@@ -190,6 +190,11 @@ animationsToggle.addEventListener('change', () => {
   board.setAnimationsEnabled(animationsToggle.checked);
 });
 
+// Initialize Chess960 if checked
+if (chess960Toggle.checked) {
+  game.setChess960(true);
+}
+
 // Initial render
 board.render();
 updateStatus();
