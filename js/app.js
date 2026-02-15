@@ -18,7 +18,12 @@ const timerBlackEl = document.getElementById('timer-black');
 const timeControlSelect = document.getElementById('time-control');
 const customTimeModal = document.getElementById('custom-time-modal');
 const customMinutesInput = document.getElementById('custom-minutes');
+const customWhiteMinutes = document.getElementById('custom-white-minutes');
+const customBlackMinutes = document.getElementById('custom-black-minutes');
 const customIncrementInput = document.getElementById('custom-increment');
+const customOddsToggle = document.getElementById('custom-odds-toggle');
+const sameTimeFields = document.getElementById('same-time-fields');
+const oddsTimeFields = document.getElementById('odds-time-fields');
 const customTimeOk = document.getElementById('custom-time-ok');
 const customTimeCancel = document.getElementById('custom-time-cancel');
 
@@ -71,8 +76,13 @@ function updateStatus(msg) {
 function getTimeConfig() {
   const val = timeControlSelect.value;
   if (val === '0' || val === 'custom') return null;
-  const [sec, inc] = val.split('|').map(Number);
-  return { seconds: sec, increment: inc };
+  const parts = val.split('|').map(Number);
+  // Format: whiteSec|increment or whiteSec|increment|blackSec
+  return {
+    whiteSec: parts[0],
+    increment: parts[1],
+    blackSec: parts[2] !== undefined ? parts[2] : parts[0],
+  };
 }
 
 function startNewGame() {
@@ -82,7 +92,7 @@ function startNewGame() {
 
   const config = getTimeConfig();
   if (config) {
-    timer.configure(config.seconds, config.increment);
+    timer.configure(config.whiteSec, config.increment, config.blackSec);
   } else {
     timer.configure(0, 0);
   }
@@ -126,15 +136,35 @@ timeControlSelect.addEventListener('change', () => {
   }
 });
 
+// Toggle between same-time and per-player fields
+customOddsToggle.addEventListener('change', () => {
+  const odds = customOddsToggle.checked;
+  sameTimeFields.classList.toggle('hidden', odds);
+  oddsTimeFields.classList.toggle('hidden', !odds);
+});
+
 customTimeOk.addEventListener('click', () => {
-  const minutes = parseInt(customMinutesInput.value, 10) || 10;
+  const odds = customOddsToggle.checked;
   const increment = parseInt(customIncrementInput.value, 10) || 0;
+  let wMin, bMin;
+
+  if (odds) {
+    wMin = parseInt(customWhiteMinutes.value, 10) || 10;
+    bMin = parseInt(customBlackMinutes.value, 10) || 5;
+  } else {
+    wMin = parseInt(customMinutesInput.value, 10) || 10;
+    bMin = wMin;
+  }
+
   // Add custom option and select it
   const existingCustom = timeControlSelect.querySelector('[data-custom]');
   if (existingCustom) existingCustom.remove();
   const opt = document.createElement('option');
-  opt.value = `${minutes * 60}|${increment}`;
-  opt.textContent = `Custom ${minutes}+${increment}`;
+  const label = wMin === bMin
+    ? `Custom ${wMin}+${increment}`
+    : `Custom W${wMin} / B${bMin} +${increment}`;
+  opt.value = `${wMin * 60}|${increment}|${bMin * 60}`;
+  opt.textContent = label;
   opt.dataset.custom = 'true';
   opt.selected = true;
   timeControlSelect.insertBefore(opt, timeControlSelect.querySelector('[value="custom"]'));
@@ -154,5 +184,5 @@ renderCaptured();
 // Configure initial timer (Rapid 10+0 default)
 const initConfig = getTimeConfig();
 if (initConfig) {
-  timer.configure(initConfig.seconds, initConfig.increment);
+  timer.configure(initConfig.whiteSec, initConfig.increment, initConfig.blackSec);
 }
