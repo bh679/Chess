@@ -190,18 +190,10 @@ animationsToggle.addEventListener('change', () => {
   board.setAnimationsEnabled(animationsToggle.checked);
 });
 
-// Initialize Chess960 if checked
+// Initialize Chess960 if checked and start initial game
 if (chess960Toggle.checked) {
   game.setChess960(true);
 }
 
-// Initial render
-board.render();
-updateStatus();
-renderCaptured();
-
-// Configure initial timer (Rapid 10+0 default)
-const initConfig = getTimeConfig();
-if (initConfig) {
-  timer.configure(initConfig.whiteSec, initConfig.increment, initConfig.blackSec);
-}
+// Start initial game
+startNewGame();
