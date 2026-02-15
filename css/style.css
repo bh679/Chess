@@ -296,9 +296,12 @@ body {
     width: 100%;
   }
 
-  .controls select,
+  .controls select {
+    flex: 1;
+  }
+
   .controls button {
-    width: 100%;
+    flex: 0 0 auto;
   }
 
   .control-checkbox {
