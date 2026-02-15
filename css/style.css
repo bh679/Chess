@@ -292,14 +292,17 @@ body {
 
 @media (max-width: 768px) {
   .controls {
-    flex-direction: column;
+    flex-direction: row;
     width: 100%;
   }
 
   .controls select,
-  .controls button,
-  .control-checkbox {
+  .controls button {
     width: 100%;
+  }
+
+  .control-checkbox {
+    flex: 1;
     justify-content: center;
   }
 }
