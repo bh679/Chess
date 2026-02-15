@@ -23,68 +23,69 @@ class Game {
   }
 
   _generateChess960Position() {
-    // Chess960 rules:
-    // 1. Bishops must be on opposite colors
+    // Chess960 (Fischer Random Chess) rules:
+    // 1. Bishops must be on opposite-colored squares
     // 2. King must be between the two rooks
-    // 3. Positions are mirrored for black
+    // Same position is used for both white and black
 
-    const backRank = new Array(8);
-    const available = [0, 1, 2, 3, 4, 5, 6, 7];
+    const pieces = new Array(8);
+    const empty = [0, 1, 2, 3, 4, 5, 6, 7];
 
-    // Place bishops on opposite colors
-    const lightSquares = [1, 3, 5, 7];
-    const darkSquares = [0, 2, 4, 6];
+    // Step 1: Place light-squared bishop (squares 1, 3, 5, 7)
+    const lightSquareIndices = empty.filter(i => i % 2 === 1);
+    const lightBishopPos = lightSquareIndices[Math.floor(Math.random() * lightSquareIndices.length)];
+    pieces[lightBishopPos] = 'B';
+    empty.splice(empty.indexOf(lightBishopPos), 1);
 
-    const lightBishop = lightSquares[Math.floor(Math.random() * lightSquares.length)];
-    const darkBishop = darkSquares[Math.floor(Math.random() * darkSquares.length)];
+    // Step 2: Place dark-squared bishop (squares 0, 2, 4, 6)
+    const darkSquareIndices = empty.filter(i => i % 2 === 0);
+    const darkBishopPos = darkSquareIndices[Math.floor(Math.random() * darkSquareIndices.length)];
+    pieces[darkBishopPos] = 'B';
+    empty.splice(empty.indexOf(darkBishopPos), 1);
 
-    backRank[lightBishop] = 'b';
-    backRank[darkBishop] = 'b';
+    // Step 3: Place queen
+    const queenPos = empty[Math.floor(Math.random() * empty.length)];
+    pieces[queenPos] = 'Q';
+    empty.splice(empty.indexOf(queenPos), 1);
 
-    // Remove bishops from available positions
-    available.splice(available.indexOf(lightBishop), 1);
-    available.splice(available.indexOf(darkBishop), 1);
+    // Step 4: Place knights
+    const knight1Pos = empty[Math.floor(Math.random() * empty.length)];
+    pieces[knight1Pos] = 'N';
+    empty.splice(empty.indexOf(knight1Pos), 1);
 
-    // Place queen randomly in remaining positions
-    const queenPos = available[Math.floor(Math.random() * available.length)];
-    backRank[queenPos] = 'q';
-    available.splice(available.indexOf(queenPos), 1);
+    const knight2Pos = empty[Math.floor(Math.random() * empty.length)];
+    pieces[knight2Pos] = 'N';
+    empty.splice(empty.indexOf(knight2Pos), 1);
 
-    // Place knights randomly in remaining positions
-    const knight1Pos = available[Math.floor(Math.random() * available.length)];
-    backRank[knight1Pos] = 'n';
-    available.splice(available.indexOf(knight1Pos), 1);
+    // Step 5: Place rook, king, rook in remaining positions (left to right)
+    empty.sort((a, b) => a - b);
+    pieces[empty[0]] = 'R';
+    pieces[empty[1]] = 'K';
+    pieces[empty[2]] = 'R';
 
-    const knight2Pos = available[Math.floor(Math.random() * available.length)];
-    backRank[knight2Pos] = 'n';
-    available.splice(available.indexOf(knight2Pos), 1);
-
-    // Place rooks and king (King must be between rooks)
-    // The three remaining squares get: rook, king, rook (in that order)
-    available.sort((a, b) => a - b);
-    backRank[available[0]] = 'r';
-    backRank[available[1]] = 'k';
-    backRank[available[2]] = 'r';
-
-    return backRank;
+    return pieces;
   }
 
   _setupChess960() {
-    const backRank = this._generateChess960Position();
+    // Generate random Chess960 position
+    const whitePieces = this._generateChess960Position();
+    const blackPieces = [...whitePieces]; // Same arrangement for black
 
-    // Build FEN string for Chess960 position
-    // Rank 8 (top) = Black pieces (uppercase), Rank 1 (bottom) = White pieces (lowercase)
-    const rank8 = backRank.map(p => p.toUpperCase()).join('');  // Black's back rank
-    const rank7 = 'PPPPPPPP';  // Black pawns
-    const rank2 = 'pppppppp';  // White pawns
-    const rank1 = backRank.map(p => p.toLowerCase()).join('');  // White's back rank
+    // Build FEN from rank 8 (black) to rank 1 (white)
+    // FEN format: rank8/rank7/.../rank2/rank1 turn castling ep halfmove fullmove
+    const fen = [
+      blackPieces.join(''),     // Rank 8: black pieces (uppercase)
+      'PPPPPPPP',                // Rank 7: black pawns
+      '8',                       // Rank 6: empty
+      '8',                       // Rank 5: empty
+      '8',                       // Rank 4: empty
+      '8',                       // Rank 3: empty
+      'pppppppp',                // Rank 2: white pawns
+      whitePieces.map(p => p.toLowerCase()).join(''), // Rank 1: white pieces (lowercase)
+    ].join('/');
 
-    // For Chess960, we disable castling rights initially
-    // Players can still castle in Chess960, but the implementation
-    // in chess.js doesn't support Chess960 castling rules fully
-    const fen = `${rank8}/${rank7}/8/8/8/8/${rank2}/${rank1} w - - 0 1`;
-
-    this.chess.load(fen);
+    // Load position (no castling rights in Chess960 for this implementation)
+    this.chess.load(`${fen} w - - 0 1`);
   }
 
   makeMove(from, to, promotion) {
