@@ -359,8 +359,8 @@ body {
 }
 
 .controls button {
-  padding: 8px 24px;
-  font-size: 1rem;
+  padding: 8px 12px;
+  font-size: 0.9rem;
   font-weight: 600;
   background: #4a9e5c;
   color: white;
