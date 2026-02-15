@@ -1,3 +1,5 @@
+import { Combat } from './combat.js';
+
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 
@@ -10,6 +12,7 @@ class Board {
     this.container = containerEl;
     this.game = game;
     this.promotionModal = promotionModalEl;
+    this.combat = new Combat(containerEl);
     this._moveCallback = null;
     this._selectedSquare = null;
     this._legalMoves = [];
@@ -282,32 +285,44 @@ class Board {
       return;
     }
 
+    const board = this.game.getBoard();
+    const attackerPiece = this._getPieceAt(from, board);
+    const defenderPiece = this._getPieceAt(to, board);
+
     // Get positions
     const fromRect = fromEl.getBoundingClientRect();
     const toRect = toEl.getBoundingClientRect();
 
-    // Calculate translation
-    const deltaX = toRect.left - fromRect.left;
-    const deltaY = toRect.top - fromRect.top;
+    // If this is a capture, play combat animation
+    if (capturedPiece && defenderPiece && attackerPiece) {
+      this.combat.playCapture(
+        attackerPiece.type,
+        attackerPiece.color,
+        defenderPiece.type,
+        defenderPiece.color,
+        fromRect,
+        toRect,
+        onComplete
+      );
+    } else {
+      // Regular move animation (no capture)
+      const deltaX = toRect.left - fromRect.left;
+      const deltaY = toRect.top - fromRect.top;
 
-    // Animate captured piece fading out
-    if (capturedPiece) {
-      capturedPiece.classList.add('capturing');
+      // Make the moving piece absolutely positioned and animate it
+      movingPiece.classList.add('animating');
+
+      // Force a reflow to ensure the class is applied
+      movingPiece.getBoundingClientRect();
+
+      // Apply the transform
+      movingPiece.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+      // Wait for animation to complete
+      setTimeout(() => {
+        onComplete();
+      }, 300); // Match the CSS transition duration
     }
-
-    // Make the moving piece absolutely positioned and animate it
-    movingPiece.classList.add('animating');
-
-    // Force a reflow to ensure the class is applied
-    movingPiece.getBoundingClientRect();
-
-    // Apply the transform
-    movingPiece.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-
-    // Wait for animation to complete
-    setTimeout(() => {
-      onComplete();
-    }, 300); // Match the CSS transition duration
   }
 
   _executeMove(from, to) {
