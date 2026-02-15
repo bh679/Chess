@@ -6,6 +6,14 @@ const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
 const PIECE_DISPLAY = { k: 'K', q: 'Q', r: 'R', b: 'B', n: 'N', p: 'P' };
 
+// Art style configuration
+const STYLE_PATHS = {
+  classic: 'img/pieces',
+  pixel: 'img/pieces-pixel',
+  neo: 'img/pieces-neo',
+};
+window.chessPiecePath = STYLE_PATHS.classic;
+
 const game = new Game();
 const statusEl = document.getElementById('status');
 const boardEl = document.getElementById('board');
@@ -30,6 +38,7 @@ const chess960Toggle = document.getElementById('chess960-toggle');
 const animationsToggle = document.getElementById('animations-toggle');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
+const artStylePicker = document.getElementById('art-style-picker');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
@@ -48,7 +57,7 @@ function renderCaptured() {
       img.className = 'captured-piece';
       // White captured these pieces, so they are black pieces (opponent's color)
       const victimColor = color === 'w' ? 'b' : 'w';
-      img.src = `img/pieces/${victimColor}${PIECE_DISPLAY[p]}.svg`;
+      img.src = `${window.chessPiecePath}/${victimColor}${PIECE_DISPLAY[p]}.svg`;
       img.alt = p;
       el.appendChild(img);
     }
@@ -191,6 +200,24 @@ settingsToggle.addEventListener('click', () => {
   const open = settingsPanel.classList.toggle('hidden');
   settingsToggle.classList.toggle('active', !open);
   settingsToggle.setAttribute('aria-expanded', !open);
+});
+
+// Art style picker
+artStylePicker.addEventListener('click', (e) => {
+  const btn = e.target.closest('.art-style-option');
+  if (!btn) return;
+
+  const style = btn.dataset.style;
+  if (!STYLE_PATHS[style]) return;
+
+  window.chessPiecePath = STYLE_PATHS[style];
+
+  artStylePicker.querySelectorAll('.art-style-option').forEach(el => {
+    el.classList.toggle('selected', el === btn);
+  });
+
+  board.render();
+  renderCaptured();
 });
 
 // Dev indicator management

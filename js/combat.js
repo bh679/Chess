@@ -42,32 +42,74 @@ class Combat {
     scene.className = 'combat-scene';
     scene.style.left = `${centerX}px`;
     scene.style.top = `${centerY}px`;
-    scene.style.width = `${squareSize * 2}px`;
-    scene.style.height = `${squareSize * 2}px`;
+    scene.style.width = `${squareSize * 2.5}px`;
+    scene.style.height = `${squareSize * 2.5}px`;
 
     // Attacker piece
     const attacker = document.createElement('img');
-    attacker.className = `combat-attacker combat-anim-${attackerType}`;
-    attacker.src = `img/pieces/${attackerColor}${this._pieceDisplay(attackerType)}.svg`;
+    attacker.className = `combat-attacker combat-attack-${attackerType}`;
+    attacker.src = `${window.chessPiecePath || 'img/pieces'}/${attackerColor}${this._pieceDisplay(attackerType)}.svg`;
     attacker.alt = 'attacker';
 
     // Defender piece
     const defender = document.createElement('img');
-    defender.className = 'combat-defender';
-    defender.src = `img/pieces/${defenderColor}${this._pieceDisplay(defenderType)}.svg`;
+    defender.className = `combat-defender combat-defend-${defenderType}`;
+    defender.src = `${window.chessPiecePath || 'img/pieces'}/${defenderColor}${this._pieceDisplay(defenderType)}.svg`;
     defender.alt = 'defender';
+
+    // Add weapon/effect elements for dramatic combat
+    const effect = this._createCombatEffect(attackerType);
+    if (effect) scene.appendChild(effect);
 
     scene.appendChild(defender);
     scene.appendChild(attacker);
     this.overlay.appendChild(scene);
 
-    // Duration: 600ms for snappy combat feel
-    const duration = 600;
+    // Longer duration for more dramatic combat: 900ms
+    const duration = 900;
 
     setTimeout(() => {
       this.overlay.classList.add('hidden');
       if (onComplete) onComplete();
     }, duration);
+  }
+
+  /**
+   * Create special combat effects based on attacker type
+   */
+  _createCombatEffect(attackerType) {
+    const effect = document.createElement('div');
+    effect.className = `combat-effect combat-effect-${attackerType}`;
+
+    // Different effects for different pieces
+    switch(attackerType) {
+      case 'p': // Pawn - knife slash
+        effect.innerHTML = '⚔️';
+        effect.classList.add('knife-slash');
+        break;
+      case 'n': // Knight - charge impact
+        effect.innerHTML = '💥';
+        effect.classList.add('charge-impact');
+        break;
+      case 'b': // Bishop - holy smite
+        effect.innerHTML = '✨';
+        effect.classList.add('holy-smite');
+        break;
+      case 'r': // Rook - crushing blow
+        effect.innerHTML = '💢';
+        effect.classList.add('crushing-blow');
+        break;
+      case 'q': // Queen - devastating strike
+        effect.innerHTML = '⚡';
+        effect.classList.add('devastating-strike');
+        break;
+      case 'k': // King - royal decree
+        effect.innerHTML = '👑';
+        effect.classList.add('royal-decree');
+        break;
+    }
+
+    return effect;
   }
 
   _pieceDisplay(type) {

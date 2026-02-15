@@ -54,7 +54,7 @@ class Board {
         if (piece) {
           const img = document.createElement('img');
           img.className = 'piece';
-          img.src = `img/pieces/${piece.color}${PIECE_MAP[piece.type]}.svg`;
+          img.src = `${window.chessPiecePath || 'img/pieces'}/${piece.color}${PIECE_MAP[piece.type]}.svg`;
           img.alt = `${piece.color}${piece.type}`;
           img.draggable = false;
           el.appendChild(img);
@@ -367,7 +367,7 @@ class Board {
       const btn = document.createElement('button');
       btn.className = 'promotion-piece';
       const img = document.createElement('img');
-      img.src = `img/pieces/${color}${names[p]}.svg`;
+      img.src = `${window.chessPiecePath || 'img/pieces'}/${color}${names[p]}.svg`;
       img.alt = names[p];
       img.draggable = false;
       btn.appendChild(img);

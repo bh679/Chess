@@ -5,12 +5,61 @@ class Game {
     this.chess = new Chess();
     this._lastMove = null;
     this._captured = { w: [], b: [] }; // pieces captured BY each color
+    this._chess960 = false;
   }
 
-  newGame() {
-    this.chess.reset();
+  newGame(chess960 = false) {
+    this._chess960 = chess960;
+    if (chess960) {
+      const fen = this._generateChess960FEN();
+      this.chess.load(fen);
+    } else {
+      this.chess.reset();
+    }
     this._lastMove = null;
     this._captured = { w: [], b: [] };
+  }
+
+  _generateChess960FEN() {
+    // Generate a random Chess960 starting position
+    const pieces = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+
+    // Shuffle back rank with Chess960 constraints
+    let backRank;
+    let valid = false;
+    while (!valid) {
+      backRank = this._shuffle(pieces.slice());
+
+      // Check constraints:
+      // 1. King must be between rooks
+      const kingPos = backRank.indexOf('k');
+      const rook1Pos = backRank.indexOf('r');
+      const rook2Pos = backRank.lastIndexOf('r');
+
+      // 2. Bishops must be on opposite colored squares
+      const bishop1Pos = backRank.indexOf('b');
+      const bishop2Pos = backRank.lastIndexOf('b');
+      const bishopsOnOppositeColors = (bishop1Pos % 2) !== (bishop2Pos % 2);
+
+      const kingBetweenRooks = rook1Pos < kingPos && kingPos < rook2Pos;
+
+      valid = bishopsOnOppositeColors && kingBetweenRooks;
+    }
+
+    // Build FEN with positions flipped: FEN lists ranks from 8 to 1
+    // Flip the board: white pieces on top (ranks 8-7), black pieces on bottom (ranks 2-1)
+    const rank8 = backRank.join('').toLowerCase(); // White pieces on rank 8
+    const rank1 = backRank.join('').toUpperCase(); // Black pieces on rank 1
+
+    return `${rank8}/pppppppp/8/8/8/8/PPPPPPPP/${rank1} w KQkq - 0 1`;
+  }
+
+  _shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
   }
 
   makeMove(from, to, promotion) {
