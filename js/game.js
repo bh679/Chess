@@ -73,10 +73,11 @@ class Game {
     const backRank = this._generateChess960Position();
 
     // Build FEN string for Chess960 position
-    const rank8 = backRank.map(p => p.toUpperCase()).join('');
-    const rank7 = 'PPPPPPPP';
-    const rank2 = 'pppppppp';
-    const rank1 = backRank.join('');
+    // Rank 8 (top) = Black pieces (uppercase), Rank 1 (bottom) = White pieces (lowercase)
+    const rank8 = backRank.map(p => p.toUpperCase()).join('');  // Black's back rank
+    const rank7 = 'PPPPPPPP';  // Black pawns
+    const rank2 = 'pppppppp';  // White pawns
+    const rank1 = backRank.map(p => p.toLowerCase()).join('');  // White's back rank
 
     // For Chess960, we disable castling rights initially
     // Players can still castle in Chess960, but the implementation
