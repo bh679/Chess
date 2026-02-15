@@ -12,9 +12,10 @@ class Timer {
     this._enabled = false;
   }
 
-  configure(seconds, increment) {
+  configure(whiteSeconds, increment, blackSeconds) {
     this.stop();
-    if (seconds <= 0) {
+    if (blackSeconds === undefined) blackSeconds = whiteSeconds;
+    if (whiteSeconds <= 0 && blackSeconds <= 0) {
       this._enabled = false;
       this.whiteEl.textContent = '--:--';
       this.blackEl.textContent = '--:--';
@@ -23,8 +24,8 @@ class Timer {
       return;
     }
     this._enabled = true;
-    this._time.w = seconds * 1000;
-    this._time.b = seconds * 1000;
+    this._time.w = whiteSeconds * 1000;
+    this._time.b = blackSeconds * 1000;
     this._increment = increment * 1000;
     this._activeSide = null;
     this._render();

@@ -355,6 +355,30 @@ body {
   font-size: 0.9rem;
 }
 
+.toggle-label {
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  cursor: pointer;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4a9e5c;
+  cursor: pointer;
+}
+
+#odds-time-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#odds-time-fields.hidden,
+#same-time-fields.hidden {
+  display: none;
+}
+
 .modal-content input[type="number"] {
   width: 60px;
   padding: 4px 8px;

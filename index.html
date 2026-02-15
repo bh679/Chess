@@ -39,7 +39,16 @@
     <div id="custom-time-modal" class="modal hidden">
       <div class="modal-content">
         <h3>Custom Time Control</h3>
-        <label>Minutes per side: <input type="number" id="custom-minutes" min="1" max="180" value="10"></label>
+        <label class="toggle-label">
+          <input type="checkbox" id="custom-odds-toggle"> Different time per player
+        </label>
+        <div id="same-time-fields">
+          <label>Minutes per side: <input type="number" id="custom-minutes" min="1" max="180" value="10"></label>
+        </div>
+        <div id="odds-time-fields" class="hidden">
+          <label>White minutes: <input type="number" id="custom-white-minutes" min="1" max="180" value="10"></label>
+          <label>Black minutes: <input type="number" id="custom-black-minutes" min="1" max="180" value="5"></label>
+        </div>
         <label>Increment (sec): <input type="number" id="custom-increment" min="0" max="60" value="0"></label>
         <div class="modal-buttons">
           <button id="custom-time-ok">OK</button>
