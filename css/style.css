@@ -208,10 +208,88 @@ body {
   pointer-events: none;
 }
 
+/* Player bars (captured pieces + timer) */
+.player-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(80vw, 80vh);
+  min-height: 32px;
+  padding: 4px 6px;
+  background: #272522;
+  border-radius: 4px;
+}
+
+.captured-pieces {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1px;
+  min-height: 24px;
+}
+
+.captured-piece {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
+.material-advantage {
+  color: #aaa;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+/* Timers */
+.timer {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #999;
+  background: #1a1816;
+  padding: 4px 12px;
+  border-radius: 4px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.timer.timer-active {
+  color: #fff;
+  background: #3d8a4e;
+}
+
+.timer.timer-low {
+  color: #ff4444;
+}
+
+.timer.timer-active.timer-low {
+  background: #8a3d3d;
+  color: #ff6b6b;
+}
+
 /* Controls */
 .controls {
   display: flex;
   gap: 12px;
+  align-items: center;
+}
+
+.controls select {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #272522;
+  color: #e0e0e0;
+  border: 2px solid #4a4744;
+  border-radius: 6px;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.controls select:hover {
+  border-color: #6a6764;
 }
 
 .controls button {
@@ -232,4 +310,91 @@ body {
 
 .controls button:active {
   background: #347a43;
+}
+
+/* Custom time modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #272522;
+  padding: 24px;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #e0e0e0;
+  min-width: 240px;
+}
+
+.modal-content h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-content label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.modal-content input[type="number"] {
+  width: 60px;
+  padding: 4px 8px;
+  font-size: 0.95rem;
+  background: #1a1816;
+  color: #e0e0e0;
+  border: 2px solid #4a4744;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-buttons button {
+  padding: 6px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#custom-time-ok {
+  background: #4a9e5c;
+  color: white;
+}
+
+#custom-time-ok:hover {
+  background: #3d8a4e;
+}
+
+#custom-time-cancel {
+  background: #4a4744;
+  color: #ccc;
+}
+
+#custom-time-cancel:hover {
+  background: #5a5754;
 }
