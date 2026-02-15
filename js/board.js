@@ -271,6 +271,45 @@ class Board {
     this._legalMoves = [];
   }
 
+  _animateMove(from, to, onComplete) {
+    const fromEl = this._getSquareEl(from);
+    const toEl = this._getSquareEl(to);
+    const movingPiece = fromEl.querySelector('.piece');
+    const capturedPiece = toEl.querySelector('.piece');
+
+    if (!movingPiece) {
+      onComplete();
+      return;
+    }
+
+    // Get positions
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+
+    // Calculate translation
+    const deltaX = toRect.left - fromRect.left;
+    const deltaY = toRect.top - fromRect.top;
+
+    // Animate captured piece fading out
+    if (capturedPiece) {
+      capturedPiece.classList.add('capturing');
+    }
+
+    // Make the moving piece absolutely positioned and animate it
+    movingPiece.classList.add('animating');
+
+    // Force a reflow to ensure the class is applied
+    movingPiece.getBoundingClientRect();
+
+    // Apply the transform
+    movingPiece.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+    // Wait for animation to complete
+    setTimeout(() => {
+      onComplete();
+    }, 300); // Match the CSS transition duration
+  }
+
   _executeMove(from, to) {
     // Check for promotion
     if (this.game.isPromotion(from, to)) {
@@ -278,12 +317,15 @@ class Board {
       return;
     }
 
-    const result = this.game.makeMove(from, to);
-    if (result.success) {
-      this._clearSelection();
-      this.render();
-      if (this._moveCallback) this._moveCallback(result);
-    }
+    // Animate the move first, then update the board
+    this._animateMove(from, to, () => {
+      const result = this.game.makeMove(from, to);
+      if (result.success) {
+        this._clearSelection();
+        this.render();
+        if (this._moveCallback) this._moveCallback(result);
+      }
+    });
   }
 
   _showPromotionModal(from, to) {
@@ -305,12 +347,14 @@ class Board {
       btn.appendChild(img);
       btn.addEventListener('click', () => {
         this.promotionModal.classList.add('hidden');
-        const result = this.game.makeMove(from, to, p);
-        if (result.success) {
-          this._clearSelection();
-          this.render();
-          if (this._moveCallback) this._moveCallback(result);
-        }
+        this._animateMove(from, to, () => {
+          const result = this.game.makeMove(from, to, p);
+          if (result.success) {
+            this._clearSelection();
+            this.render();
+            if (this._moveCallback) this._moveCallback(result);
+          }
+        });
       });
       inner.appendChild(btn);
     }
