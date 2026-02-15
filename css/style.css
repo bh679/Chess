@@ -4,13 +4,19 @@
   padding: 0;
 }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
 body {
   background: #312e2b;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
 }
 
 .app {
@@ -18,6 +24,11 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  max-height: 100vh;
+  max-height: 100dvh; /* Dynamic viewport height for mobile */
+  overflow-y: auto;
+  padding: 12px;
+  width: 100%;
 }
 
 /* Status bar */
@@ -44,12 +55,13 @@ body {
 .board {
   display: grid;
   grid-template: repeat(8, 1fr) / repeat(8, 1fr);
-  width: min(80vw, 80vh);
-  height: min(80vw, 80vh);
+  width: min(90vw, 60vh, 600px);
+  height: min(90vw, 60vh, 600px);
   border: 3px solid #1a1816;
   border-radius: 2px;
   touch-action: none;
   user-select: none;
+  flex-shrink: 0;
 }
 
 /* Squares */
@@ -475,12 +487,11 @@ body {
 
 /* Footer */
 .footer {
-  position: fixed;
-  bottom: 8px;
-  right: 12px;
+  margin-top: 8px;
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: center;
 }
 
 .footer a {
