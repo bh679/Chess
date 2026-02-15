@@ -296,17 +296,14 @@ body {
     width: 100%;
   }
 
-  .controls select {
-    flex: 1;
+  .controls select,
+  .controls button {
+    flex: 0 0 calc(50% - 6px);
     min-width: 0;
   }
 
-  .controls button {
-    flex: 1;
-  }
-
   .control-checkbox {
-    flex: 1;
+    flex: 0 0 calc(50% - 6px);
     justify-content: center;
   }
 }
