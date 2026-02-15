@@ -746,29 +746,3 @@ body {
   }
 }
 
-/* Chess 360 mode */
-.board.chess-360 {
-  animation: rotate360 60s linear infinite;
-}
-
-@keyframes rotate360 {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.board.chess-360 .square {
-  animation: counterRotate360 60s linear infinite;
-}
-
-@keyframes counterRotate360 {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(-360deg);
-  }
-}

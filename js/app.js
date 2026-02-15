@@ -26,14 +26,13 @@ const sameTimeFields = document.getElementById('same-time-fields');
 const oddsTimeFields = document.getElementById('odds-time-fields');
 const customTimeOk = document.getElementById('custom-time-ok');
 const customTimeCancel = document.getElementById('custom-time-cancel');
-const chess360Toggle = document.getElementById('chess-360-toggle');
+const chess960Toggle = document.getElementById('chess-960-toggle');
 const animationsToggle = document.getElementById('animations-toggle');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
 
 let moveCount = 0;
-let chess360Enabled = false;
 
 function renderCaptured() {
   const captured = game.getCaptured();
@@ -179,14 +178,11 @@ customTimeCancel.addEventListener('click', () => {
   timeControlSelect.value = '600|0'; // fallback to Rapid 10+0
 });
 
-// Chess 360 toggle
-chess360Toggle.addEventListener('change', () => {
-  chess360Enabled = chess360Toggle.checked;
-  if (chess360Enabled) {
-    boardEl.classList.add('chess-360');
-  } else {
-    boardEl.classList.remove('chess-360');
-  }
+// Chess960 toggle
+chess960Toggle.addEventListener('change', () => {
+  game.setChess960(chess960Toggle.checked);
+  // Start a new game with the new setting
+  startNewGame();
 });
 
 // Animations toggle

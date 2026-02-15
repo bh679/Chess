@@ -6,7 +6,7 @@ A client-side chess game that runs entirely in the browser with no server or dep
 
 - **Full chess rules** — powered by chess.js, supporting all standard rules including castling, en passant, and pawn promotion
 - **Combat animations** — dynamic, action-packed finishing moves when pieces capture each other (unique animations per piece type)
-- **Chess 360 mode** — optional board rotation for a dizzying challenge
+- **Chess960 (Fischer Random)** — optional randomized starting positions with bishops on opposite colors and king between rooks
 - **Animation toggle** — turn combat and move animations on/off
 - **Click and drag-to-move** — select a piece by clicking or drag it to a target square (mouse and touch supported)
 - **Legal move highlighting** — selected pieces show available moves and captures
