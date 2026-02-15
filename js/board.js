@@ -1,7 +1,7 @@
 import { Combat } from './combat.js';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
+const RANKS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
 const PIECE_MAP = {
   k: 'K', q: 'Q', r: 'R', b: 'B', n: 'N', p: 'P',

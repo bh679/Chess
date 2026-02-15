@@ -298,10 +298,11 @@ body {
 
   .controls select {
     flex: 1;
+    min-width: 0;
   }
 
   .controls button {
-    flex: 0 0 auto;
+    flex: 1;
   }
 
   .control-checkbox {
