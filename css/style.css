@@ -295,9 +295,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
+  padding: 8px 10px;
   background: #272522;
   color: #999;
   border: 2px solid #4a4744;
@@ -313,7 +311,7 @@ body {
 }
 
 .settings-btn.active {
-  border-color: #4a9e5c;
+  border-color: #6a6764;
   color: #e0e0e0;
 }
 
@@ -464,7 +462,7 @@ body {
   border-color: #6a6764;
 }
 
-.controls button {
+.controls button:not(.settings-btn) {
   padding: 8px 12px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -476,11 +474,11 @@ body {
   transition: background-color 0.15s;
 }
 
-.controls button:hover {
+.controls button:not(.settings-btn):hover {
   background: #3d8a4e;
 }
 
-.controls button:active {
+.controls button:not(.settings-btn):active {
   background: #347a43;
 }
 
