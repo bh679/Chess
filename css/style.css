@@ -290,16 +290,82 @@ body {
   justify-content: center;
 }
 
+/* Settings toggle button */
+.settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: #272522;
+  color: #999;
+  border: 2px solid #4a4744;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.settings-btn:hover {
+  border-color: #6a6764;
+  color: #e0e0e0;
+  background: #2d2a27;
+}
+
+.settings-btn.active {
+  border-color: #4a9e5c;
+  color: #e0e0e0;
+}
+
+.settings-btn svg {
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.settings-btn.active svg {
+  transform: rotate(60deg);
+}
+
+/* Settings panel */
+.settings-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  max-height: 200px;
+  opacity: 1;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.settings-panel.hidden {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 @media (max-width: 768px) {
   .controls {
-    flex-direction: column;
+    flex-wrap: wrap;
     width: 100%;
   }
 
-  .controls select,
-  .controls button,
-  .control-checkbox {
+  .settings-panel {
     width: 100%;
+  }
+
+  .control-checkbox {
+    flex: 0 0 calc(50% - 6px);
+    justify-content: center;
+  }
+
+  .settings-panel select {
+    flex: 0 0 100%;
+  }
+
+  .controls button {
+    flex: 0 0 calc(50% - 6px);
     justify-content: center;
   }
 }
@@ -338,7 +404,8 @@ body {
   white-space: nowrap;
 }
 
-.controls select {
+.controls select,
+.settings-panel select {
   padding: 8px 12px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -350,7 +417,8 @@ body {
   appearance: auto;
 }
 
-.controls select:hover {
+.controls select:hover,
+.settings-panel select:hover {
   border-color: #6a6764;
 }
 

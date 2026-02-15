@@ -26,7 +26,10 @@ const sameTimeFields = document.getElementById('same-time-fields');
 const oddsTimeFields = document.getElementById('odds-time-fields');
 const customTimeOk = document.getElementById('custom-time-ok');
 const customTimeCancel = document.getElementById('custom-time-cancel');
+const chess960Toggle = document.getElementById('chess960-toggle');
 const animationsToggle = document.getElementById('animations-toggle');
+const settingsToggle = document.getElementById('settings-toggle');
+const settingsPanel = document.getElementById('settings-panel');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
@@ -87,7 +90,8 @@ function getTimeConfig() {
 }
 
 function startNewGame() {
-  game.newGame();
+  const chess960 = chess960Toggle.checked;
+  game.newGame(chess960);
   board.render();
   moveCount = 0;
 
@@ -180,6 +184,13 @@ customTimeCancel.addEventListener('click', () => {
 // Animations toggle
 animationsToggle.addEventListener('change', () => {
   board.setAnimationsEnabled(animationsToggle.checked);
+});
+
+// Settings panel toggle
+settingsToggle.addEventListener('click', () => {
+  const open = settingsPanel.classList.toggle('hidden');
+  settingsToggle.classList.toggle('active', !open);
+  settingsToggle.setAttribute('aria-expanded', !open);
 });
 
 // Dev indicator management
