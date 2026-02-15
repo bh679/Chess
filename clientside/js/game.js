@@ -4,11 +4,13 @@ class Game {
   constructor() {
     this.chess = new Chess();
     this._lastMove = null;
+    this._captured = { w: [], b: [] }; // pieces captured BY each color
   }
 
   newGame() {
     this.chess.reset();
     this._lastMove = null;
+    this._captured = { w: [], b: [] };
   }
 
   makeMove(from, to, promotion) {
@@ -23,6 +25,11 @@ class Game {
     }
 
     this._lastMove = { from, to };
+
+    // Track captured pieces — result.color is the color that moved
+    if (result.captured) {
+      this._captured[result.color].push(result.captured);
+    }
 
     return {
       success: true,
@@ -87,6 +94,10 @@ class Game {
 
   getLastMove() {
     return this._lastMove;
+  }
+
+  getCaptured() {
+    return this._captured;
   }
 }
 
