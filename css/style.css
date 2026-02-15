@@ -15,7 +15,7 @@ body {
   background: #312e2b;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
 }
 
@@ -487,11 +487,13 @@ body {
 
 /* Footer */
 .footer {
-  margin-top: 8px;
+  margin-top: auto;
+  padding: 8px 0;
   display: flex;
   gap: 12px;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .footer a {
