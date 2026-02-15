@@ -272,8 +272,35 @@ body {
 /* Controls */
 .controls {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.control-row {
+  display: flex;
   gap: 12px;
   align-items: center;
+}
+
+.control-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.control-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.control-checkbox span {
+  font-weight: 500;
 }
 
 .controls select {
@@ -428,6 +455,9 @@ body {
   position: fixed;
   bottom: 8px;
   right: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .footer a {
@@ -438,6 +468,12 @@ body {
 
 .footer a:hover {
   color: #888;
+}
+
+.footer .version {
+  color: #444;
+  font-size: 0.7rem;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 /* Piece animations */
@@ -700,5 +736,32 @@ body {
   }
   100% {
     transform: translateX(0) rotate(0deg) scale(1);
+  }
+}
+
+/* Chess 360 mode */
+.board.chess-360 {
+  animation: rotate360 60s linear infinite;
+}
+
+@keyframes rotate360 {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.board.chess-360 .square {
+  animation: counterRotate360 60s linear infinite;
+}
+
+@keyframes counterRotate360 {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
   }
 }

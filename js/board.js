@@ -17,9 +17,14 @@ class Board {
     this._selectedSquare = null;
     this._legalMoves = [];
     this._dragging = null;
+    this._animationsEnabled = true;
 
     this._buildGrid();
     this._bindEvents();
+  }
+
+  setAnimationsEnabled(enabled) {
+    this._animationsEnabled = enabled;
   }
 
   onMove(callback) {
@@ -281,6 +286,12 @@ class Board {
     const capturedPiece = toEl.querySelector('.piece');
 
     if (!movingPiece) {
+      onComplete();
+      return;
+    }
+
+    // If animations are disabled, complete immediately
+    if (!this._animationsEnabled) {
       onComplete();
       return;
     }
