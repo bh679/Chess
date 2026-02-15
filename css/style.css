@@ -422,3 +422,20 @@ body {
 #custom-time-cancel:hover {
   background: #5a5754;
 }
+
+/* Footer */
+.footer {
+  position: fixed;
+  bottom: 8px;
+  right: 12px;
+}
+
+.footer a {
+  color: #555;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: #888;
+}
