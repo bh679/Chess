@@ -26,7 +26,6 @@ const sameTimeFields = document.getElementById('same-time-fields');
 const oddsTimeFields = document.getElementById('odds-time-fields');
 const customTimeOk = document.getElementById('custom-time-ok');
 const customTimeCancel = document.getElementById('custom-time-cancel');
-const chess960Toggle = document.getElementById('chess-960-toggle');
 const animationsToggle = document.getElementById('animations-toggle');
 
 const board = new Board(boardEl, game, promotionModal);
@@ -178,22 +177,10 @@ customTimeCancel.addEventListener('click', () => {
   timeControlSelect.value = '600|0'; // fallback to Rapid 10+0
 });
 
-// Chess960 toggle
-chess960Toggle.addEventListener('change', () => {
-  game.setChess960(chess960Toggle.checked);
-  // Start a new game with the new setting
-  startNewGame();
-});
-
 // Animations toggle
 animationsToggle.addEventListener('change', () => {
   board.setAnimationsEnabled(animationsToggle.checked);
 });
-
-// Initialize Chess960 if checked and start initial game
-if (chess960Toggle.checked) {
-  game.setChess960(true);
-}
 
 // Start initial game
 startNewGame();
