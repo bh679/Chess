@@ -137,3 +137,7 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Dev mode helpers (local only)
+dev-mode-on.html
+dev-mode-off.html

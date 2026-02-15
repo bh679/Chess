@@ -512,6 +512,30 @@ body {
   font-family: 'Courier New', Courier, monospace;
 }
 
+.dev-indicator {
+  background: #ff0000;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-family: 'Courier New', Courier, monospace;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.dev-indicator.hidden {
+  display: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 /* Piece animations */
 .piece.animating {
   position: absolute !important;

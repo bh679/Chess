@@ -182,5 +182,24 @@ animationsToggle.addEventListener('change', () => {
   board.setAnimationsEnabled(animationsToggle.checked);
 });
 
+// Dev indicator management
+const devIndicator = document.getElementById('dev-indicator');
+const DEV_MODE_KEY = 'chess-dev-mode';
+
+function checkDevMode() {
+  const devMode = localStorage.getItem(DEV_MODE_KEY);
+  if (devMode === 'true') {
+    devIndicator.classList.remove('hidden');
+  } else {
+    devIndicator.classList.add('hidden');
+  }
+}
+
+// Check on load
+checkDevMode();
+
+// Poll for changes every 500ms
+setInterval(checkDevMode, 500);
+
 // Start initial game
 startNewGame();
