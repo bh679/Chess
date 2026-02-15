@@ -272,13 +272,6 @@ body {
 /* Controls */
 .controls {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-}
-
-.control-row {
-  display: flex;
   gap: 12px;
   align-items: center;
 }
@@ -286,21 +279,35 @@ body {
 .control-checkbox {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #e0e0e0;
+  gap: 8px;
+  padding: 8px 12px;
   font-size: 0.9rem;
+  font-weight: 600;
+  background: #272522;
+  color: #e0e0e0;
+  border: 2px solid #4a4744;
+  border-radius: 6px;
   cursor: pointer;
   user-select: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.control-checkbox:hover {
+  border-color: #6a6764;
+  background: #2d2a27;
 }
 
 .control-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
+  margin: 0;
+  accent-color: #4a9e5c;
 }
 
 .control-checkbox span {
-  font-weight: 500;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .controls select {
