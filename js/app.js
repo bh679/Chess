@@ -260,6 +260,7 @@ function startNewGame() {
   renderCaptured();
 
   // Save game to database
+  currentDbGameId = null;
   const wEloVal = parseInt(aiWhiteEloSlider.value, 10);
   const bEloVal = parseInt(aiBlackEloSlider.value, 10);
   db.createGame({

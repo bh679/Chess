@@ -4,6 +4,7 @@
  */
 
 const PAGE_SIZE = 15;
+const MIN_DISPLAY_MOVES = 4; // at least 2 moves per player
 
 class GameBrowser {
   constructor(database, replayViewer) {
@@ -42,12 +43,15 @@ class GameBrowser {
     this._currentPage = page;
 
     try {
-      this._totalGames = await this._db.getGameCount();
-      const games = await this._db.listGames({
-        limit: PAGE_SIZE,
-        offset: page * PAGE_SIZE,
-      });
-      this._renderGameList(games);
+      // Fetch all games and filter to those with enough moves
+      const allGames = await this._db.listGames({ limit: 9999, offset: 0 });
+      const filtered = allGames.filter(g => g.moveCount >= MIN_DISPLAY_MOVES);
+      this._totalGames = filtered.length;
+
+      const start = page * PAGE_SIZE;
+      const pageGames = filtered.slice(start, start + PAGE_SIZE);
+
+      this._renderGameList(pageGames);
       this._updatePagination();
     } catch (err) {
       console.warn('Failed to load games:', err);
