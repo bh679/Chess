@@ -61,6 +61,8 @@ const playerNameBlack = document.getElementById('player-name-black');
 const playerEloWhite = document.getElementById('player-elo-white');
 const playerEloBlack = document.getElementById('player-elo-black');
 const gameHistoryBtn = document.getElementById('game-history-btn');
+const startGameBtn = document.getElementById('start-game-btn');
+const gameTypeLabel = document.getElementById('game-type-label');
 const appEl = document.querySelector('.app');
 
 const board = new Board(boardEl, game, promotionModal);
@@ -73,6 +75,8 @@ const gameBrowser = new GameBrowser(db, replayViewer);
 let moveCount = 0;
 let gameId = 0;
 let currentDbGameId = null;
+let customWhiteName = null;
+let customBlackName = null;
 
 function renderCaptured() {
   const captured = game.getCaptured();
@@ -240,8 +244,10 @@ function startNewGame() {
     timer.configure(0, 0);
   }
 
-  // Show game info status briefly
-  const gameType = chess960 ? 'Chess960' : 'Standard';
+  // Update game type label
+  gameTypeLabel.textContent = chess960 ? 'Chess960' : 'Standard';
+
+  // Show matchup info in status briefly
   const wIsAI = aiWhiteToggle.checked;
   const bIsAI = aiBlackToggle.checked;
   let matchup;
@@ -256,15 +262,17 @@ function startNewGame() {
   } else {
     matchup = 'Human vs Human';
   }
-  updateStatus(`${gameType} — ${matchup}`, true);
+  updateStatus(matchup, true);
 
   // Update player type icons and info
   playerIconWhite.textContent = wIsAI ? '🤖' : '👤';
   playerIconBlack.textContent = bIsAI ? '🤖' : '👤';
   const wEloVal = parseInt(aiWhiteEloSlider.value, 10);
   const bEloVal = parseInt(aiBlackEloSlider.value, 10);
-  playerNameWhite.textContent = wIsAI ? 'Stockfish' : 'Human';
-  playerNameBlack.textContent = bIsAI ? 'Stockfish' : 'Human';
+  const wName = wIsAI ? 'Stockfish' : (customWhiteName || 'Human');
+  const bName = bIsAI ? 'Stockfish' : (customBlackName || 'Human');
+  playerNameWhite.textContent = wName;
+  playerNameBlack.textContent = bName;
   playerEloWhite.textContent = wIsAI ? wEloVal : '';
   playerEloBlack.textContent = bIsAI ? bEloVal : '';
   playerEloWhite.classList.toggle('hidden', !wIsAI);
@@ -283,12 +291,12 @@ function startNewGame() {
     timeControl: getTimeControlLabel(),
     startingFen: game.chess.fen(),
     white: {
-      name: wIsAI ? `Stockfish ${wEloVal}` : 'Human',
+      name: wIsAI ? `Stockfish ${wEloVal}` : wName,
       isAI: wIsAI,
       elo: wIsAI ? wEloVal : null,
     },
     black: {
-      name: bIsAI ? `Stockfish ${bEloVal}` : 'Human',
+      name: bIsAI ? `Stockfish ${bEloVal}` : bName,
       isAI: bIsAI,
       elo: bIsAI ? bEloVal : null,
     },
@@ -299,9 +307,11 @@ function startNewGame() {
     currentDbGameId = null;
   });
 
-  // If AI plays White, trigger its first move
+  // If AI plays White, show start button instead of auto-starting
   if (ai.isEnabled() && ai.isAITurn('w')) {
-    triggerAIMove();
+    startGameBtn.classList.remove('hidden');
+  } else {
+    startGameBtn.classList.add('hidden');
   }
 }
 
@@ -313,6 +323,7 @@ board.onMove((result) => {
   if (moveCount === 1) {
     appEl.classList.remove('pre-game');
     closeAllPopups();
+    startGameBtn.classList.add('hidden');
   }
 
   renderCaptured();
@@ -373,6 +384,85 @@ timer.onTimeout((loser) => {
 });
 
 newGameBtn.addEventListener('click', startNewGame);
+
+// Start button — deferred AI start
+startGameBtn.addEventListener('click', () => {
+  startGameBtn.classList.add('hidden');
+  appEl.classList.remove('pre-game');
+  closeAllPopups();
+  triggerAIMove();
+});
+
+// --- Editable Player Names ---
+
+function startNameEdit(nameEl, side) {
+  // Prevent double-editing
+  if (nameEl.querySelector('.player-name-input')) return;
+
+  const currentName = nameEl.textContent;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'player-name-input';
+  input.value = currentName;
+  input.maxLength = 20;
+
+  nameEl.textContent = '';
+  nameEl.appendChild(input);
+  input.focus();
+  input.select();
+
+  function commitName() {
+    const newName = input.value.trim() || (side === 'white' ? 'Human' : 'Human');
+    nameEl.textContent = newName;
+
+    // Only save custom name for human players
+    const isAI = side === 'white' ? aiWhiteToggle.checked : aiBlackToggle.checked;
+    if (!isAI) {
+      if (side === 'white') {
+        customWhiteName = newName === 'Human' ? null : newName;
+      } else {
+        customBlackName = newName === 'Human' ? null : newName;
+      }
+    }
+
+    // Update database
+    if (currentDbGameId !== null) {
+      db.updatePlayerName(currentDbGameId, side, newName)
+        .catch(err => console.warn('Failed to update player name:', err));
+    }
+  }
+
+  function cancelEdit() {
+    nameEl.textContent = currentName;
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitName();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEdit();
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    // Only commit if input is still in DOM (wasn't cancelled by Escape)
+    if (nameEl.contains(input)) {
+      commitName();
+    }
+  });
+}
+
+playerNameWhite.addEventListener('click', (e) => {
+  e.stopPropagation();
+  startNameEdit(playerNameWhite, 'white');
+});
+
+playerNameBlack.addEventListener('click', (e) => {
+  e.stopPropagation();
+  startNameEdit(playerNameBlack, 'black');
+});
 
 // Game history button
 gameHistoryBtn.addEventListener('click', () => {
@@ -510,6 +600,13 @@ playerIconBlack.addEventListener('click', () => {
   if (moveCount > 0) return;
   aiBlackToggle.checked = !aiBlackToggle.checked;
   aiBlackToggle.dispatchEvent(new Event('change'));
+  startNewGame();
+});
+
+// Click game type label to toggle Chess960 ↔ Standard (only before first move)
+gameTypeLabel.addEventListener('click', () => {
+  if (moveCount > 0) return;
+  chess960Toggle.checked = !chess960Toggle.checked;
   startNewGame();
 });
 

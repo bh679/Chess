@@ -145,6 +145,36 @@ class GameDatabase {
   }
 
   /**
+   * Update a player's name in an existing game record (get-modify-put).
+   * @param {Number} gameId
+   * @param {String} side - 'white' or 'black'
+   * @param {String} name - new player name
+   */
+  async updatePlayerName(gameId, side, name) {
+    if (!this._available || gameId === null) return;
+
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const getReq = store.get(gameId);
+
+      getReq.onsuccess = () => {
+        const record = getReq.result;
+        if (!record) {
+          reject(new Error(`Game ${gameId} not found`));
+          return;
+        }
+        record[side].name = name;
+        const putReq = store.put(record);
+        putReq.onsuccess = () => resolve();
+        putReq.onerror = () => reject(putReq.error);
+      };
+
+      getReq.onerror = () => reject(getReq.error);
+    });
+  }
+
+  /**
    * Get a full game record by id.
    */
   async getGame(gameId) {

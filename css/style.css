@@ -41,6 +41,34 @@ body {
   flex-shrink: 0;
 }
 
+/* Status row */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Game type label */
+.game-type-label {
+  color: #999;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  background: #272522;
+  border-radius: 6px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pre-game .game-type-label {
+  cursor: pointer;
+}
+
+.pre-game .game-type-label:hover {
+  color: #e0e0e0;
+  background: #2d2a27;
+}
+
 /* Status bar */
 .status {
   color: #e0e0e0;
@@ -294,6 +322,24 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   user-select: none;
+  cursor: pointer;
+}
+
+.player-name:hover {
+  color: #e0e0e0;
+}
+
+.player-name-input {
+  background: #1a1816;
+  color: #e0e0e0;
+  border: 1px solid #4a9e5c;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 1px 4px;
+  width: 80px;
+  font-family: inherit;
+  outline: none;
 }
 
 .player-elo {
@@ -710,6 +756,11 @@ body {
 
 .controls button:not(.settings-btn):active {
   background: #347a43;
+}
+
+/* Start game button */
+.start-game-btn.hidden {
+  display: none;
 }
 
 /* Custom time modal */
