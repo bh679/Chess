@@ -2,6 +2,9 @@ import { Game } from './game.js';
 import { Board } from './board.js';
 import { Timer } from './timer.js';
 import { AI } from './ai.js';
+import { GameDatabase } from './database.js';
+import { GameBrowser } from './browser.js';
+import { ReplayViewer } from './replay.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -53,13 +56,18 @@ const archiveToggleBtn = document.getElementById('archive-toggle');
 const archiveMenu = document.getElementById('archive-menu');
 const playerIconWhite = document.getElementById('player-icon-white');
 const playerIconBlack = document.getElementById('player-icon-black');
+const gameHistoryBtn = document.getElementById('game-history-btn');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
 const ai = new AI();
+const db = new GameDatabase();
+const replayViewer = new ReplayViewer();
+const gameBrowser = new GameBrowser(db, replayViewer);
 
 let moveCount = 0;
 let gameId = 0;
+let currentDbGameId = null;
 
 function renderCaptured() {
   const captured = game.getCaptured();
@@ -166,9 +174,42 @@ function triggerAIMove() {
   }, 400);
 }
 
+// --- Game Database Helpers ---
+
+function getGameResult() {
+  if (game.chess.isCheckmate()) {
+    const winner = game.getTurn() === 'w' ? 'black' : 'white';
+    return { result: winner, reason: 'checkmate' };
+  }
+  if (game.chess.isStalemate()) {
+    return { result: 'draw', reason: 'stalemate' };
+  }
+  if (game.chess.isInsufficientMaterial()) {
+    return { result: 'draw', reason: 'insufficient' };
+  }
+  if (game.chess.isThreefoldRepetition()) {
+    return { result: 'draw', reason: 'threefold' };
+  }
+  // 50-move rule or other draw
+  return { result: 'draw', reason: 'draw' };
+}
+
+function getTimeControlLabel() {
+  const val = timeControlSelect.value;
+  if (val === '0') return 'none';
+  const selectedOption = timeControlSelect.selectedOptions[0];
+  return selectedOption ? selectedOption.textContent : 'none';
+}
+
 // --- Game Flow ---
 
 function startNewGame() {
+  // End the current game as abandoned if moves were made and game isn't over
+  if (currentDbGameId !== null && moveCount > 0 && !game.isGameOver()) {
+    db.endGame(currentDbGameId, 'abandoned', 'abandoned')
+      .catch(err => console.warn('Failed to abandon game in DB:', err));
+  }
+
   gameId++;
   ai.stop();
 
@@ -218,6 +259,30 @@ function startNewGame() {
 
   renderCaptured();
 
+  // Save game to database
+  const wEloVal = parseInt(aiWhiteEloSlider.value, 10);
+  const bEloVal = parseInt(aiBlackEloSlider.value, 10);
+  db.createGame({
+    gameType: chess960 ? 'chess960' : 'standard',
+    timeControl: getTimeControlLabel(),
+    startingFen: game.chess.fen(),
+    white: {
+      name: wIsAI ? `Stockfish ${wEloVal}` : 'Human',
+      isAI: wIsAI,
+      elo: wIsAI ? wEloVal : null,
+    },
+    black: {
+      name: bIsAI ? `Stockfish ${bEloVal}` : 'Human',
+      isAI: bIsAI,
+      elo: bIsAI ? bEloVal : null,
+    },
+  }).then(id => {
+    currentDbGameId = id;
+  }).catch(err => {
+    console.warn('Failed to save game to database:', err);
+    currentDbGameId = null;
+  });
+
   // If AI plays White, trigger its first move
   if (ai.isEnabled() && ai.isAITurn('w')) {
     triggerAIMove();
@@ -228,6 +293,18 @@ board.onMove((result) => {
   moveCount++;
   showingGameInfo = false;
   renderCaptured();
+
+  // Save move to database
+  if (currentDbGameId !== null) {
+    const side = game.getTurn() === 'w' ? 'b' : 'w'; // side that just moved
+    db.addMove(currentDbGameId, {
+      ply: moveCount - 1,
+      san: result.san,
+      fen: game.chess.fen(),
+      timestamp: Date.now(),
+      side: side,
+    }).catch(err => console.warn('Failed to save move:', err));
+  }
 
   if (timer.isEnabled()) {
     const currentTurn = game.getTurn();
@@ -242,6 +319,13 @@ board.onMove((result) => {
   if (game.isGameOver()) {
     timer.stop();
     updateStatus();
+
+    // Save game result to database
+    if (currentDbGameId !== null) {
+      const { result: dbResult, reason } = getGameResult();
+      db.endGame(currentDbGameId, dbResult, reason)
+        .catch(err => console.warn('Failed to end game in DB:', err));
+    }
     return;
   }
 
@@ -255,9 +339,21 @@ timer.onTimeout((loser) => {
   ai.stop();
   const winner = loser === 'White' ? 'Black' : 'White';
   updateStatus(`Time out! ${winner} wins`);
+
+  // Save timeout result to database
+  if (currentDbGameId !== null) {
+    const dbResult = loser === 'White' ? 'black' : 'white';
+    db.endGame(currentDbGameId, dbResult, 'timeout')
+      .catch(err => console.warn('Failed to end game in DB:', err));
+  }
 });
 
 newGameBtn.addEventListener('click', startNewGame);
+
+// Game history button
+gameHistoryBtn.addEventListener('click', () => {
+  gameBrowser.open();
+});
 
 // Time control select
 timeControlSelect.addEventListener('change', () => {
@@ -388,10 +484,10 @@ checkDevMode();
 // Poll for changes every 500ms
 setInterval(checkDevMode, 500);
 
-// Initialize AI engine, then start game
-ai.init().then(() => {
-  startNewGame();
-}).catch((e) => {
-  console.warn('AI engine failed to load, continuing without AI:', e);
+// Initialize DB and AI engine, then start game
+Promise.all([
+  db.open().catch(e => { console.warn('Database unavailable:', e); }),
+  ai.init().catch(e => { console.warn('AI engine failed to load, continuing without AI:', e); }),
+]).then(() => {
   startNewGame();
 });

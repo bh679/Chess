@@ -144,3 +144,8 @@ dev-mode-off.html
 
 # Archive folder
 archive/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3

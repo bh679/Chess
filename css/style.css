@@ -314,6 +314,30 @@ body {
   justify-content: center;
 }
 
+/* History button */
+.history-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  background: #272522;
+  color: #999;
+  border: 2px solid #4a4744;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.history-btn:hover {
+  border-color: #6a6764;
+  color: #e0e0e0;
+  background: #2d2a27;
+}
+
+.history-btn svg {
+  display: block;
+}
+
 /* Settings toggle button */
 .settings-btn {
   display: flex;
@@ -1058,6 +1082,323 @@ body {
   }
   100% {
     transform: translateX(0) rotate(0deg) scale(1);
+  }
+}
+
+/* =========================================
+   Replay Viewer
+   ========================================= */
+
+.replay-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.replay-overlay.hidden {
+  display: none;
+}
+
+.replay-container {
+  background: #272522;
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  max-width: 900px;
+  width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.replay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #3d3a37;
+}
+
+.replay-game-info {
+  color: #e0e0e0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.replay-close-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.replay-close-btn:hover {
+  color: #e0e0e0;
+}
+
+.replay-body {
+  display: flex;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.replay-board-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+}
+
+.replay-board {
+  width: min(55vw, 50vh, 480px);
+  height: min(55vw, 50vh, 480px);
+}
+
+.replay-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.replay-btn {
+  background: #3d3a37;
+  border: none;
+  color: #e0e0e0;
+  font-size: 1rem;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.replay-btn:hover {
+  background: #4a4744;
+}
+
+.replay-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.replay-btn-play {
+  background: #4a9e5c;
+  padding: 8px 18px;
+  font-size: 1.1rem;
+}
+
+.replay-btn-play:hover {
+  background: #3d8a4e;
+}
+
+.replay-btn-play.playing {
+  background: #c4a03a;
+}
+
+.replay-btn-play.playing:hover {
+  background: #b0902e;
+}
+
+/* Move list panel */
+.replay-move-list {
+  flex: 1;
+  min-width: 200px;
+  max-width: 260px;
+  overflow-y: auto;
+  padding: 12px;
+  border-left: 1px solid #3d3a37;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+}
+
+.move-row {
+  display: flex;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 3px;
+}
+
+.move-number {
+  color: #666;
+  min-width: 30px;
+  text-align: right;
+}
+
+.move-white,
+.move-black {
+  color: #ccc;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  min-width: 55px;
+}
+
+.move-white:hover,
+.move-black:hover {
+  background: #3d3a37;
+}
+
+.move-active {
+  background: #4a9e5c !important;
+  color: #fff;
+}
+
+.replay-result {
+  padding: 12px 20px;
+  text-align: center;
+  color: #ffd700;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-top: 1px solid #3d3a37;
+}
+
+/* =========================================
+   Game Browser
+   ========================================= */
+
+.browser-content {
+  max-width: 500px;
+  width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.browser-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.browser-close-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.browser-close-btn:hover {
+  color: #e0e0e0;
+}
+
+.browser-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.browser-game {
+  padding: 10px 12px;
+  background: #1a1816;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.browser-game:hover {
+  background: #3d3a37;
+}
+
+.browser-game-players {
+  color: #e0e0e0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.browser-game-meta {
+  display: flex;
+  gap: 12px;
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.browser-game-result {
+  font-weight: 600;
+}
+
+.result-white {
+  color: #4a9e5c;
+}
+
+.result-black {
+  color: #64b5f6;
+}
+
+.result-draw {
+  color: #999;
+}
+
+.browser-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.browser-pagination button {
+  padding: 6px 14px;
+  background: #3d3a37;
+  color: #e0e0e0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.browser-pagination button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.browser-page-info {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.browser-empty {
+  text-align: center;
+  color: #666;
+  padding: 40px 0;
+  font-size: 0.95rem;
+}
+
+/* =========================================
+   Responsive: Replay Viewer
+   ========================================= */
+
+@media (max-width: 768px) {
+  .replay-body {
+    flex-direction: column;
+  }
+
+  .replay-move-list {
+    max-width: none;
+    max-height: 150px;
+    border-left: none;
+    border-top: 1px solid #3d3a37;
+  }
+
+  .replay-board {
+    width: min(85vw, 45vh, 400px);
+    height: min(85vw, 45vh, 400px);
   }
 }
 
