@@ -6,10 +6,12 @@ class Game {
     this._lastMove = null;
     this._captured = { w: [], b: [] }; // pieces captured BY each color
     this._chess960 = false;
+    this._timedOut = false;
   }
 
   newGame(chess960 = false) {
     this._chess960 = chess960;
+    this._timedOut = false;
     if (chess960) {
       const fen = this._generateChess960FEN();
       this.chess.load(fen);
@@ -113,7 +115,11 @@ class Game {
   }
 
   isGameOver() {
-    return this.chess.isGameOver();
+    return this._timedOut || this.chess.isGameOver();
+  }
+
+  setTimedOut() {
+    this._timedOut = true;
   }
 
   getGameStatus() {

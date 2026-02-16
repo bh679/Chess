@@ -1253,6 +1253,12 @@ body {
   border-radius: 4px;
   min-width: 60px;
   text-align: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.replay-timer.timer-active {
+  color: #fff;
+  background: #3d8a4e;
 }
 
 /* Horizontal move strips */

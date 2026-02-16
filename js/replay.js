@@ -169,6 +169,8 @@ class ReplayViewer {
         this._whiteTimerEl.textContent = '--:--';
         this._blackTimerEl.textContent = '--:--';
       }
+      // White moves first
+      this._setActiveTimer('w');
       return;
     }
 
@@ -176,11 +178,26 @@ class ReplayViewer {
     if (!snapshot) {
       this._whiteTimerEl.textContent = '--:--';
       this._blackTimerEl.textContent = '--:--';
+      this._setActiveTimer(null);
       return;
     }
 
     this._whiteTimerEl.textContent = this._formatClock(snapshot.w);
     this._blackTimerEl.textContent = this._formatClock(snapshot.b);
+
+    // Highlight the side whose clock is counting (the side about to move)
+    const nextPly = this._currentPly + 1;
+    if (nextPly < this._game.moves.length) {
+      this._setActiveTimer(this._game.moves[nextPly].side);
+    } else {
+      // Game over — no active timer
+      this._setActiveTimer(null);
+    }
+  }
+
+  _setActiveTimer(side) {
+    this._whiteTimerEl.classList.toggle('timer-active', side === 'w');
+    this._blackTimerEl.classList.toggle('timer-active', side === 'b');
   }
 
   _startClockAnimation() {

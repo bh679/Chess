@@ -338,6 +338,7 @@ board.onMove((result) => {
 
 timer.onTimeout((loser) => {
   ai.stop();
+  game.setTimedOut();
   const winner = loser === 'White' ? 'Black' : 'White';
   updateStatus(`Time out! ${winner} wins`);
 
