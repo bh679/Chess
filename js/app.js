@@ -40,10 +40,16 @@ const animationsToggle = document.getElementById('animations-toggle');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
 const artStylePicker = document.getElementById('art-style-picker');
-const aiToggle = document.getElementById('ai-toggle');
-const aiSettingsPanel = document.getElementById('ai-settings');
-const aiColorSelect = document.getElementById('ai-color');
-const aiDifficultySelect = document.getElementById('ai-difficulty');
+const aiWhiteToggle = document.getElementById('ai-white-toggle');
+const aiWhiteEloSlider = document.getElementById('ai-white-elo');
+const aiWhiteEloValue = document.getElementById('ai-white-elo-value');
+const aiWhiteEloWrapper = document.getElementById('ai-white-elo-wrapper');
+const aiBlackToggle = document.getElementById('ai-black-toggle');
+const aiBlackEloSlider = document.getElementById('ai-black-elo');
+const aiBlackEloValue = document.getElementById('ai-black-elo-value');
+const aiBlackEloWrapper = document.getElementById('ai-black-elo-wrapper');
+const archiveToggleBtn = document.getElementById('archive-toggle');
+const archiveMenu = document.getElementById('archive-menu');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
@@ -112,21 +118,24 @@ function getTimeConfig() {
 function triggerAIMove() {
   if (!ai.isEnabled()) return;
   if (game.isGameOver()) return;
-  if (!ai.isAITurn(game.getTurn())) return;
+  const turn = game.getTurn();
+  if (!ai.isAITurn(turn)) return;
   if (ai.isThinking()) return;
 
   const currentGameId = gameId;
+  const elo = ai.getElo(turn);
+  const sideLabel = turn === 'w' ? 'White' : 'Black';
 
   setTimeout(async () => {
     // Check again after delay in case game state changed
     if (currentGameId !== gameId) return;
     if (game.isGameOver()) return;
 
-    updateStatus('Computer is thinking...');
+    updateStatus(`${sideLabel} AI is thinking...`);
 
     try {
       const fen = game.chess.fen();
-      const move = await ai.requestMove(fen);
+      const move = await ai.requestMove(fen, elo);
 
       // Discard if game changed during thinking
       if (currentGameId !== gameId) return;
@@ -153,11 +162,12 @@ function startNewGame() {
   board.render();
   moveCount = 0;
 
-  // Configure AI
+  // Configure AI (per-side)
   ai.configure({
-    enabled: aiToggle.checked,
-    color: aiColorSelect.value,
-    difficulty: aiDifficultySelect.value,
+    whiteEnabled: aiWhiteToggle.checked,
+    whiteElo: parseInt(aiWhiteEloSlider.value, 10),
+    blackEnabled: aiBlackToggle.checked,
+    blackElo: parseInt(aiBlackEloSlider.value, 10),
   });
   board.setAI(ai);
   ai.newGame();
@@ -289,9 +299,37 @@ artStylePicker.addEventListener('click', (e) => {
   renderCaptured();
 });
 
-// AI toggle - show/hide settings
-aiToggle.addEventListener('change', () => {
-  aiSettingsPanel.classList.toggle('hidden', !aiToggle.checked);
+// AI per-side toggles - show/hide ELO sliders
+aiWhiteToggle.addEventListener('change', () => {
+  aiWhiteEloWrapper.classList.toggle('hidden', !aiWhiteToggle.checked);
+});
+
+aiBlackToggle.addEventListener('change', () => {
+  aiBlackEloWrapper.classList.toggle('hidden', !aiBlackToggle.checked);
+});
+
+// ELO slider live value display
+aiWhiteEloSlider.addEventListener('input', () => {
+  aiWhiteEloValue.textContent = aiWhiteEloSlider.value;
+});
+
+aiBlackEloSlider.addEventListener('input', () => {
+  aiBlackEloValue.textContent = aiBlackEloSlider.value;
+});
+
+// Archive menu toggle
+archiveToggleBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  archiveMenu.classList.toggle('hidden');
+});
+
+// Close archive menu on outside click
+document.addEventListener('click', (e) => {
+  if (!archiveMenu.classList.contains('hidden') &&
+      !archiveMenu.contains(e.target) &&
+      e.target !== archiveToggleBtn) {
+    archiveMenu.classList.add('hidden');
+  }
 });
 
 // Dev indicator management

@@ -1,15 +1,17 @@
 /**
  * AI Module - Stockfish WASM integration via Web Worker
  * Communicates with the engine using UCI protocol
+ * Supports independent AI for White and Black with ELO-based difficulty
  */
 
 class AI {
   constructor() {
     this._worker = null;
     this._ready = false;
-    this._enabled = false;
-    this._color = 'b'; // which color the AI plays ('w' or 'b')
-    this._difficulty = 'medium';
+    this._whiteEnabled = false;
+    this._blackEnabled = false;
+    this._whiteElo = 1500;
+    this._blackElo = 1500;
     this._thinking = false;
     this._resolveMove = null;
     this._rejectMove = null;
@@ -71,26 +73,36 @@ class AI {
   }
 
   /**
-   * Configure AI settings
+   * Configure AI settings (per-side)
    */
-  configure({ enabled, color, difficulty }) {
-    this._enabled = enabled;
-    this._color = color;
-    this._difficulty = difficulty;
+  configure({ whiteEnabled, whiteElo, blackEnabled, blackElo }) {
+    this._whiteEnabled = whiteEnabled;
+    this._blackEnabled = blackEnabled;
+    this._whiteElo = whiteElo;
+    this._blackElo = blackElo;
   }
 
   /**
-   * Check if AI is enabled
+   * Check if AI is enabled for at least one side
    */
   isEnabled() {
-    return this._enabled && this._ready;
+    return (this._whiteEnabled || this._blackEnabled) && this._ready;
   }
 
   /**
    * Check if it's AI's turn
    */
   isAITurn(currentTurn) {
-    return this._enabled && this._color === currentTurn;
+    if (currentTurn === 'w') return this._whiteEnabled;
+    if (currentTurn === 'b') return this._blackEnabled;
+    return false;
+  }
+
+  /**
+   * Get the ELO for a given side
+   */
+  getElo(turn) {
+    return turn === 'w' ? this._whiteElo : this._blackElo;
   }
 
   /**
@@ -103,9 +115,10 @@ class AI {
   /**
    * Request the AI to compute the best move for the given position
    * @param {string} fen - FEN string of current position
+   * @param {number} elo - ELO rating for this move's side
    * @returns {Promise<{from: string, to: string, promotion: string|null}>}
    */
-  requestMove(fen) {
+  requestMove(fen, elo) {
     if (!this._ready) {
       return Promise.resolve(null);
     }
@@ -121,10 +134,18 @@ class AI {
       this._resolveMove = resolve;
       this._rejectMove = reject;
 
-      const params = this._getDifficultyParams();
+      const params = this._getEloParams(elo);
 
-      // Set skill level
-      this._send(`setoption name Skill Level value ${params.skillLevel}`);
+      if (params.useUciElo) {
+        // Higher ELO: use UCI_LimitStrength + UCI_Elo
+        this._send('setoption name UCI_LimitStrength value true');
+        this._send(`setoption name UCI_Elo value ${params.uciElo}`);
+        this._send(`setoption name Skill Level value 20`);
+      } else {
+        // Lower ELO: use Skill Level
+        this._send('setoption name UCI_LimitStrength value false');
+        this._send(`setoption name Skill Level value ${params.skillLevel}`);
+      }
 
       // Set position
       this._send(`position fen ${fen}`);
@@ -179,18 +200,23 @@ class AI {
   }
 
   /**
-   * Get UCI parameters based on difficulty level
+   * Map ELO rating to UCI engine parameters
+   * ELO >= 1320: Use UCI_LimitStrength + UCI_Elo (engine's built-in ELO limiter)
+   * ELO < 1320:  Use Skill Level 0-6 + low depth (for weaker play)
    */
-  _getDifficultyParams() {
-    switch (this._difficulty) {
-      case 'easy':
-        return { depth: 3, skillLevel: 3 };
-      case 'medium':
-        return { depth: 10, skillLevel: 10 };
-      case 'hard':
-        return { depth: 18, skillLevel: 20 };
-      default:
-        return { depth: 10, skillLevel: 10 };
+  _getEloParams(elo) {
+    if (elo >= 1320) {
+      // Clamp UCI_Elo to Stockfish's supported range
+      const uciElo = Math.min(elo, 3190);
+      // Scale depth from 10 (at 1320) to 22 (at 3200)
+      const depth = Math.round(10 + (elo - 1320) * 12 / (3200 - 1320));
+      return { useUciElo: true, uciElo, depth };
+    } else {
+      // Map 100-1320 linearly to Skill Level 0-6 and depth 1-8
+      const t = (elo - 100) / (1320 - 100); // 0..1
+      const skillLevel = Math.round(t * 6);
+      const depth = Math.round(1 + t * 7);
+      return { useUciElo: false, skillLevel, depth };
     }
   }
 

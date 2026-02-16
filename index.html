@@ -40,20 +40,27 @@
         <input type="checkbox" id="animations-toggle" checked>
         <span>Animations</span>
       </label>
-      <label class="control-checkbox">
-        <input type="checkbox" id="ai-toggle">
-        <span>Play vs Computer</span>
-      </label>
-      <div id="ai-settings" class="ai-settings hidden">
-        <select id="ai-color">
-          <option value="b" selected>AI plays Black</option>
-          <option value="w">AI plays White</option>
-        </select>
-        <select id="ai-difficulty">
-          <option value="easy">Easy</option>
-          <option value="medium" selected>Medium</option>
-          <option value="hard">Hard</option>
-        </select>
+      <div class="ai-per-side">
+        <div class="ai-side-control">
+          <label class="control-checkbox">
+            <input type="checkbox" id="ai-white-toggle">
+            <span>AI White</span>
+          </label>
+          <div id="ai-white-elo-wrapper" class="ai-elo-wrapper hidden">
+            <input type="range" id="ai-white-elo" class="elo-slider" min="100" max="3200" value="1500" step="50">
+            <span id="ai-white-elo-value" class="elo-value">1500</span>
+          </div>
+        </div>
+        <div class="ai-side-control">
+          <label class="control-checkbox">
+            <input type="checkbox" id="ai-black-toggle">
+            <span>AI Black</span>
+          </label>
+          <div id="ai-black-elo-wrapper" class="ai-elo-wrapper hidden">
+            <input type="range" id="ai-black-elo" class="elo-slider" min="100" max="3200" value="1500" step="50">
+            <span id="ai-black-elo-value" class="elo-value">1500</span>
+          </div>
+        </div>
       </div>
       <div class="art-style-picker" id="art-style-picker">
         <button class="art-style-option selected" data-style="classic" aria-label="Classic style" title="Classic">
@@ -100,6 +107,12 @@
   </div>
   <footer class="footer">
     <a href="https://github.com/bh679/Narrative-Chess" target="_blank" rel="noopener">GitHub</a>
+    <div class="archive-wrapper">
+      <button id="archive-toggle" class="archive-btn">Archive</button>
+      <div id="archive-menu" class="archive-menu hidden">
+        <a href="archive/chess960/index.html" target="_blank">Chess960</a>
+      </div>
+    </div>
     <span class="version">v0.07.000</span>
     <span id="dev-indicator" class="dev-indicator hidden">CODE EDITING</span>
   </footer>
