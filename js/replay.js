@@ -101,8 +101,16 @@ class ReplayViewer {
 
   _parseTimeControl(tc) {
     if (!tc || tc === 'none' || tc === 'No Timer') return null;
-    // Formats: "Rapid 10+0", "Blitz 3+2", "Bullet 1+0", "Classical 30+0", "Custom 5+3"
-    // Also "Custom W5 / B3 +2"
+    // Odds format: "Custom W10 / B5 +2"
+    const oddsMatch = tc.match(/W(\d+)\s*\/\s*B(\d+)\s*\+(\d+)/);
+    if (oddsMatch) {
+      return {
+        baseSec: parseInt(oddsMatch[1], 10) * 60,
+        blackBaseSec: parseInt(oddsMatch[2], 10) * 60,
+        increment: parseInt(oddsMatch[3], 10),
+      };
+    }
+    // Standard format: "Rapid 10+0", "Blitz 3+2", "Custom 5+3"
     const match = tc.match(/(\d+)\+(\d+)/);
     if (!match) return null;
     return { baseSec: parseInt(match[1], 10) * 60, increment: parseInt(match[2], 10) };
@@ -122,7 +130,7 @@ class ReplayViewer {
     }
 
     let whiteTime = tc.baseSec;
-    let blackTime = tc.baseSec;
+    let blackTime = tc.blackBaseSec || tc.baseSec;
     let prevTimestamp = this._game.startTime;
 
     for (let i = 0; i < this._game.moves.length; i++) {
@@ -164,7 +172,7 @@ class ReplayViewer {
       const tc = this._parseTimeControl(this._game.timeControl);
       if (tc) {
         this._whiteTimerEl.textContent = this._formatClock(tc.baseSec);
-        this._blackTimerEl.textContent = this._formatClock(tc.baseSec);
+        this._blackTimerEl.textContent = this._formatClock(tc.blackBaseSec || tc.baseSec);
       } else {
         this._whiteTimerEl.textContent = '--:--';
         this._blackTimerEl.textContent = '--:--';

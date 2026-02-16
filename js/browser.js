@@ -90,6 +90,13 @@ class GameBrowser {
       dateEl.textContent = this._formatDate(game.startTime);
       meta.appendChild(dateEl);
 
+      if (game.timeControl && game.timeControl !== 'none') {
+        const tcEl = document.createElement('span');
+        tcEl.className = 'browser-game-tc';
+        tcEl.textContent = game.timeControl;
+        meta.appendChild(tcEl);
+      }
+
       const movesEl = document.createElement('span');
       movesEl.className = 'browser-game-moves';
       movesEl.textContent = `${game.moveCount} moves`;

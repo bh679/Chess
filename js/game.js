@@ -53,7 +53,9 @@ class Game {
     const rank8 = backRank.join('').toLowerCase(); // White pieces on rank 8
     const rank1 = backRank.join('').toUpperCase(); // Black pieces on rank 1
 
-    return `${rank8}/pppppppp/8/8/8/8/PPPPPPPP/${rank1} w KQkq - 0 1`;
+    // Disable castling in Chess960 — chess.js doesn't support non-standard
+    // rook positions for castling, which causes illegal moves and stuck AI.
+    return `${rank8}/pppppppp/8/8/8/8/PPPPPPPP/${rank1} w - - 0 1`;
   }
 
   _shuffle(array) {
