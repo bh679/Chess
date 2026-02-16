@@ -27,8 +27,18 @@ body {
   max-height: 100vh;
   max-height: 100dvh; /* Dynamic viewport height for mobile */
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 12px;
   width: 100%;
+}
+
+/* When settings are open, allow scrolling past the board on mobile */
+.app.settings-open .board {
+  touch-action: pan-y;
+}
+
+.app.settings-open .settings-panel {
+  flex-shrink: 0;
 }
 
 /* Status bar */

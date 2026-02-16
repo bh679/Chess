@@ -410,9 +410,12 @@ animationsToggle.addEventListener('change', () => {
 
 // Settings panel toggle
 settingsToggle.addEventListener('click', () => {
-  const open = settingsPanel.classList.toggle('hidden');
-  settingsToggle.classList.toggle('active', !open);
-  settingsToggle.setAttribute('aria-expanded', !open);
+  const isHidden = settingsPanel.classList.toggle('hidden');
+  settingsToggle.classList.toggle('active', !isHidden);
+  settingsToggle.setAttribute('aria-expanded', !isHidden);
+
+  // Toggle scroll mode — enable scrolling when settings are open
+  document.querySelector('.app').classList.toggle('settings-open', !isHidden);
 });
 
 // Art style picker
