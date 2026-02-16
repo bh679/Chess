@@ -473,6 +473,8 @@ gameHistoryBtn.addEventListener('click', () => {
 timeControlSelect.addEventListener('change', () => {
   if (timeControlSelect.value === 'custom') {
     customTimeModal.classList.remove('hidden');
+  } else {
+    startNewGame();
   }
 });
 
@@ -509,6 +511,7 @@ customTimeOk.addEventListener('click', () => {
   opt.selected = true;
   timeControlSelect.insertBefore(opt, timeControlSelect.querySelector('[value="custom"]'));
   customTimeModal.classList.add('hidden');
+  startNewGame();
 });
 
 customTimeCancel.addEventListener('click', () => {
