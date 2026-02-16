@@ -1120,7 +1120,7 @@ body {
   background: #272522;
   border-radius: 12px;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
-  max-width: 900px;
+  max-width: 650px;
   width: 95vw;
   max-height: 95vh;
   display: flex;
@@ -1137,9 +1137,20 @@ body {
 }
 
 .replay-game-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.replay-title {
   color: #e0e0e0;
   font-size: 1rem;
   font-weight: 600;
+}
+
+.replay-subtitle {
+  color: #999;
+  font-size: 0.8rem;
+  margin-top: 2px;
 }
 
 .replay-close-btn {
@@ -1167,8 +1178,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px;
-  gap: 12px;
+  padding: 12px 16px;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .replay-board {
@@ -1220,48 +1235,101 @@ body {
   background: #b0902e;
 }
 
-/* Move list panel */
-.replay-move-list {
-  flex: 1;
-  min-width: 200px;
-  max-width: 260px;
-  overflow-y: auto;
-  padding: 12px;
-  border-left: 1px solid #3d3a37;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.9rem;
-}
-
-.move-row {
+/* Player bars with timers */
+.replay-player-bar {
   display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding: 2px 0;
+}
+
+.replay-timer {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  background: #1a1816;
+  padding: 4px 12px;
+  border-radius: 4px;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Horizontal move strips */
+.replay-move-strip {
+  display: flex;
+  align-items: center;
   gap: 4px;
-  padding: 3px 4px;
-  border-radius: 3px;
+  width: 100%;
 }
 
-.move-number {
+.strip-moves {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  padding: 3px 0;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
+
+.strip-moves::-webkit-scrollbar {
+  display: none;
+}
+
+.strip-move-num {
   color: #666;
-  min-width: 30px;
-  text-align: right;
+  font-size: 0.7rem;
+  padding: 2px 0 2px 4px;
+  font-family: 'Courier New', Courier, monospace;
+  flex-shrink: 0;
 }
 
-.move-white,
-.move-black {
+.strip-move {
   color: #ccc;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 3px 7px;
+  border-radius: 4px;
   cursor: pointer;
-  min-width: 55px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+  transition: background-color 0.1s;
 }
 
-.move-white:hover,
-.move-black:hover {
+.strip-move:hover {
   background: #3d3a37;
 }
 
-.move-active {
+.strip-move-active {
   background: #4a9e5c !important;
   color: #fff;
+}
+
+.strip-scroll-btn {
+  background: #3d3a37;
+  border: none;
+  color: #999;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.strip-scroll-btn:hover {
+  background: #4a4744;
+  color: #e0e0e0;
+}
+
+.strip-scroll-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .replay-result {
@@ -1395,20 +1463,28 @@ body {
    ========================================= */
 
 @media (max-width: 768px) {
-  .replay-body {
-    flex-direction: column;
-  }
-
-  .replay-move-list {
-    max-width: none;
-    max-height: 150px;
-    border-left: none;
-    border-top: 1px solid #3d3a37;
-  }
-
   .replay-board {
     width: min(85vw, 45vh, 400px);
     height: min(85vw, 45vh, 400px);
+  }
+
+  .replay-board-area {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .replay-timer {
+    font-size: 0.85rem;
+    padding: 3px 8px;
+  }
+
+  .strip-move {
+    font-size: 0.75rem;
+    padding: 2px 5px;
+  }
+
+  .strip-move-num {
+    font-size: 0.65rem;
   }
 }
 
