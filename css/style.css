@@ -288,6 +288,102 @@ body {
   user-select: none;
 }
 
+/* Player name + elo labels */
+.player-name {
+  color: #ccc;
+  font-size: 0.8rem;
+  font-weight: 600;
+  user-select: none;
+}
+
+.player-elo {
+  color: #999;
+  font-size: 0.75rem;
+  font-family: 'Courier New', Courier, monospace;
+  cursor: default;
+  user-select: none;
+}
+
+.player-elo.hidden { display: none; }
+
+/* Pre-game interactive states */
+.pre-game .player-icon {
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.pre-game .player-icon:hover {
+  transform: scale(1.2);
+}
+
+.pre-game .timer {
+  cursor: pointer;
+}
+
+.pre-game .timer:hover {
+  background: #2a2725;
+  outline: 1px solid #4a4744;
+}
+
+.pre-game .player-elo:not(.hidden) {
+  cursor: pointer;
+}
+
+.pre-game .player-elo:not(.hidden):hover {
+  color: #e0e0e0;
+}
+
+/* Timer dropdown popup */
+.timer-dropdown {
+  position: absolute;
+  background: #272522;
+  border: 1px solid #4a4744;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 500;
+  padding: 4px 0;
+  min-width: 140px;
+}
+
+.timer-dropdown-option {
+  padding: 8px 14px;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.timer-dropdown-option:hover {
+  background: #3d3a37;
+}
+
+.timer-dropdown-option.selected {
+  color: #4a9e5c;
+  font-weight: 600;
+}
+
+/* ELO popup */
+.elo-popup {
+  position: absolute;
+  background: #272522;
+  border: 1px solid #4a4744;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 500;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.elo-popup .elo-slider {
+  width: 120px;
+}
+
+.elo-popup .elo-value {
+  min-width: 36px;
+}
+
 /* Timers */
 .timer {
   font-family: 'Courier New', Courier, monospace;

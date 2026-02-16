@@ -56,7 +56,12 @@ const archiveToggleBtn = document.getElementById('archive-toggle');
 const archiveMenu = document.getElementById('archive-menu');
 const playerIconWhite = document.getElementById('player-icon-white');
 const playerIconBlack = document.getElementById('player-icon-black');
+const playerNameWhite = document.getElementById('player-name-white');
+const playerNameBlack = document.getElementById('player-name-black');
+const playerEloWhite = document.getElementById('player-elo-white');
+const playerEloBlack = document.getElementById('player-elo-black');
 const gameHistoryBtn = document.getElementById('game-history-btn');
+const appEl = document.querySelector('.app');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
@@ -253,16 +258,26 @@ function startNewGame() {
   }
   updateStatus(`${gameType} — ${matchup}`, true);
 
-  // Update player type icons
+  // Update player type icons and info
   playerIconWhite.textContent = wIsAI ? '🤖' : '👤';
   playerIconBlack.textContent = bIsAI ? '🤖' : '👤';
+  const wEloVal = parseInt(aiWhiteEloSlider.value, 10);
+  const bEloVal = parseInt(aiBlackEloSlider.value, 10);
+  playerNameWhite.textContent = wIsAI ? 'Stockfish' : 'Human';
+  playerNameBlack.textContent = bIsAI ? 'Stockfish' : 'Human';
+  playerEloWhite.textContent = wIsAI ? wEloVal : '';
+  playerEloBlack.textContent = bIsAI ? bEloVal : '';
+  playerEloWhite.classList.toggle('hidden', !wIsAI);
+  playerEloBlack.classList.toggle('hidden', !bIsAI);
+
+  // Enable pre-game interactive controls
+  appEl.classList.add('pre-game');
+  closeAllPopups();
 
   renderCaptured();
 
   // Save game to database
   currentDbGameId = null;
-  const wEloVal = parseInt(aiWhiteEloSlider.value, 10);
-  const bEloVal = parseInt(aiBlackEloSlider.value, 10);
   db.createGame({
     gameType: chess960 ? 'chess960' : 'standard',
     timeControl: getTimeControlLabel(),
@@ -293,6 +308,13 @@ function startNewGame() {
 board.onMove((result) => {
   moveCount++;
   showingGameInfo = false;
+
+  // Disable pre-game interactive controls after first move
+  if (moveCount === 1) {
+    appEl.classList.remove('pre-game');
+    closeAllPopups();
+  }
+
   renderCaptured();
 
   // Save move to database
@@ -467,6 +489,175 @@ document.addEventListener('click', (e) => {
       !archiveMenu.contains(e.target) &&
       e.target !== archiveToggleBtn) {
     archiveMenu.classList.add('hidden');
+  }
+});
+
+// --- Pre-game Inline Controls ---
+
+function closeAllPopups() {
+  document.querySelectorAll('.timer-dropdown, .elo-popup').forEach(el => el.remove());
+}
+
+// Click player icon to toggle Human ↔ AI (only before first move)
+playerIconWhite.addEventListener('click', () => {
+  if (moveCount > 0) return;
+  aiWhiteToggle.checked = !aiWhiteToggle.checked;
+  aiWhiteToggle.dispatchEvent(new Event('change'));
+  startNewGame();
+});
+
+playerIconBlack.addEventListener('click', () => {
+  if (moveCount > 0) return;
+  aiBlackToggle.checked = !aiBlackToggle.checked;
+  aiBlackToggle.dispatchEvent(new Event('change'));
+  startNewGame();
+});
+
+// Click timer for time control dropdown (only before first move)
+function showTimerDropdown(timerEl) {
+  if (moveCount > 0) return;
+  closeAllPopups();
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'timer-dropdown';
+
+  // Gather options from the time control select
+  const options = timeControlSelect.querySelectorAll('option');
+  options.forEach(opt => {
+    const item = document.createElement('div');
+    item.className = 'timer-dropdown-option';
+    if (opt.value === timeControlSelect.value) {
+      item.classList.add('selected');
+    }
+    item.textContent = opt.textContent;
+    item.dataset.value = opt.value;
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (opt.value === 'custom') {
+        closeAllPopups();
+        customTimeModal.classList.remove('hidden');
+        return;
+      }
+      timeControlSelect.value = opt.value;
+      closeAllPopups();
+      startNewGame();
+    });
+    dropdown.appendChild(item);
+  });
+
+  // Position near the timer
+  const rect = timerEl.getBoundingClientRect();
+  dropdown.style.position = 'fixed';
+  dropdown.style.left = `${rect.left}px`;
+  dropdown.style.top = `${rect.bottom + 4}px`;
+
+  // Prevent dropdown from going off-screen right
+  document.body.appendChild(dropdown);
+  const dropRect = dropdown.getBoundingClientRect();
+  if (dropRect.right > window.innerWidth) {
+    dropdown.style.left = `${window.innerWidth - dropRect.width - 8}px`;
+  }
+  // Prevent going off-screen bottom — show above instead
+  if (dropRect.bottom > window.innerHeight) {
+    dropdown.style.top = `${rect.top - dropRect.height - 4}px`;
+  }
+}
+
+timerWhiteEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  showTimerDropdown(timerWhiteEl);
+});
+
+timerBlackEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  showTimerDropdown(timerBlackEl);
+});
+
+// Click ELO label for inline slider popup (only before first move, only for AI)
+function showEloPopup(eloEl, side) {
+  if (moveCount > 0) return;
+  closeAllPopups();
+
+  const isWhite = side === 'w';
+  const slider = isWhite ? aiWhiteEloSlider : aiBlackEloSlider;
+  const settingsValue = isWhite ? aiWhiteEloValue : aiBlackEloValue;
+
+  const popup = document.createElement('div');
+  popup.className = 'elo-popup';
+
+  const rangeInput = document.createElement('input');
+  rangeInput.type = 'range';
+  rangeInput.min = '100';
+  rangeInput.max = '3200';
+  rangeInput.step = '50';
+  rangeInput.value = slider.value;
+  rangeInput.className = 'elo-slider';
+
+  const valueDisplay = document.createElement('span');
+  valueDisplay.className = 'elo-value';
+  valueDisplay.textContent = slider.value;
+
+  rangeInput.addEventListener('input', () => {
+    valueDisplay.textContent = rangeInput.value;
+    // Sync with settings panel slider
+    slider.value = rangeInput.value;
+    settingsValue.textContent = rangeInput.value;
+    // Update the player bar elo display
+    eloEl.textContent = rangeInput.value;
+  });
+
+  popup.appendChild(rangeInput);
+  popup.appendChild(valueDisplay);
+
+  // Position near the elo label
+  const rect = eloEl.getBoundingClientRect();
+  popup.style.position = 'fixed';
+  popup.style.left = `${rect.left}px`;
+  popup.style.top = `${rect.bottom + 4}px`;
+
+  document.body.appendChild(popup);
+
+  // Adjust if off-screen
+  const popRect = popup.getBoundingClientRect();
+  if (popRect.right > window.innerWidth) {
+    popup.style.left = `${window.innerWidth - popRect.width - 8}px`;
+  }
+  if (popRect.bottom > window.innerHeight) {
+    popup.style.top = `${rect.top - popRect.height - 4}px`;
+  }
+
+  // Stop click propagation so it doesn't immediately close
+  popup.addEventListener('click', (e) => e.stopPropagation());
+}
+
+playerEloWhite.addEventListener('click', (e) => {
+  e.stopPropagation();
+  showEloPopup(playerEloWhite, 'w');
+});
+
+playerEloBlack.addEventListener('click', (e) => {
+  e.stopPropagation();
+  showEloPopup(playerEloBlack, 'b');
+});
+
+// Close popups on outside click
+document.addEventListener('click', () => {
+  const hadPopup = document.querySelector('.elo-popup');
+  closeAllPopups();
+  // If an elo popup was open and just closed, restart game to apply ELO change
+  if (hadPopup && moveCount === 0) {
+    startNewGame();
+  }
+});
+
+// Close popups on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const hadPopup = document.querySelector('.elo-popup');
+    closeAllPopups();
+    if (hadPopup && moveCount === 0) {
+      startNewGame();
+    }
   }
 });
 
