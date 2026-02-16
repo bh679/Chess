@@ -1,6 +1,7 @@
 import { Game } from './game.js';
 import { Board } from './board.js';
 import { Timer } from './timer.js';
+import { AI } from './ai.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -39,11 +40,17 @@ const animationsToggle = document.getElementById('animations-toggle');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
 const artStylePicker = document.getElementById('art-style-picker');
+const aiToggle = document.getElementById('ai-toggle');
+const aiSettingsPanel = document.getElementById('ai-settings');
+const aiColorSelect = document.getElementById('ai-color');
+const aiDifficultySelect = document.getElementById('ai-difficulty');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
+const ai = new AI();
 
 let moveCount = 0;
+let gameId = 0;
 
 function renderCaptured() {
   const captured = game.getCaptured();
@@ -79,7 +86,9 @@ function renderCaptured() {
 function updateStatus(msg) {
   statusEl.textContent = msg || game.getGameStatus();
   statusEl.className = 'status';
-  if (game.isGameOver() || msg) {
+  if (msg && msg.includes('thinking')) {
+    statusEl.classList.add('ai-thinking');
+  } else if (game.isGameOver() || msg) {
     statusEl.classList.add('game-over');
   } else if (game.getGameStatus().startsWith('Check')) {
     statusEl.classList.add('in-check');
@@ -98,11 +107,60 @@ function getTimeConfig() {
   };
 }
 
+// --- AI Move Trigger ---
+
+function triggerAIMove() {
+  if (!ai.isEnabled()) return;
+  if (game.isGameOver()) return;
+  if (!ai.isAITurn(game.getTurn())) return;
+  if (ai.isThinking()) return;
+
+  const currentGameId = gameId;
+
+  setTimeout(async () => {
+    // Check again after delay in case game state changed
+    if (currentGameId !== gameId) return;
+    if (game.isGameOver()) return;
+
+    updateStatus('Computer is thinking...');
+
+    try {
+      const fen = game.chess.fen();
+      const move = await ai.requestMove(fen);
+
+      // Discard if game changed during thinking
+      if (currentGameId !== gameId) return;
+      if (!move || game.isGameOver()) return;
+
+      board.executeAIMove(move.from, move.to, move.promotion);
+    } catch (e) {
+      // Move was cancelled (e.g., new game started)
+      if (e !== 'stopped') {
+        console.error('AI move error:', e);
+      }
+    }
+  }, 400);
+}
+
+// --- Game Flow ---
+
 function startNewGame() {
+  gameId++;
+  ai.stop();
+
   const chess960 = chess960Toggle.checked;
   game.newGame(chess960);
   board.render();
   moveCount = 0;
+
+  // Configure AI
+  ai.configure({
+    enabled: aiToggle.checked,
+    color: aiColorSelect.value,
+    difficulty: aiDifficultySelect.value,
+  });
+  board.setAI(ai);
+  ai.newGame();
 
   const config = getTimeConfig();
   if (config) {
@@ -113,6 +171,11 @@ function startNewGame() {
 
   updateStatus();
   renderCaptured();
+
+  // If AI plays White, trigger its first move
+  if (ai.isEnabled() && ai.isAITurn('w')) {
+    triggerAIMove();
+  }
 }
 
 board.onMove((result) => {
@@ -131,12 +194,18 @@ board.onMove((result) => {
 
   if (game.isGameOver()) {
     timer.stop();
+    updateStatus();
+    return;
   }
 
   updateStatus();
+
+  // Trigger AI move if it's the computer's turn
+  triggerAIMove();
 });
 
 timer.onTimeout((loser) => {
+  ai.stop();
   const winner = loser === 'White' ? 'Black' : 'White';
   updateStatus(`Time out! ${winner} wins`);
 });
@@ -220,6 +289,11 @@ artStylePicker.addEventListener('click', (e) => {
   renderCaptured();
 });
 
+// AI toggle - show/hide settings
+aiToggle.addEventListener('change', () => {
+  aiSettingsPanel.classList.toggle('hidden', !aiToggle.checked);
+});
+
 // Dev indicator management
 const devIndicator = document.getElementById('dev-indicator');
 const DEV_MODE_KEY = 'chess-dev-mode';
@@ -239,5 +313,10 @@ checkDevMode();
 // Poll for changes every 500ms
 setInterval(checkDevMode, 500);
 
-// Start initial game
-startNewGame();
+// Initialize AI engine, then start game
+ai.init().then(() => {
+  startNewGame();
+}).catch((e) => {
+  console.warn('AI engine failed to load, continuing without AI:', e);
+  startNewGame();
+});

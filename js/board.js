@@ -18,6 +18,7 @@ class Board {
     this._legalMoves = [];
     this._dragging = null;
     this._animationsEnabled = true;
+    this._ai = null;
 
     this._buildGrid();
     this._bindEvents();
@@ -25,6 +26,10 @@ class Board {
 
   setAnimationsEnabled(enabled) {
     this._animationsEnabled = enabled;
+  }
+
+  setAI(ai) {
+    this._ai = ai;
   }
 
   onMove(callback) {
@@ -153,6 +158,7 @@ class Board {
 
   _handleSquareClick(square) {
     if (this.game.isGameOver()) return;
+    if (this._ai && this._ai.isEnabled() && this._ai.isAITurn(this.game.getTurn())) return;
 
     const board = this.game.getBoard();
     const piece = this._getPieceAt(square, board);
@@ -176,6 +182,7 @@ class Board {
 
   _handleDragStart(square, x, y) {
     if (this.game.isGameOver()) return;
+    if (this._ai && this._ai.isEnabled() && this._ai.isAITurn(this.game.getTurn())) return;
 
     const board = this.game.getBoard();
     const piece = this._getPieceAt(square, board);
@@ -387,6 +394,20 @@ class Board {
 
     this.promotionModal.appendChild(inner);
     this.promotionModal.classList.remove('hidden');
+  }
+
+  /**
+   * Execute a move on behalf of the AI (skips promotion modal)
+   */
+  executeAIMove(from, to, promotion) {
+    this._animateMove(from, to, () => {
+      const result = this.game.makeMove(from, to, promotion);
+      if (result.success) {
+        this._clearSelection();
+        this.render();
+        if (this._moveCallback) this._moveCallback(result);
+      }
+    });
   }
 
   _getSquareEl(square) {

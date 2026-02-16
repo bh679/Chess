@@ -40,6 +40,21 @@
         <input type="checkbox" id="animations-toggle" checked>
         <span>Animations</span>
       </label>
+      <label class="control-checkbox">
+        <input type="checkbox" id="ai-toggle">
+        <span>Play vs Computer</span>
+      </label>
+      <div id="ai-settings" class="ai-settings hidden">
+        <select id="ai-color">
+          <option value="b" selected>AI plays Black</option>
+          <option value="w">AI plays White</option>
+        </select>
+        <select id="ai-difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
       <div class="art-style-picker" id="art-style-picker">
         <button class="art-style-option selected" data-style="classic" aria-label="Classic style" title="Classic">
           <img src="img/pieces/wN.svg" alt="Classic" draggable="false">
@@ -84,8 +99,8 @@
     </div>
   </div>
   <footer class="footer">
-    <a href="https://github.com/bh679/NodeJS-Chess" target="_blank" rel="noopener">GitHub</a>
-    <span class="version">v0.06.000</span>
+    <a href="https://github.com/bh679/Narrative-Chess" target="_blank" rel="noopener">GitHub</a>
+    <span class="version">v0.07.000</span>
     <span id="dev-indicator" class="dev-indicator hidden">CODE EDITING</span>
   </footer>
   <script type="module" src="js/app.js"></script>
