@@ -579,28 +579,43 @@ async function loadArchiveMenu() {
 
   archiveMenu.innerHTML = '';
   let archiveBase = 'archive/';
-  let inParent = false;
+  let currentHref = null;
 
-  // Check if local archive/ exists
+  // Check if local archive/ exists (main app has archive/ as a subdirectory)
   try {
     const res = await fetch('archive/', { method: 'HEAD' });
     if (!res.ok) throw new Error();
   } catch {
-    // Try parent directory
+    // Try parent's archive/ (sibling relationship)
+    let found = false;
     try {
       const res = await fetch('../archive/', { method: 'HEAD' });
       if (res.ok) {
         archiveBase = '../archive/';
-        inParent = true;
+        currentHref = '../';
+        found = true;
       }
-    } catch { /* no archive found */ }
+    } catch { /* continue */ }
+    // If not found, check if we're inside the archive directory itself
+    if (!found) {
+      try {
+        const res = await fetch('../');
+        if (res.ok) {
+          const html = await res.text();
+          // If parent listing contains subdirectories, treat it as the archive
+          if (html.includes('href="') && !html.includes('<title>404')) {
+            archiveBase = '../';
+            currentHref = '../../';
+          }
+        }
+      } catch { /* no archive found */ }
+    }
   }
 
-  // If archive is in parent, add "Current" link to parent
-  if (inParent) {
+  // Add "Current" link when not at the top-level app
+  if (currentHref) {
     const currentLink = document.createElement('a');
-    currentLink.href = '../';
-    currentLink.target = '_blank';
+    currentLink.href = currentHref;
     currentLink.textContent = 'Current';
     archiveMenu.appendChild(currentLink);
   }
@@ -621,7 +636,7 @@ async function loadArchiveMenu() {
         const name = decodeURIComponent(href.replace(/\/$/, ''));
         const a = document.createElement('a');
         a.href = `${archiveBase}${href}index.html`;
-        a.target = '_blank';
+        if (!currentHref) a.target = '_blank';
         a.textContent = name;
         archiveMenu.appendChild(a);
       }

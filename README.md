@@ -57,7 +57,11 @@ A client-side chess game that runs entirely in the browser with no server or dep
 - **Captured pieces display** — shows captured pieces with material advantage indicators
 - **Responsive layout** — works on desktop and mobile
 - **Settings panel** — collapsible panel with all game configuration options
-- **Archive menu** — quick access to archived game variants
+- **Archive menu** — dynamic archive discovery with navigation between versions; opens in new tab from main app, same tab within archives
+
+## Roadmap
+
+See [TODO.md](TODO.md) for planned features and ideas.
 
 ## Getting Started
 
