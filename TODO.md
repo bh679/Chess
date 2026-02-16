@@ -7,5 +7,9 @@
 - [ ] Build arrow tools
 - [ ] Premoves
 
+## AI
+- Stockfish 17.1 (WASM)
+- Torch 4
+
 ## Out There Ideas
 - [ ] Chess.com + Omegle idea
