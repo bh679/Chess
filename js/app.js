@@ -570,10 +570,79 @@ aiBlackEloSlider.addEventListener('input', () => {
   aiBlackEloValue.textContent = aiBlackEloSlider.value;
 });
 
-// Archive menu toggle
+// Archive menu — dynamically discover archive location
+let archiveLoaded = false;
+
+async function loadArchiveMenu() {
+  if (archiveLoaded) return;
+  archiveLoaded = true;
+
+  archiveMenu.innerHTML = '';
+  let archiveBase = 'archive/';
+  let inParent = false;
+
+  // Check if local archive/ exists
+  try {
+    const res = await fetch('archive/', { method: 'HEAD' });
+    if (!res.ok) throw new Error();
+  } catch {
+    // Try parent directory
+    try {
+      const res = await fetch('../archive/', { method: 'HEAD' });
+      if (res.ok) {
+        archiveBase = '../archive/';
+        inParent = true;
+      }
+    } catch { /* no archive found */ }
+  }
+
+  // If archive is in parent, add "Current" link to parent
+  if (inParent) {
+    const currentLink = document.createElement('a');
+    currentLink.href = '../';
+    currentLink.target = '_blank';
+    currentLink.textContent = 'Current';
+    archiveMenu.appendChild(currentLink);
+  }
+
+  // Scan for subdirectories by fetching the archive index
+  try {
+    const res = await fetch(archiveBase);
+    if (res.ok) {
+      const html = await res.text();
+      // Parse directory listing links (Apache auto-index format)
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const links = doc.querySelectorAll('a[href]');
+      for (const link of links) {
+        const href = link.getAttribute('href');
+        // Skip parent, self, and query/sort links
+        if (!href || href === '../' || href === './' || href.startsWith('?') || href.startsWith('/')) continue;
+        const name = decodeURIComponent(href.replace(/\/$/, ''));
+        const a = document.createElement('a');
+        a.href = `${archiveBase}${href}index.html`;
+        a.target = '_blank';
+        a.textContent = name;
+        archiveMenu.appendChild(a);
+      }
+    }
+  } catch { /* silently fail */ }
+
+  if (archiveMenu.children.length === 0) {
+    const empty = document.createElement('span');
+    empty.textContent = 'No archives';
+    empty.style.color = '#888';
+    empty.style.padding = '4px 8px';
+    archiveMenu.appendChild(empty);
+  }
+}
+
 archiveToggleBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   archiveMenu.classList.toggle('hidden');
+  if (!archiveMenu.classList.contains('hidden')) {
+    loadArchiveMenu();
+  }
 });
 
 // Close archive menu on outside click
