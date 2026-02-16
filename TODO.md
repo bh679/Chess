@@ -8,6 +8,8 @@
 - [ ] Premoves
 
 ## AI
+- [ ] Make ai selection and include torch 4
+- [ ] Make selection list what version of stockfish
 - Stockfish 17.1 (WASM)
 - Torch 4
 
