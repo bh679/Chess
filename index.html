@@ -13,7 +13,10 @@
 
     <div class="player-bar top-bar">
       <div id="captured-by-white" class="captured-pieces"></div>
-      <div id="timer-black" class="timer">--:--</div>
+      <div class="timer-group">
+        <span id="player-icon-black" class="player-icon">👤</span>
+        <div id="timer-black" class="timer">--:--</div>
+      </div>
     </div>
 
     <div id="board" class="board"></div>
@@ -21,7 +24,10 @@
 
     <div class="player-bar bottom-bar">
       <div id="captured-by-black" class="captured-pieces"></div>
-      <div id="timer-white" class="timer">--:--</div>
+      <div class="timer-group">
+        <span id="player-icon-white" class="player-icon">👤</span>
+        <div id="timer-white" class="timer">--:--</div>
+      </div>
     </div>
 
     <div class="controls">
@@ -71,6 +77,9 @@
         </button>
         <button class="art-style-option" data-style="neo" aria-label="Neo bold style" title="Neo">
           <img src="img/pieces-neo/wN.svg" alt="Neo" draggable="false">
+        </button>
+        <button class="art-style-option" data-style="fish" aria-label="Fish style" title="Fish">
+          <img src="img/pieces-fish/wN.svg" alt="Fish" draggable="false">
         </button>
       </div>
       <select id="time-control">

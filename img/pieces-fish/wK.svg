@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
+  <!-- King: Simple solid whale tail -->
+  <g fill="#fff" stroke="#222" stroke-width="1.5" stroke-linejoin="round">
+    <!-- Solid whale tail shape -->
+    <path d="M3 5 Q7 3 11 5 Q14 8 17 14 L20 22 L23 14 Q26 8 29 5 Q33 3 37 5 Q40 7 42 5 Q39 9 35 10 Q30 11 26 16 L22 24 L18 16 Q14 11 10 10 Q6 9 3 5 Z"/>
+    <!-- Water line -->
+    <path d="M5 30 Q11 27 17 30 Q22 33 28 30 Q33 27 39 30" fill="none" stroke="#222" stroke-width="1.5"/>
+    <!-- Cross (king) -->
+    <line x1="22" y1="1" x2="22" y2="8" stroke="#222" stroke-width="2.2"/>
+    <line x1="19" y1="4.5" x2="25" y2="4.5" stroke="#222" stroke-width="2.2"/>
+    <!-- Base -->
+    <rect x="8" y="38" width="29" height="4" rx="2" fill="#fff"/>
+    <line x1="8" y1="38" x2="37" y2="38" stroke="#222" stroke-width="1.5"/>
+  </g>
+</svg>

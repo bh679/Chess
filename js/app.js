@@ -12,6 +12,7 @@ const STYLE_PATHS = {
   classic: 'img/pieces',
   pixel: 'img/pieces-pixel',
   neo: 'img/pieces-neo',
+  fish: 'img/pieces-fish',
 };
 window.chessPiecePath = STYLE_PATHS.classic;
 
@@ -50,6 +51,8 @@ const aiBlackEloValue = document.getElementById('ai-black-elo-value');
 const aiBlackEloWrapper = document.getElementById('ai-black-elo-wrapper');
 const archiveToggleBtn = document.getElementById('archive-toggle');
 const archiveMenu = document.getElementById('archive-menu');
+const playerIconWhite = document.getElementById('player-icon-white');
+const playerIconBlack = document.getElementById('player-icon-black');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
@@ -89,7 +92,19 @@ function renderCaptured() {
   }
 }
 
-function updateStatus(msg) {
+let showingGameInfo = false;
+
+function updateStatus(msg, isGameInfo) {
+  if (isGameInfo) {
+    showingGameInfo = true;
+    statusEl.textContent = msg;
+    statusEl.className = 'status new-game-info';
+    return;
+  }
+  // Keep showing game info until first move or AI thinking
+  if (showingGameInfo && !msg) return;
+  showingGameInfo = false;
+
   statusEl.textContent = msg || game.getGameStatus();
   statusEl.className = 'status';
   if (msg && msg.includes('thinking')) {
@@ -179,7 +194,28 @@ function startNewGame() {
     timer.configure(0, 0);
   }
 
-  updateStatus();
+  // Show game info status briefly
+  const gameType = chess960 ? 'Chess960' : 'Standard';
+  const wIsAI = aiWhiteToggle.checked;
+  const bIsAI = aiBlackToggle.checked;
+  let matchup;
+  if (wIsAI && bIsAI) {
+    const wElo = aiWhiteEloSlider.value;
+    const bElo = aiBlackEloSlider.value;
+    matchup = wElo === bElo ? `AI vs AI (${wElo})` : `AI (${wElo}) vs AI (${bElo})`;
+  } else if (wIsAI) {
+    matchup = `AI (${aiWhiteEloSlider.value}) vs Human`;
+  } else if (bIsAI) {
+    matchup = `Human vs AI (${aiBlackEloSlider.value})`;
+  } else {
+    matchup = 'Human vs Human';
+  }
+  updateStatus(`${gameType} — ${matchup}`, true);
+
+  // Update player type icons
+  playerIconWhite.textContent = wIsAI ? '🤖' : '👤';
+  playerIconBlack.textContent = bIsAI ? '🤖' : '👤';
+
   renderCaptured();
 
   // If AI plays White, trigger its first move
@@ -190,6 +226,7 @@ function startNewGame() {
 
 board.onMove((result) => {
   moveCount++;
+  showingGameInfo = false;
   renderCaptured();
 
   if (timer.isEnabled()) {

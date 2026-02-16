@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
+  <!-- Rook: Crab (black) -->
+  <g fill="#333" stroke="#111" stroke-width="1.5" stroke-linejoin="round">
+    <!-- Left claw -->
+    <path d="M6 14 L3 10 L7 11 L9 8 L10 13" fill="#333"/>
+    <!-- Right claw -->
+    <path d="M39 14 L42 10 L38 11 L36 8 L35 13" fill="#333"/>
+    <!-- Body shell -->
+    <ellipse cx="22.5" cy="20" rx="14" ry="9"/>
+    <!-- Shell pattern -->
+    <path d="M14 16 Q22 12 31 16" fill="none" stroke="#555" stroke-width="1"/>
+    <path d="M12 20 Q22 16 33 20" fill="none" stroke="#555" stroke-width="1"/>
+    <!-- Eyes on stalks -->
+    <line x1="17" y1="12" x2="15" y2="8" stroke="#111" stroke-width="1.5"/>
+    <circle cx="15" cy="7" r="2" fill="#333" stroke="#111"/>
+    <circle cx="15" cy="7" r="0.8" fill="#ddd" stroke="none"/>
+    <line x1="28" y1="12" x2="30" y2="8" stroke="#111" stroke-width="1.5"/>
+    <circle cx="30" cy="7" r="2" fill="#333" stroke="#111"/>
+    <circle cx="30" cy="7" r="0.8" fill="#ddd" stroke="none"/>
+    <!-- Legs -->
+    <line x1="12" y1="24" x2="8" y2="30" stroke="#111" stroke-width="1.5"/>
+    <line x1="16" y1="26" x2="13" y2="32" stroke="#111" stroke-width="1.5"/>
+    <line x1="33" y1="24" x2="37" y2="30" stroke="#111" stroke-width="1.5"/>
+    <line x1="29" y1="26" x2="32" y2="32" stroke="#111" stroke-width="1.5"/>
+    <!-- Base -->
+    <rect x="8" y="38" width="29" height="4" rx="2" fill="#333"/>
+    <line x1="8" y1="38" x2="37" y2="38" stroke="#111" stroke-width="1.5"/>
+  </g>
+</svg>

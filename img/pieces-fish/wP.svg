@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
+  <!-- Pawn: Small fish -->
+  <g fill="#fff" stroke="#222" stroke-width="1.5" stroke-linejoin="round">
+    <!-- Tail fin -->
+    <path d="M8 22 L13 17 L13 27 Z"/>
+    <!-- Body -->
+    <ellipse cx="22" cy="22" rx="11" ry="7"/>
+    <!-- Eye -->
+    <circle cx="28" cy="20" r="2" fill="#222" stroke="none"/>
+    <!-- Mouth -->
+    <path d="M33 22 L35 21 L33 23" fill="none" stroke="#222" stroke-width="1"/>
+    <!-- Top fin -->
+    <path d="M18 15 L22 10 L26 15" fill="#fff"/>
+    <!-- Base -->
+    <rect x="10" y="36" width="25" height="4" rx="2" fill="#fff"/>
+    <line x1="10" y1="36" x2="35" y2="36" stroke="#222" stroke-width="1.5"/>
+  </g>
+</svg>

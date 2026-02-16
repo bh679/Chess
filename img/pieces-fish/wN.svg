@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">
+  <!-- Knight: Seahorse -->
+  <g fill="#fff" stroke="#222" stroke-width="1.5" stroke-linejoin="round">
+    <!-- Curled tail -->
+    <path d="M20 38 Q16 36 15 33 Q14 30 16 28" fill="none" stroke="#222" stroke-width="2"/>
+    <path d="M16 28 Q18 26 17 24" fill="none" stroke="#222" stroke-width="2"/>
+    <!-- Body -->
+    <path d="M19 34 Q22 32 24 28 Q26 24 26 20 Q26 16 24 13 Q22 10 20 8 Q18 6 18 4" fill="#fff" stroke="#222" stroke-width="1.5"/>
+    <!-- Snout -->
+    <path d="M18 4 Q16 3 14 4 Q12 5 12 7 Q12 9 14 10 Q16 10 18 8" fill="#fff"/>
+    <!-- Eye -->
+    <circle cx="17" cy="7" r="1.5" fill="#222" stroke="none"/>
+    <!-- Dorsal ridges -->
+    <path d="M24 14 L28 12 L26 16" fill="#fff"/>
+    <path d="M25 18 L29 17 L27 21" fill="#fff"/>
+    <path d="M24 23 L28 22 L26 26" fill="#fff"/>
+    <!-- Belly segments -->
+    <line x1="20" y1="12" x2="24" y2="12" stroke="#ccc" stroke-width="0.8"/>
+    <line x1="21" y1="16" x2="25" y2="16" stroke="#ccc" stroke-width="0.8"/>
+    <line x1="21" y1="20" x2="25" y2="20" stroke="#ccc" stroke-width="0.8"/>
+    <line x1="21" y1="24" x2="25" y2="24" stroke="#ccc" stroke-width="0.8"/>
+    <line x1="20" y1="28" x2="24" y2="28" stroke="#ccc" stroke-width="0.8"/>
+    <!-- Base -->
+    <rect x="10" y="38" width="25" height="4" rx="2" fill="#fff"/>
+    <line x1="10" y1="38" x2="35" y2="38" stroke="#222" stroke-width="1.5"/>
+  </g>
+</svg>
