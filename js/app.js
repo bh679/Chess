@@ -167,7 +167,10 @@ function triggerAIMove() {
 
     try {
       const fen = game.chess.fen();
-      const move = await ai.requestMove(fen, elo);
+      const wtime = timer.isEnabled() ? timer.getTime('w') : 0;
+      const btime = timer.isEnabled() ? timer.getTime('b') : 0;
+      const inc = timer.isEnabled() ? timer.getIncrement() : 0;
+      const move = await ai.requestMove(fen, elo, wtime, btime, inc);
 
       // Discard if game changed during thinking
       if (currentGameId !== gameId) return;
