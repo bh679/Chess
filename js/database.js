@@ -1,151 +1,127 @@
 /**
- * GameDatabase — IndexedDB persistence layer for chess game records.
+ * GameDatabase — Server-side persistence via REST API.
+ * Game IDs are tracked in localStorage so the client knows which games belong to it.
  * All methods return Promises. Writes are fire-and-forget (never block game flow).
  */
 
-const DB_NAME = 'chess-game-archive';
-const DB_VERSION = 1;
-const STORE_NAME = 'games';
+const API_BASE = '/api';
+const LS_KEY = 'chess-game-ids';
+const REQUIRED_SERVER_VERSION = '1.0.0';
 
 class GameDatabase {
   constructor() {
-    this._db = null;
     this._available = false;
+    this._serverVersion = null;
+    this._gameIds = new Set();
   }
 
   /**
-   * Open (or create) the database. Call once at app startup.
+   * Load stored game IDs from localStorage and check server availability.
+   * Verifies server version matches the required minimum.
    */
-  open() {
-    return new Promise((resolve, reject) => {
-      if (!window.indexedDB) {
-        console.warn('IndexedDB not available');
-        this._available = false;
-        resolve();
-        return;
+  async open() {
+    // Load tracked game IDs from localStorage
+    try {
+      const stored = localStorage.getItem(LS_KEY);
+      if (stored) {
+        this._gameIds = new Set(JSON.parse(stored));
       }
+    } catch (e) {
+      this._gameIds = new Set();
+    }
 
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+    // Health check — verify server is reachable and version-compatible
+    try {
+      const res = await fetch(`${API_BASE}/health`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      this._serverVersion = data.version || null;
 
-      request.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, {
-            keyPath: 'id',
-            autoIncrement: true,
-          });
-          store.createIndex('startTime', 'startTime', { unique: false });
-          store.createIndex('result', 'result', { unique: false });
-        }
-      };
-
-      request.onsuccess = (e) => {
-        this._db = e.target.result;
-        this._available = true;
-        resolve();
-      };
-
-      request.onerror = (e) => {
-        console.warn('IndexedDB open error:', e.target.error);
+      // Compare major version — client and server must agree on major
+      const reqMajor = parseInt(REQUIRED_SERVER_VERSION.split('.')[0], 10);
+      const srvMajor = parseInt((data.version || '0').split('.')[0], 10);
+      if (srvMajor < reqMajor) {
+        console.warn(`Chess API version mismatch: server=${data.version}, required>=${REQUIRED_SERVER_VERSION}`);
         this._available = false;
-        resolve(); // graceful degradation
-      };
-    });
+      } else {
+        this._available = true;
+      }
+    } catch (e) {
+      console.warn('Chess API not available:', e);
+      this._available = false;
+    }
   }
 
+  /** @returns {string|null} Server version string, or null if not connected */
+  get serverVersion() { return this._serverVersion; }
+
   /**
-   * Insert a new game record. Returns the auto-generated id.
+   * Insert a new game record. Returns the server-assigned id.
    * @param {Object} metadata - { gameType, timeControl, startingFen, white, black }
    *   white/black: { name: String, isAI: Boolean, elo: Number|null }
    */
   async createGame(metadata) {
     if (!this._available) return null;
 
-    const record = {
-      startTime: Date.now(),
-      endTime: null,
-      gameType: metadata.gameType,
-      timeControl: metadata.timeControl,
-      startingFen: metadata.startingFen,
-      result: null,
-      resultReason: '',
-      white: metadata.white,
-      black: metadata.black,
-      moves: [],
-    };
-
-    return new Promise((resolve, reject) => {
-      const tx = this._db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const request = store.add(record);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      const res = await fetch(`${API_BASE}/games`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metadata),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { id } = await res.json();
+      // Track this game ID locally
+      this._gameIds.add(id);
+      this._saveIds();
+      return id;
+    } catch (e) {
+      console.warn('Failed to create game:', e);
+      return null;
+    }
   }
 
   /**
-   * Append a move to a game's moves array (get-modify-put).
+   * Add a move to a game.
    * @param {Number} gameId
    * @param {Object} moveData - { ply, san, fen, timestamp, side }
    */
   async addMove(gameId, moveData) {
     if (!this._available || gameId === null) return;
 
-    return new Promise((resolve, reject) => {
-      const tx = this._db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const getReq = store.get(gameId);
-
-      getReq.onsuccess = () => {
-        const record = getReq.result;
-        if (!record) {
-          reject(new Error(`Game ${gameId} not found`));
-          return;
-        }
-        record.moves.push(moveData);
-        const putReq = store.put(record);
-        putReq.onsuccess = () => resolve();
-        putReq.onerror = () => reject(putReq.error);
-      };
-
-      getReq.onerror = () => reject(getReq.error);
-    });
+    try {
+      await fetch(`${API_BASE}/games/${gameId}/moves`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(moveData),
+      });
+    } catch (e) {
+      console.warn('Failed to add move:', e);
+    }
   }
 
   /**
    * Mark a game as finished.
    * @param {Number} gameId
-   * @param {String} result - "white", "black", or "draw"
-   * @param {String} reason - "checkmate", "stalemate", "timeout", "insufficient", "threefold", "50-move"
+   * @param {String} result - "white", "black", "draw", or "abandoned"
+   * @param {String} reason - "checkmate", "stalemate", "timeout", etc.
    */
   async endGame(gameId, result, reason) {
     if (!this._available || gameId === null) return;
 
-    return new Promise((resolve, reject) => {
-      const tx = this._db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const getReq = store.get(gameId);
-
-      getReq.onsuccess = () => {
-        const record = getReq.result;
-        if (!record) {
-          reject(new Error(`Game ${gameId} not found`));
-          return;
-        }
-        record.result = result;
-        record.resultReason = reason;
-        record.endTime = Date.now();
-        const putReq = store.put(record);
-        putReq.onsuccess = () => resolve();
-        putReq.onerror = () => reject(putReq.error);
-      };
-
-      getReq.onerror = () => reject(getReq.error);
-    });
+    try {
+      await fetch(`${API_BASE}/games/${gameId}/end`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result, resultReason: reason }),
+      });
+    } catch (e) {
+      console.warn('Failed to end game:', e);
+    }
   }
 
   /**
-   * Update a player's name in an existing game record (get-modify-put).
+   * Update a player's name in an existing game record.
    * @param {Number} gameId
    * @param {String} side - 'white' or 'black'
    * @param {String} name - new player name
@@ -153,106 +129,81 @@ class GameDatabase {
   async updatePlayerName(gameId, side, name) {
     if (!this._available || gameId === null) return;
 
-    return new Promise((resolve, reject) => {
-      const tx = this._db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const getReq = store.get(gameId);
-
-      getReq.onsuccess = () => {
-        const record = getReq.result;
-        if (!record) {
-          reject(new Error(`Game ${gameId} not found`));
-          return;
-        }
-        record[side].name = name;
-        const putReq = store.put(record);
-        putReq.onsuccess = () => resolve();
-        putReq.onerror = () => reject(putReq.error);
-      };
-
-      getReq.onerror = () => reject(getReq.error);
-    });
+    try {
+      await fetch(`${API_BASE}/games/${gameId}/player`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ side, name }),
+      });
+    } catch (e) {
+      console.warn('Failed to update player name:', e);
+    }
   }
 
   /**
-   * Get a full game record by id.
+   * Get a full game record by id (including moves).
    */
   async getGame(gameId) {
     if (!this._available) return null;
 
-    return new Promise((resolve, reject) => {
-      const tx = this._db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const request = store.get(gameId);
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      const res = await fetch(`${API_BASE}/games/${gameId}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.warn('Failed to get game:', e);
+      return null;
+    }
   }
 
   /**
    * List games sorted by startTime descending (newest first).
-   * Returns trimmed projections (no moves array, adds moveCount).
+   * Only returns games whose IDs are tracked in localStorage.
    * @param {Object} options - { limit: 15, offset: 0 }
    */
   async listGames({ limit = 15, offset = 0 } = {}) {
     if (!this._available) return [];
 
-    return new Promise((resolve, reject) => {
-      const tx = this._db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const index = store.index('startTime');
-      const request = index.openCursor(null, 'prev'); // newest first
+    try {
+      const ids = Array.from(this._gameIds);
+      if (ids.length === 0) return [];
 
-      const results = [];
-      let skipped = 0;
-
-      request.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (!cursor || results.length >= limit) {
-          resolve(results);
-          return;
-        }
-
-        if (skipped < offset) {
-          skipped++;
-          cursor.continue();
-          return;
-        }
-
-        const record = cursor.value;
-        results.push({
-          id: record.id,
-          startTime: record.startTime,
-          endTime: record.endTime,
-          gameType: record.gameType,
-          timeControl: record.timeControl,
-          white: record.white,
-          black: record.black,
-          result: record.result,
-          resultReason: record.resultReason,
-          moveCount: record.moves.length,
-        });
-
-        cursor.continue();
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+      const res = await fetch(`${API_BASE}/games/list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, limit, offset }),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.games;
+    } catch (e) {
+      console.warn('Failed to list games:', e);
+      return [];
+    }
   }
 
   /**
-   * Get total number of games in the database.
+   * Get total number of tracked games.
    */
   async getGameCount() {
     if (!this._available) return 0;
 
-    return new Promise((resolve, reject) => {
-      const tx = this._db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const request = store.count();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      const ids = Array.from(this._gameIds);
+      if (ids.length === 0) return 0;
+
+      const res = await fetch(`${API_BASE}/games/list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, limit: 0, offset: 0 }),
+      });
+      if (!res.ok) return 0;
+      const data = await res.json();
+      return data.total;
+    } catch (e) {
+      console.warn('Failed to get game count:', e);
+      return 0;
+    }
   }
 
   /**
@@ -261,13 +212,24 @@ class GameDatabase {
   async deleteGame(gameId) {
     if (!this._available) return;
 
-    return new Promise((resolve, reject) => {
-      const tx = this._db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const request = store.delete(gameId);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      await fetch(`${API_BASE}/games/${gameId}`, { method: 'DELETE' });
+      this._gameIds.delete(gameId);
+      this._saveIds();
+    } catch (e) {
+      console.warn('Failed to delete game:', e);
+    }
+  }
+
+  /**
+   * Persist tracked game IDs to localStorage.
+   */
+  _saveIds() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(Array.from(this._gameIds)));
+    } catch (e) {
+      // localStorage full or unavailable
+    }
   }
 }
 

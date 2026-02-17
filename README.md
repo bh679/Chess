@@ -1,6 +1,6 @@
 # Chess
 
-A client-side chess game that runs entirely in the browser with no server or dependencies required. Built to practice working with Claude.
+A chess game built to practice working with Claude. Runs in the browser with a companion server for persistent game storage.
 
 ## Features
 
@@ -44,7 +44,7 @@ A client-side chess game that runs entirely in the browser with no server or dep
 - **Animation toggle** — turn all animations on/off
 
 ### Game Database & History
-- **Automatic game saving** — all games saved to IndexedDB with moves, timestamps, and results
+- **Server-side persistence** — games saved via REST API to a SQLite database (see [chess-api](https://github.com/bh679/chess-api))
 - **Game history browser** — browse past games with player info, results, and move counts
 - **Replay viewer** — step through any saved game move by move with:
   - Reconstructed board positions
@@ -63,6 +63,26 @@ A client-side chess game that runs entirely in the browser with no server or dep
 
 See [TODO.md](TODO.md) for planned features and ideas.
 
+## Dependencies
+
+### Server (required for game history)
+
+The game database runs on a separate Node.js server: **[chess-api](https://github.com/bh679/chess-api)**
+
+The client checks the server version on startup via `/api/health` and disables database features gracefully if the server is unreachable. The game itself is fully playable without the server — only game saving/history is affected.
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| chess-api server | >= 1.0.0 | Game storage REST API (SQLite) |
+| Apache mod_proxy | any | Proxies `/api/*` to the Node.js server |
+
+### Client-side (bundled, no install needed)
+
+| Library | Purpose |
+|---------|---------|
+| chess.js | Chess rules engine |
+| Stockfish WASM | AI opponent (Web Worker) |
+
 ## Getting Started
 
 No build step or install needed. Open `index.html` in a browser or serve the directory with any static file server:
@@ -72,6 +92,8 @@ npx serve .
 # or
 python3 -m http.server
 ```
+
+For full functionality (game saving and history), set up the [chess-api](https://github.com/bh679/chess-api) server and configure Apache to proxy `/api` requests.
 
 ## Project Structure
 
@@ -85,7 +107,7 @@ js/board.js             Board rendering, click/drag interaction, promotion UI
 js/combat.js            Combat animation system for captures
 js/timer.js             Chess timer with increment support
 js/ai.js                Stockfish WASM integration via Web Worker (UCI protocol)
-js/database.js          IndexedDB persistence layer for game records
+js/database.js          REST API client for server-side game storage
 js/browser.js           Game history browser UI
 js/replay.js            Replay viewer with board, move strip, and clock reconstruction
 js/chess.js             chess.js engine (full rule enforcement)
