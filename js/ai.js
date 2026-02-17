@@ -116,9 +116,12 @@ class AI {
    * Request the AI to compute the best move for the given position
    * @param {string} fen - FEN string of current position
    * @param {number} elo - ELO rating for this move's side
+   * @param {number} [wtime] - White's remaining time in ms (0 = no timer)
+   * @param {number} [btime] - Black's remaining time in ms (0 = no timer)
+   * @param {number} [increment] - Increment per move in ms
    * @returns {Promise<{from: string, to: string, promotion: string|null}>}
    */
-  requestMove(fen, elo) {
+  requestMove(fen, elo, wtime = 0, btime = 0, increment = 0) {
     if (!this._ready) {
       return Promise.resolve(null);
     }
@@ -138,11 +141,12 @@ class AI {
 
       if (params.useUciElo) {
         // Higher ELO: use UCI_LimitStrength + UCI_Elo
+        // Let Stockfish manage its own depth via internal Skill Level mapping
         this._send('setoption name UCI_LimitStrength value true');
         this._send(`setoption name UCI_Elo value ${params.uciElo}`);
-        this._send(`setoption name Skill Level value 20`);
+        this._send('setoption name Skill Level value 20');
       } else {
-        // Lower ELO: use Skill Level
+        // Lower ELO: use Skill Level directly for weaker play
         this._send('setoption name UCI_LimitStrength value false');
         this._send(`setoption name Skill Level value ${params.skillLevel}`);
       }
@@ -150,8 +154,28 @@ class AI {
       // Set position
       this._send(`position fen ${fen}`);
 
-      // Start search
-      this._send(`go depth ${params.depth}`);
+      // Build go command with time awareness
+      // Stockfish stops at whichever limit is hit first, so depth + wtime
+      // doesn't work well (shallow depth finishes before time management kicks in).
+      // Instead, use wtime/btime for timed games and depth for untimed.
+      let goCmd;
+      const hasTime = wtime > 0 && btime > 0;
+
+      if (hasTime) {
+        // Timed game: pass clock info so engine manages its own time
+        // UCI_LimitStrength/Skill Level still constrain strength independently
+        goCmd = `go wtime ${Math.round(wtime)} btime ${Math.round(btime)}`;
+        if (increment > 0) goCmd += ` winc ${Math.round(increment)} binc ${Math.round(increment)}`;
+      } else if (params.useUciElo) {
+        // High ELO without timer: use movetime scaled by ELO
+        const movetime = Math.round(500 + (elo - 1320) * 4500 / (3200 - 1320));
+        goCmd = `go movetime ${movetime}`;
+      } else {
+        // Low ELO without timer: depth-limited search
+        goCmd = `go depth ${params.depth}`;
+      }
+
+      this._send(goCmd);
     });
   }
 
@@ -201,16 +225,14 @@ class AI {
 
   /**
    * Map ELO rating to UCI engine parameters
-   * ELO >= 1320: Use UCI_LimitStrength + UCI_Elo (engine's built-in ELO limiter)
-   * ELO < 1320:  Use Skill Level 0-6 + low depth (for weaker play)
+   * ELO >= 1320: Use UCI_LimitStrength + UCI_Elo (engine manages its own depth/strength)
+   * ELO < 1320:  Use Skill Level 0-6 + depth cap (for weaker play)
    */
   _getEloParams(elo) {
     if (elo >= 1320) {
-      // Clamp UCI_Elo to Stockfish's supported range
+      // Clamp UCI_Elo to Stockfish's supported range (1320-3190)
       const uciElo = Math.min(elo, 3190);
-      // Scale depth from 10 (at 1320) to 22 (at 3200)
-      const depth = Math.round(10 + (elo - 1320) * 12 / (3200 - 1320));
-      return { useUciElo: true, uciElo, depth };
+      return { useUciElo: true, uciElo };
     } else {
       // Map 100-1320 linearly to Skill Level 0-6 and depth 1-8
       const t = (elo - 100) / (1320 - 100); // 0..1

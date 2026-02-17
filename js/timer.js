@@ -110,6 +110,23 @@ class Timer {
     this.blackEl.classList.toggle('timer-active', this._activeSide === 'b');
   }
 
+  /**
+   * Get remaining time for a side in milliseconds
+   * @param {'w'|'b'} side
+   * @returns {number} milliseconds remaining
+   */
+  getTime(side) {
+    return this._time[side] || 0;
+  }
+
+  /**
+   * Get increment in milliseconds
+   * @returns {number}
+   */
+  getIncrement() {
+    return this._increment || 0;
+  }
+
   _formatTime(ms) {
     if (ms <= 0) return '0:00';
     const totalSeconds = Math.ceil(ms / 1000);
