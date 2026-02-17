@@ -1,7 +1,7 @@
 import { Game } from './game.js';
 import { Board } from './board.js';
-import { Timer } from './timer.js';
-import { AI } from './ai.js';
+import { Timer } from './timer.js?v=2';
+import { AI } from './ai.js?v=2';
 import { GameDatabase } from './database.js';
 import { GameBrowser } from './browser.js';
 import { ReplayViewer } from './replay.js';
