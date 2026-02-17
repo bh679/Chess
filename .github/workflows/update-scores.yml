@@ -1,0 +1,28 @@
+name: Update Project Scores
+
+# Recalculates the Score field for all items in the Chess Roadmap project.
+# Score = (Priority × 2) + Time Estimate + Difficulty
+#
+# Triggers:
+#   - Manual: Actions UI "Run workflow" button
+#   - API:    gh api repos/bh679/Chess/dispatches -f event_type=recalculate-scores
+#   - CLI:    gh workflow run update-scores.yml --repo bh679/Chess
+#   - Auto:   when an issue is edited or labeled (often accompanies project field changes)
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [recalculate-scores]
+  issues:
+    types: [edited, labeled]
+
+jobs:
+  update-scores:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recalculate project scores
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+        run: bash .github/scripts/update-scores.sh
