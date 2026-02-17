@@ -1,7 +1,7 @@
 name: Update Project Scores
 
 # Recalculates the Score field for all items in the Chess Roadmap project.
-# Score = (Priority × 2) + Time Estimate + Complexity + Status Bonus (Done = 0)
+# Score = (Priority × 2) + Time Estimate + Complexity + Status Bonus + Dependency Bonus (Done = 0)
 #
 # Triggers:
 #   - Manual: Actions UI "Run workflow" button
