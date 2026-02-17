@@ -44,7 +44,10 @@ A chess game built to practice working with Claude. Runs in the browser with a c
 - **Animation toggle** — turn all animations on/off
 
 ### Game Database & History
-- **Server-side persistence** — games saved via REST API to a SQLite database (see [chess-api](https://github.com/bh679/chess-api))
+- **Local-first persistence** — all game data (moves, results, metadata) is written to localStorage immediately and never blocks gameplay; a background sync timer pushes data to the server every 10 seconds
+- **Offline resilience** — if the server is down, games are fully preserved locally and sync automatically when connectivity returns
+- **Idempotent sync** — duplicate moves are safely deduplicated via server-side UNIQUE constraints; partial syncs resume from where they left off
+- **Server-side storage** — synced games are stored via REST API in a SQLite database (see [chess-api](https://github.com/bh679/chess-api))
 - **Game history browser** — browse past games with player info, results, and move counts
 - **Replay viewer** — step through any saved game move by move with:
   - Reconstructed board positions
@@ -69,7 +72,7 @@ See [TODO.md](TODO.md) for planned features and ideas.
 
 The game database runs on a separate Node.js server: **[chess-api](https://github.com/bh679/chess-api)**
 
-The client checks the server version on startup via `/api/health` and disables database features gracefully if the server is unreachable. The game itself is fully playable without the server — only game saving/history is affected.
+The client uses a local-first architecture: all game data is written to localStorage immediately and synced to the server in the background. If the server is unreachable, games are fully preserved locally and sync when connectivity returns. The game history browser and replay viewer require server connectivity to fetch past games.
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
@@ -107,7 +110,7 @@ js/board.js             Board rendering, click/drag interaction, promotion UI
 js/combat.js            Combat animation system for captures
 js/timer.js             Chess timer with increment support
 js/ai.js                Stockfish WASM integration via Web Worker (UCI protocol)
-js/database.js          REST API client for server-side game storage
+js/database.js          Local-first game persistence with background server sync
 js/browser.js           Game history browser UI
 js/replay.js            Replay viewer with board, move strip, and clock reconstruction
 js/chess.js             chess.js engine (full rule enforcement)
