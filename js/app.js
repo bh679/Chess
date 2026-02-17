@@ -632,10 +632,16 @@ async function loadArchiveMenu() {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       const links = doc.querySelectorAll('a[href]');
+      const entries = [];
       for (const link of links) {
         const href = link.getAttribute('href');
         // Skip parent, self, and query/sort links
         if (!href || href === '../' || href === './' || href.startsWith('?') || href.startsWith('/')) continue;
+        entries.push(href);
+      }
+      // Reverse so most recent (date-prefixed) entries appear first
+      entries.reverse();
+      for (const href of entries) {
         const name = decodeURIComponent(href.replace(/\/$/, ''));
         const a = document.createElement('a');
         a.href = `${archiveBase}${href}index.html`;
