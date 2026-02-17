@@ -1,10 +1,7 @@
 # TODO
 
 ## Up Next
-- [ ] Check bot ELO is working appropriately
-- [ ] Give bots access to time remaining to choose how quickly to act vs how long to look for a better response
-- [ ] Time games should have animations turned off by default
-- [ ] Database should be stored on server, and locally should store a list of id of games played by client so they know they own game history.
+- [ ] Live favor score bar like chess.com for live games (turned off by default) and for reviewing games (turned on by default)
 - [ ] Build analysis and review
 - [ ] Build arrow tools
 - [ ] Premoves
