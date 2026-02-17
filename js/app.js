@@ -158,6 +158,14 @@ function triggerAIMove() {
   const elo = ai.getElo(turn);
   const sideLabel = turn === 'w' ? 'White' : 'Black';
 
+  // Dynamic delay: shorter when clock is ticking to reduce overhead
+  let aiDelay = 400;
+  if (timer.isEnabled()) {
+    const minTime = Math.min(timer.getTime('w'), timer.getTime('b'));
+    if (minTime <= 60000) aiDelay = 50;
+    else if (minTime <= 300000) aiDelay = 150;
+  }
+
   setTimeout(async () => {
     // Check again after delay in case game state changed
     if (currentGameId !== gameId) return;
@@ -183,7 +191,7 @@ function triggerAIMove() {
         console.error('AI move error:', e);
       }
     }
-  }, 400);
+  }, aiDelay);
 }
 
 // --- Game Database Helpers ---
@@ -244,8 +252,13 @@ function startNewGame() {
   const config = getTimeConfig();
   if (config) {
     timer.configure(config.whiteSec, config.increment, config.blackSec);
+    // Auto-disable animations for timed games to reduce per-move overhead
+    board.setAnimationsEnabled(false);
+    animationsToggle.checked = false;
   } else {
     timer.configure(0, 0);
+    // Restore user's animation preference for untimed games
+    board.setAnimationsEnabled(animationsToggle.checked);
   }
 
   // Update game type label
