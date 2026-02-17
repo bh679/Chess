@@ -221,6 +221,7 @@ function startNewGame() {
 
   gameId++;
   ai.stop();
+  newGameBtn.classList.remove('game-ended');
 
   const chess960 = chess960Toggle.checked;
   game.newGame(chess960);
@@ -352,6 +353,7 @@ board.onMove((result) => {
 
   if (game.isGameOver()) {
     timer.stop();
+    newGameBtn.classList.add('game-ended');
     updateStatus();
 
     // Save game result to database
@@ -372,6 +374,7 @@ board.onMove((result) => {
 timer.onTimeout((loser) => {
   ai.stop();
   game.setTimedOut();
+  newGameBtn.classList.add('game-ended');
   const winner = loser === 'White' ? 'Black' : 'White';
   updateStatus(`Time out! ${winner} wins`);
 
