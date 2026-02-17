@@ -55,6 +55,9 @@ class GameDatabase {
   /** @returns {string|null} Server version string, or null if not connected */
   get serverVersion() { return this._serverVersion; }
 
+  /** @returns {boolean} Whether the given game ID belongs to this client */
+  isOwnGame(id) { return this._gameIds.has(id); }
+
   /**
    * Insert a new game record. Returns the server-assigned id.
    * @param {Object} metadata - { gameType, timeControl, startingFen, white, black }

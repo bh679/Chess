@@ -101,6 +101,9 @@ class GameBrowser {
     for (const game of games) {
       const row = document.createElement('div');
       row.className = 'browser-game';
+      if (this._activeTab === 'public' && this._db.isOwnGame(game.id)) {
+        row.classList.add('browser-game-own');
+      }
       row.dataset.gameId = game.id;
 
       const players = document.createElement('div');
