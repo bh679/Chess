@@ -1,6 +1,8 @@
 # TODO
 
 ## Up Next
+- [ ] Local-first game persistence with server sync — see [plan](plans/local-first-sync.md)
+- [ ] Live spectating tab in game browser — see [plan](plans/live-spectating.md)
 - [ ] Live favor score bar like chess.com for live games (turned off by default) and for reviewing games (turned on by default)
 - [ ] Build analysis and review
 - [ ] Build arrow tools
