@@ -1552,6 +1552,35 @@ body {
   color: #e0e0e0;
 }
 
+.browser-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.browser-tab {
+  flex: 1;
+  padding: 8px 0;
+  background: #1a1816;
+  color: #888;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.browser-tab:hover {
+  color: #ccc;
+}
+
+.browser-tab-active {
+  color: #e0e0e0;
+  border-bottom-color: #4a9e5c;
+}
+
 .browser-list {
   flex: 1;
   overflow-y: auto;

@@ -183,6 +183,28 @@ class GameDatabase {
   }
 
   /**
+   * List all games on the server (public), sorted by startTime descending.
+   * @param {Object} options - { limit: 15, offset: 0 }
+   */
+  async listAllGames({ limit = 15, offset = 0 } = {}) {
+    if (!this._available) return [];
+
+    try {
+      const res = await fetch(`${API_BASE}/games/list-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit, offset }),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.games;
+    } catch (e) {
+      console.warn('Failed to list all games:', e);
+      return [];
+    }
+  }
+
+  /**
    * Get total number of tracked games.
    */
   async getGameCount() {
