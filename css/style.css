@@ -1601,6 +1601,11 @@ body {
   background: #3d3a37;
 }
 
+.browser-game-own {
+  border-left: 3px solid #4a9e5c;
+  padding-left: 9px;
+}
+
 .browser-game-players {
   color: #e0e0e0;
   font-weight: 600;

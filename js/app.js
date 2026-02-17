@@ -2,8 +2,8 @@ import { Game } from './game.js';
 import { Board } from './board.js';
 import { Timer } from './timer.js?v=2';
 import { AI } from './ai.js?v=2';
-import { GameDatabase } from './database.js?v=4';
-import { GameBrowser } from './browser.js?v=2';
+import { GameDatabase } from './database.js?v=5';
+import { GameBrowser } from './browser.js?v=3';
 import { ReplayViewer } from './replay.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
