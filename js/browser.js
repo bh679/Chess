@@ -1,5 +1,6 @@
 /**
  * GameBrowser — Modal overlay listing past games with pagination.
+ * Two tabs: "My Games" (filtered by localStorage IDs) and "Public" (all server games).
  * Click a game to open it in the ReplayViewer.
  */
 
@@ -16,8 +17,11 @@ class GameBrowser {
     this._pageInfoEl = null;
     this._prevPageBtn = null;
     this._nextPageBtn = null;
+    this._tabMine = null;
+    this._tabPublic = null;
     this._currentPage = 0;
     this._totalGames = 0;
+    this._activeTab = 'mine'; // 'mine' | 'public'
     this._buildDOM();
   }
 
@@ -27,6 +31,7 @@ class GameBrowser {
   async open() {
     this._currentPage = 0;
     this._overlay.classList.remove('hidden');
+    this._setActiveTab(this._activeTab);
     await this._loadPage(0);
   }
 
@@ -37,14 +42,33 @@ class GameBrowser {
     this._overlay.classList.add('hidden');
   }
 
+  // --- Tab Switching ---
+
+  _setActiveTab(tab) {
+    this._activeTab = tab;
+    this._tabMine.classList.toggle('browser-tab-active', tab === 'mine');
+    this._tabPublic.classList.toggle('browser-tab-active', tab === 'public');
+  }
+
+  async _switchTab(tab) {
+    if (this._activeTab === tab) return;
+    this._setActiveTab(tab);
+    this._currentPage = 0;
+    await this._loadPage(0);
+  }
+
   // --- Data Loading ---
 
   async _loadPage(page) {
     this._currentPage = page;
 
     try {
-      // Fetch all games and filter to those with enough moves
-      const allGames = await this._db.listGames({ limit: 9999, offset: 0 });
+      let allGames;
+      if (this._activeTab === 'mine') {
+        allGames = await this._db.listGames({ limit: 9999, offset: 0 });
+      } else {
+        allGames = await this._db.listAllGames({ limit: 9999, offset: 0 });
+      }
       const filtered = allGames.filter(g => g.moveCount >= MIN_DISPLAY_MOVES);
       this._totalGames = filtered.length;
 
@@ -67,7 +91,9 @@ class GameBrowser {
     if (games.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'browser-empty';
-      empty.textContent = 'No games recorded yet.';
+      empty.textContent = this._activeTab === 'mine'
+        ? 'No games recorded yet.'
+        : 'No public games available.';
       this._listEl.appendChild(empty);
       return;
     }
@@ -197,6 +223,24 @@ class GameBrowser {
     header.appendChild(closeBtn);
 
     content.appendChild(header);
+
+    // Tabs
+    const tabs = document.createElement('div');
+    tabs.className = 'browser-tabs';
+
+    this._tabMine = document.createElement('button');
+    this._tabMine.className = 'browser-tab browser-tab-active';
+    this._tabMine.textContent = 'My Games';
+    this._tabMine.addEventListener('click', () => this._switchTab('mine'));
+    tabs.appendChild(this._tabMine);
+
+    this._tabPublic = document.createElement('button');
+    this._tabPublic.className = 'browser-tab';
+    this._tabPublic.textContent = 'Public';
+    this._tabPublic.addEventListener('click', () => this._switchTab('public'));
+    tabs.appendChild(this._tabPublic);
+
+    content.appendChild(tabs);
 
     // Game list
     this._listEl = document.createElement('div');
