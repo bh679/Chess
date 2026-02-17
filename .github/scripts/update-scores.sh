@@ -2,8 +2,11 @@
 # update-scores.sh
 # Recalculates the Score field for all items in the Chess Roadmap project.
 #
-# Score = (Priority × 2) + Time Estimate + Difficulty
-# Range: 4 (Low, 1 week+, Complex) to 20 (High, 1-2 hours, Trivial)
+# Score = (Priority × 2) + Time Estimate + Complexity + Status Bonus
+#   - Items with Status "Done" get Score = 0
+#   - Status bonus: Idea +0, Planned +1, Approved +2, In Development +3, Testing +4
+#
+# Range: 0 (Done) or 4–24 (active items)
 #
 # Requires: gh CLI authenticated with project access (GH_TOKEN env var)
 
@@ -34,7 +37,7 @@ time_points() {
   esac
 }
 
-difficulty_points() {
+complexity_points() {
   case "$1" in
     "Trivial") echo 5 ;;
     "Easy")    echo 4 ;;
@@ -42,6 +45,18 @@ difficulty_points() {
     "Hard")    echo 2 ;;
     "Complex") echo 1 ;;
     *)         echo "" ;;
+  esac
+}
+
+status_bonus() {
+  case "$1" in
+    "Idea")           echo 0 ;;
+    "Planned")        echo 1 ;;
+    "Approved")       echo 2 ;;
+    "In Development") echo 3 ;;
+    "Testing")        echo 4 ;;
+    "Done")           echo -1 ;; # sentinel: score becomes 0
+    *)                echo 0 ;;
   esac
 }
 
@@ -94,23 +109,45 @@ for i in $(seq 0 $((ITEM_COUNT - 1))); do
   # Extract field values
   PRIORITY=$(echo "$ITEM" | jq -r '.fieldValues.nodes[] | select(.field.name == "Priority") | .name // empty' 2>/dev/null || echo "")
   TIME_EST=$(echo "$ITEM" | jq -r '.fieldValues.nodes[] | select(.field.name == "Time Estimate") | .name // empty' 2>/dev/null || echo "")
-  DIFFICULTY=$(echo "$ITEM" | jq -r '.fieldValues.nodes[] | select(.field.name == "Difficulty") | .name // empty' 2>/dev/null || echo "")
+  COMPLEXITY=$(echo "$ITEM" | jq -r '.fieldValues.nodes[] | select(.field.name == "Complexity") | .name // empty' 2>/dev/null || echo "")
+  STATUS=$(echo "$ITEM" | jq -r '.fieldValues.nodes[] | select(.field.name == "Status") | .name // empty' 2>/dev/null || echo "")
   CURRENT_SCORE=$(echo "$ITEM" | jq -r '.fieldValues.nodes[] | select(.field.name == "Score") | .number // empty' 2>/dev/null || echo "")
+
+  # Check status bonus (Done = score 0)
+  S=$(status_bonus "$STATUS")
+  if [[ "$S" == "-1" ]]; then
+    SCORE=0
+    if [[ "$CURRENT_SCORE" == "0" || "$CURRENT_SCORE" == "0.0" ]]; then
+      echo "  OK:   $TITLE = 0 (Done, unchanged)"
+      continue
+    fi
+    echo "  SET:  $TITLE = 0 (Done — was: ${CURRENT_SCORE:-unset})"
+    gh api graphql -f query="mutation {
+      updateProjectV2ItemFieldValue(input: {
+        projectId: \"$PROJECT_ID\"
+        itemId: \"$ITEM_ID\"
+        fieldId: \"$SCORE_FIELD_ID\"
+        value: { number: 0 }
+      }) { projectV2Item { id } }
+    }" > /dev/null
+    UPDATED=$((UPDATED + 1))
+    continue
+  fi
 
   # Map to points
   P=$(priority_points "$PRIORITY")
   T=$(time_points "$TIME_EST")
-  D=$(difficulty_points "$DIFFICULTY")
+  C=$(complexity_points "$COMPLEXITY")
 
   # Skip if any input is missing
-  if [[ -z "$P" || -z "$T" || -z "$D" ]]; then
-    echo "  SKIP: $TITLE (missing fields: Priority=$PRIORITY, Time=$TIME_EST, Difficulty=$DIFFICULTY)"
+  if [[ -z "$P" || -z "$T" || -z "$C" ]]; then
+    echo "  SKIP: $TITLE (missing fields: Priority=$PRIORITY, Time=$TIME_EST, Complexity=$COMPLEXITY)"
     SKIPPED=$((SKIPPED + 1))
     continue
   fi
 
-  # Calculate score: (Priority × 2) + Time + Difficulty
-  SCORE=$(( (P * 2) + T + D ))
+  # Calculate score: (Priority × 2) + Time + Complexity + Status Bonus
+  SCORE=$(( (P * 2) + T + C + S ))
 
   # Only update if score changed
   if [[ "$CURRENT_SCORE" == "$SCORE" || "$CURRENT_SCORE" == "$SCORE.0" ]]; then
