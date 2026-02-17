@@ -545,7 +545,7 @@ body {
 
 @media (max-width: 768px) {
   .controls {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     width: 100%;
   }
 
@@ -562,8 +562,8 @@ body {
     flex: 0 0 100%;
   }
 
-  .controls button {
-    flex: 0 0 calc(50% - 6px);
+  .controls #new-game {
+    flex: 1;
     justify-content: center;
   }
 }
@@ -738,7 +738,38 @@ body {
   text-align: right;
 }
 
-.controls button:not(.settings-btn) {
+/* New Game button — grey by default, green when game ends */
+#new-game {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #272522;
+  color: #999;
+  border: 2px solid #4a4744;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+#new-game:hover {
+  border-color: #6a6764;
+  color: #e0e0e0;
+  background: #2d2a27;
+}
+
+#new-game.game-ended {
+  background: #4a9e5c;
+  color: white;
+  border-color: #4a9e5c;
+}
+
+#new-game.game-ended:hover {
+  background: #3d8a4e;
+  border-color: #3d8a4e;
+}
+
+/* Start game button */
+.start-game-btn {
   padding: 8px 12px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -750,15 +781,10 @@ body {
   transition: background-color 0.15s;
 }
 
-.controls button:not(.settings-btn):hover {
+.start-game-btn:hover {
   background: #3d8a4e;
 }
 
-.controls button:not(.settings-btn):active {
-  background: #347a43;
-}
-
-/* Start game button */
 .start-game-btn.hidden {
   display: none;
 }
