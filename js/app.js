@@ -2,7 +2,7 @@ import { Game } from './game.js';
 import { Board } from './board.js';
 import { Timer } from './timer.js?v=2';
 import { AI } from './ai.js?v=2';
-import { GameDatabase } from './database.js?v=5';
+import { GameDatabase } from './database.js?v=6';
 import { GameBrowser } from './browser.js?v=3';
 import { ReplayViewer } from './replay.js';
 
@@ -225,9 +225,8 @@ function getTimeControlLabel() {
 
 function startNewGame() {
   // End the current game as abandoned if moves were made and game isn't over
-  if (currentDbGameId !== null && moveCount > 0 && !game.isGameOver()) {
-    db.endGame(currentDbGameId, 'abandoned', 'abandoned')
-      .catch(err => console.warn('Failed to abandon game in DB:', err));
+  if (currentDbGameId && moveCount > 0 && !game.isGameOver()) {
+    db.endGame(currentDbGameId, 'abandoned', 'abandoned');
   }
 
   gameId++;
@@ -301,9 +300,8 @@ function startNewGame() {
 
   renderCaptured();
 
-  // Save game to database
-  currentDbGameId = null;
-  db.createGame({
+  // Save game to local-first database (always succeeds, syncs to server in background)
+  currentDbGameId = db.createGame({
     gameType: chess960 ? 'chess960' : 'standard',
     timeControl: getTimeControlLabel(),
     startingFen: game.chess.fen(),
@@ -317,11 +315,6 @@ function startNewGame() {
       isAI: bIsAI,
       elo: bIsAI ? bEloVal : null,
     },
-  }).then(id => {
-    currentDbGameId = id;
-  }).catch(err => {
-    console.warn('Failed to save game to database:', err);
-    currentDbGameId = null;
   });
 
   // If AI plays White, show start button instead of auto-starting
@@ -345,17 +338,15 @@ board.onMove((result) => {
 
   renderCaptured();
 
-  // Save move to database
-  if (currentDbGameId !== null) {
-    const side = game.getTurn() === 'w' ? 'b' : 'w'; // side that just moved
-    db.addMove(currentDbGameId, {
-      ply: moveCount - 1,
-      san: result.san,
-      fen: game.chess.fen(),
-      timestamp: Date.now(),
-      side: side,
-    }).catch(err => console.warn('Failed to save move:', err));
-  }
+  // Save move to local-first database
+  const side = game.getTurn() === 'w' ? 'b' : 'w'; // side that just moved
+  db.addMove(currentDbGameId, {
+    ply: moveCount - 1,
+    san: result.san,
+    fen: game.chess.fen(),
+    timestamp: Date.now(),
+    side: side,
+  });
 
   if (timer.isEnabled()) {
     const currentTurn = game.getTurn();
@@ -372,12 +363,9 @@ board.onMove((result) => {
     newGameBtn.classList.add('game-ended');
     updateStatus();
 
-    // Save game result to database
-    if (currentDbGameId !== null) {
-      const { result: dbResult, reason } = getGameResult();
-      db.endGame(currentDbGameId, dbResult, reason)
-        .catch(err => console.warn('Failed to end game in DB:', err));
-    }
+    // Save game result to local-first database
+    const { result: dbResult, reason } = getGameResult();
+    db.endGame(currentDbGameId, dbResult, reason);
     return;
   }
 
@@ -394,12 +382,9 @@ timer.onTimeout((loser) => {
   const winner = loser === 'White' ? 'Black' : 'White';
   updateStatus(`Time out! ${winner} wins`);
 
-  // Save timeout result to database
-  if (currentDbGameId !== null) {
-    const dbResult = loser === 'White' ? 'black' : 'white';
-    db.endGame(currentDbGameId, dbResult, 'timeout')
-      .catch(err => console.warn('Failed to end game in DB:', err));
-  }
+  // Save timeout result to local-first database
+  const dbResult = loser === 'White' ? 'black' : 'white';
+  db.endGame(currentDbGameId, dbResult, 'timeout');
 });
 
 newGameBtn.addEventListener('click', startNewGame);
@@ -444,11 +429,8 @@ function startNameEdit(nameEl, side) {
       }
     }
 
-    // Update database
-    if (currentDbGameId !== null) {
-      db.updatePlayerName(currentDbGameId, side, newName)
-        .catch(err => console.warn('Failed to update player name:', err));
-    }
+    // Update local-first database
+    db.updatePlayerName(currentDbGameId, side, newName);
   }
 
   function cancelEdit() {
