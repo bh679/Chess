@@ -5,8 +5,8 @@
 # Score = (Priority × 2) + Time Estimate + Complexity + Status Bonus + Dependency Bonus
 #   - Items with Status "Done" get Score = 0
 #   - Status bonus: Idea +0, Planned +1, Approved +2, In Development +3, Testing +4
-#   - Dependency bonus: sum of base scores of all items that depend on this item
-#     (base score = score without dependency bonus; uses only direct dependants)
+#   - Dependency bonus: sum of base scores of all items that transitively depend
+#     on this item (recursive — includes direct and indirect dependants)
 #
 # Range: 0 (Done) or 4+ (active items)
 #
@@ -149,46 +149,77 @@ for i in $(seq 0 $((ITEM_COUNT - 1))); do
   echo "  BASE: ${TITLES[$i]} = ${BASE_SCORES[$i]}"
 done
 
-# --- Pass 2: Calculate dependency bonus ---
-# For each item, find all OTHER items whose Dependencies field mentions this item's title.
-# The dependency bonus = sum of base scores of those dependant items.
+# --- Pass 2: Calculate dependency bonus (recursive) ---
+# For each item, find ALL items that transitively depend on it (direct + indirect).
+# The dependency bonus = sum of base scores of all transitive dependants.
+#
+# Example: If C depends on B, and B depends on A, then A gets bonus from both B and C.
+# Each dependant's base score is counted only once (no double-counting).
 
 echo ""
-echo "=== Pass 2: Calculating dependency bonuses ==="
+echo "=== Pass 2: Calculating dependency bonuses (recursive) ==="
+
+# Build direct dependants map: for each item i, which items directly depend on it?
+# DIRECT_DEPENDANTS[i] = space-separated list of indices
+declare -a DIRECT_DEPENDANTS
+for i in $(seq 0 $((ITEM_COUNT - 1))); do
+  DIRECT_DEPENDANTS[$i]=""
+done
+
+for j in $(seq 0 $((ITEM_COUNT - 1))); do
+  if [[ "${IS_DONE[$j]}" == "true" || "${IS_SKIPPED[$j]}" == "true" ]]; then
+    continue
+  fi
+  DEPS_TEXT="${DEPS_LIST[$j]}"
+  if [[ -z "$DEPS_TEXT" ]]; then
+    continue
+  fi
+  for i in $(seq 0 $((ITEM_COUNT - 1))); do
+    if [[ $i -eq $j ]]; then
+      continue
+    fi
+    if echo "$DEPS_TEXT" | grep -qF "${TITLES[$i]}"; then
+      DIRECT_DEPENDANTS[$i]="${DIRECT_DEPENDANTS[$i]} $j"
+    fi
+  done
+done
+
+# Recursive function: collect all transitive dependants of item $1
+# Uses a visited set (VISITED array) to avoid cycles and double-counting
+declare -a VISITED
+collect_dependants() {
+  local idx=$1
+  for dep_idx in ${DIRECT_DEPENDANTS[$idx]}; do
+    if [[ "${VISITED[$dep_idx]}" == "1" ]]; then
+      continue
+    fi
+    VISITED[$dep_idx]=1
+    TRANSITIVE_DEPS="$TRANSITIVE_DEPS $dep_idx"
+    # Recurse into this dependant's dependants
+    collect_dependants "$dep_idx"
+  done
+}
 
 declare -a DEP_BONUSES
 
 for i in $(seq 0 $((ITEM_COUNT - 1))); do
   DEP_BONUSES[$i]=0
 
-  # Done or skipped items don't get a dependency bonus
   if [[ "${IS_DONE[$i]}" == "true" || "${IS_SKIPPED[$i]}" == "true" ]]; then
     continue
   fi
 
-  TITLE_I="${TITLES[$i]}"
+  # Reset visited and collect all transitive dependants
+  for v in $(seq 0 $((ITEM_COUNT - 1))); do
+    VISITED[$v]=0
+  done
+  TRANSITIVE_DEPS=""
+  collect_dependants "$i"
 
-  # Search all other items to see if they list this item as a dependency
-  for j in $(seq 0 $((ITEM_COUNT - 1))); do
-    if [[ $i -eq $j ]]; then
-      continue
-    fi
-    # Skip done/skipped dependants — they don't contribute to the bonus
-    if [[ "${IS_DONE[$j]}" == "true" || "${IS_SKIPPED[$j]}" == "true" ]]; then
-      continue
-    fi
-
-    DEPS_TEXT="${DEPS_LIST[$j]}"
-    if [[ -z "$DEPS_TEXT" ]]; then
-      continue
-    fi
-
-    # Check if this item's title appears in the dependant's Dependencies field
-    # Use case-sensitive substring match (titles in Dependencies are comma-separated)
-    if echo "$DEPS_TEXT" | grep -qF "$TITLE_I"; then
-      DEP_BONUSES[$i]=$(( ${DEP_BONUSES[$i]} + ${BASE_SCORES[$j]} ))
-      echo "  +${BASE_SCORES[$j]} to ${TITLE_I} (depended on by ${TITLES[$j]})"
-    fi
+  # Sum base scores of all transitive dependants
+  for dep_idx in $TRANSITIVE_DEPS; do
+    DEP_BONUSES[$i]=$(( ${DEP_BONUSES[$i]} + ${BASE_SCORES[$dep_idx]} ))
+    echo "  +${BASE_SCORES[$dep_idx]} to ${TITLES[$i]} (from ${TITLES[$dep_idx]})"
   done
 done
 
