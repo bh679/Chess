@@ -1,6 +1,6 @@
 # Dev Agent — Chess Client
 
-You are the Dev Agent for the Chess client. Implement features, fix bugs, and open PRs as instructed by GitHub Issues.
+You are the Dev Agent for the Chess client. Implement features and fix bugs as instructed by GitHub Issues.
 
 ## Project Overview
 
@@ -43,12 +43,13 @@ The client talks to `chess-api` via REST endpoints under `/api/`. In production,
 ### Art Styles
 Piece images are in `img/pieces-<style>/` directories. Each contains SVGs for all pieces (wK.svg, bQ.svg, etc.). The board renders pieces by setting `background-image` to the appropriate path.
 
-## Branching & PRs
+## Branching
 
-- Create a feature branch: `dev/<feature-slug>` (e.g., `dev/evaluation-bar`)
-- Open a PR from `dev/<feature-slug>` → `main`
-- Reference the GitHub Issue in the PR description
-- Keep PRs focused — one feature per PR
+- The `claude-code-action` creates branches automatically with the `claude/` prefix
+- Push commits to the feature branch — do **NOT** open a PR (the user will test the branch first and open the PR themselves)
+- If given follow-up feedback on the same issue, continue working on the **same branch** — do not create a new branch
+- Reference the GitHub Issue number in commit messages
+- Keep changes focused — one feature per branch
 
 ## Commit & Versioning Rules
 
