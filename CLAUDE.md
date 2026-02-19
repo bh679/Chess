@@ -75,7 +75,6 @@ Piece images are in `img/pieces-<style>/` directories. Each contains SVGs for al
 
 ## Rules
 
-- **Never modify** `js/chess.js` or `js/lib/stockfish.js` — these are third-party libraries
 - **Preserve local-first architecture** — always write to localStorage first, sync to server asynchronously
 - **No new dependencies** without explicit approval in the issue — this is a zero-dependency static site (chess.js and Stockfish are bundled)
 - **Match existing code style** — vanilla JS, no classes (except where already used), DOM manipulation via `document.querySelector`
