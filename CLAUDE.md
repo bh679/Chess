@@ -10,28 +10,15 @@ You are the Dev Agent for the Chess client. Implement features, fix bugs, and op
 - **Game state:** Stored in `localStorage`, synced to a REST API ([chess-api](https://github.com/bh679/chess-api)) in the background
 - **Wiki:** [Chess wiki](https://github.com/bh679/Chess/wiki) — feature plans, roadmap, architecture docs
 
-## Key Files
+## Protected Files (do not modify)
+- `js/chess.js` — third-party chess rules engine
+- `js/lib/stockfish.js` — third-party Stockfish WASM engine
 
-| File | Purpose |
-|------|---------|
-| `index.html` | Main page — loads all JS/CSS, contains board container and UI panels |
-| `js/app.js` | App entry point — game flow, player bar controls, settings panel |
-| `js/game.js` | Game state wrapper around chess.js (turn management, move validation) |
-| `js/board.js` | Board rendering, click/drag interaction, promotion UI, legal move highlights |
-| `js/combat.js` | Combat animation system for captures (per-piece animations, effects) |
-| `js/timer.js` | Chess timer with increment support, timeout detection |
-| `js/ai.js` | Stockfish WASM integration via Web Worker (UCI protocol) |
-| `js/database.js` | Local-first game persistence — localStorage writes + background server sync |
-| `js/browser.js` | Game history browser UI (list, filters, metadata display) |
-| `js/replay.js` | Replay viewer — board reconstruction, move strip, clock, playback controls |
-| `js/chess.js` | chess.js engine — full rule enforcement (do not modify unless updating the library) |
-| `js/lib/stockfish.js` | Stockfish WASM engine (Web Worker, do not modify) |
-| `css/style.css` | Board and UI styles |
-| `css/combat-enhanced.css` | Combat animation effects (shake, flash, particles) |
-| `img/pieces/` | Classic SVG chess pieces |
-| `img/pieces-pixel/` | Pixel art chess pieces |
-| `img/pieces-neo/` | Neo bold chess pieces |
-| `img/pieces-fish/` | Fish/sea creature chess pieces |
+## Project Structure
+- `index.html` — main page, loads all JS/CSS via script tags
+- `js/` — one module per file, no build step, loaded via script tags in index.html
+- `css/` — stylesheets
+- `img/pieces-*/` — art style directories (SVGs per piece)
 
 ## Architecture
 
