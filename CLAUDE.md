@@ -58,9 +58,13 @@ Piece images are in `img/pieces-<style>/` directories. Each contains SVGs for al
   - PPPP = bump on every commit. Resets when MM bumps.
 - Read current version from `package.json`, bump appropriately, write back, include in commit.
 - **Commit messages:** `<type>: <short description>` — types: feat, fix, refactor, style, docs, test, chore, version
+  - Optional scope: `feat(timer): add increment support`
+  - Use `!` for breaking changes: `feat!: redesign API response format`
 - First line under 72 chars, imperative mood, no generic messages.
-- Reference the wiki page for feature work: `See: [[Feature Name]]`
-- **On major bump (feature merge):** update README.md — add feature to Features section, update Project Structure and Dependencies if changed.
+- Reference the GitHub Issue: `Closes #<issue-number>` (not wiki links — they don't resolve in commit views)
+- **On major bump (feature merge):**
+  - Update README.md — add feature to Features section, update Project Structure and Dependencies if changed
+  - Create a git tag: `git tag v<version>` (e.g., `git tag v1.02.0000`) and push it: `git push origin --tags`
 
 ## Testing
 
