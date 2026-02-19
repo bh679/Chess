@@ -2,54 +2,60 @@
 
 A chess game built to practice working with Claude. Runs in the browser with a companion server for persistent game storage.
 
+## Documentation
+
+- [Wiki](https://github.com/bh679/Chess/wiki) — full project documentation
+- [Roadmap & Project Board](https://github.com/users/bh679/projects/1) — live feature tracking
+- [Agents](https://github.com/bh679/Chess/wiki/Agents) — AI agents that manage and build the project
+
 ## Features
 
-### Core Gameplay
-- **Full chess rules** — powered by chess.js, supporting castling, en passant, pawn promotion, check, checkmate, stalemate, insufficient material, threefold repetition, and 50-move rule
-- **Chess960 (Fischer Random Chess)** — randomized starting positions with bishops on opposite colors and king between rooks, enabled by default
-- **Click and drag-to-move** — select a piece by clicking or drag it to a target square (mouse and touch supported)
-- **Legal move highlighting** — selected pieces show available moves and captures
-- **Pawn promotion modal** — choose between queen, rook, bishop, or knight
-- **Last move highlighting** — the most recent move is highlighted on the board
+### [Core Gameplay](https://github.com/bh679/Chess/wiki/Features)
+- [**Full chess rules**](https://github.com/bh679/Chess/wiki/Feature:-Game-Rules-Engine) — powered by chess.js, supporting castling, en passant, pawn promotion, check, checkmate, stalemate, insufficient material, threefold repetition, and 50-move rule
+- [**Chess960 (Fischer Random Chess)**](https://github.com/bh679/Chess/wiki/Feature:-Chess960) — randomized starting positions with bishops on opposite colors and king between rooks, enabled by default
+- [**Click and drag-to-move**](https://github.com/bh679/Chess/wiki/Feature:-Chess-Board) — select a piece by clicking or drag it to a target square (mouse and touch supported)
+- [**Legal move highlighting**](https://github.com/bh679/Chess/wiki/Feature:-Chess-Board) — selected pieces show available moves and captures
+- [**Pawn promotion modal**](https://github.com/bh679/Chess/wiki/Feature:-Piece-Promotion) — choose between queen, rook, bishop, or knight
+- [**Last move highlighting**](https://github.com/bh679/Chess/wiki/Feature:-Move-Animations) — the most recent move is highlighted on the board
 
-### AI Opponents
-- **Stockfish WASM engine** — full Stockfish chess engine running as a Web Worker
-- **Independent AI per side** — enable AI for white, black, or both independently
-- **ELO-based difficulty** — adjustable from 100 to 3200 ELO per side using Skill Level (low ELO) and UCI_LimitStrength (high ELO)
-- **AI vs AI mode** — watch two engines play against each other at different strengths
-- **Deferred start** — when AI plays white, a Start button appears so you can configure settings first
+### [AI Opponents](https://github.com/bh679/Chess/wiki/Feature:-AI-Opponents)
+- [**Stockfish WASM engine**](https://github.com/bh679/Chess/wiki/Feature:-AI-Opponents) — full Stockfish chess engine running as a Web Worker
+- [**Independent AI per side**](https://github.com/bh679/Chess/wiki/Feature:-AI-Opponents) — enable AI for white, black, or both independently
+- [**ELO-based difficulty**](https://github.com/bh679/Chess/wiki/Feature:-AI-Opponents) — adjustable from 100 to 3200 ELO per side using Skill Level (low ELO) and UCI_LimitStrength (high ELO)
+- [**AI vs AI mode**](https://github.com/bh679/Chess/wiki/Feature:-AI-vs-AI) — watch two engines play against each other at different strengths
+- [**Deferred start**](https://github.com/bh679/Chess/wiki/Feature:-AI-Opponents) — when AI plays white, a Start button appears so you can configure settings first
 
-### Interactive Player Bars
-- **Player info display** — shows player name, ELO (for AI), type icon, and timer for each side
-- **Click icon to toggle AI** — click the player icon (pre-game) to switch between Human and AI
-- **Click ELO to adjust** — click the ELO label (pre-game) to open an inline slider popup
-- **Click timer to change time** — click either timer (pre-game) for a time control dropdown
-- **Editable player names** — click any player name to rename it (works anytime, persists to database)
+### [Interactive Player Bars](https://github.com/bh679/Chess/wiki/Feature:-Player-Configuration)
+- [**Player info display**](https://github.com/bh679/Chess/wiki/Feature:-Player-Configuration) — shows player name, ELO (for AI), type icon, and timer for each side
+- [**Click icon to toggle AI**](https://github.com/bh679/Chess/wiki/Feature:-Player-Configuration) — click the player icon (pre-game) to switch between Human and AI
+- [**Click ELO to adjust**](https://github.com/bh679/Chess/wiki/Feature:-Player-Configuration) — click the ELO label (pre-game) to open an inline slider popup
+- [**Click timer to change time**](https://github.com/bh679/Chess/wiki/Feature:-Player-Configuration) — click either timer (pre-game) for a time control dropdown
+- [**Editable player names**](https://github.com/bh679/Chess/wiki/Feature:-Player-Configuration) — click any player name to rename it (works anytime, persists to database)
 
-### Timers
-- **Preset time controls** — Bullet 1+0, Blitz 3+2, Rapid 5+0, Rapid 10+0, Classical 30+0
-- **Custom time control** — set minutes per side and increment, with optional different time per player (time odds)
-- **Timeout detection** — automatic win on time with visual indicator
+### [Timers](https://github.com/bh679/Chess/wiki/Feature:-Time-Controls)
+- [**Preset time controls**](https://github.com/bh679/Chess/wiki/Feature:-Time-Controls) — Bullet 1+0, Blitz 3+2, Rapid 5+0, Rapid 10+0, Classical 30+0
+- [**Custom time control**](https://github.com/bh679/Chess/wiki/Feature:-Time-Controls) — set minutes per side and increment, with optional different time per player (time odds)
+- [**Timeout detection**](https://github.com/bh679/Chess/wiki/Feature:-Time-Controls) — automatic win on time with visual indicator
 
-### Art Styles
-- **Classic** — traditional SVG chess pieces
-- **Pixel** — pixel art style
-- **Neo** — bold modern style
-- **Fish** — fish/sea creature themed pieces
+### [Art Styles](https://github.com/bh679/Chess/wiki/Feature:-Art-Styles)
+- [**Classic**](https://github.com/bh679/Chess/wiki/Feature:-Art-Styles) — traditional SVG chess pieces
+- [**Pixel**](https://github.com/bh679/Chess/wiki/Feature:-Art-Styles) — pixel art style
+- [**Neo**](https://github.com/bh679/Chess/wiki/Feature:-Art-Styles) — bold modern style
+- [**Fish**](https://github.com/bh679/Chess/wiki/Feature:-Art-Styles) — fish/sea creature themed pieces
 
-### Animations
-- **Move animations** — smooth piece movement with easing
-- **Combat animations** — unique per-piece capture animations (pawn thrust, knight leap, bishop slash, rook crush, queen spin, king sword swing)
-- **Enhanced combat effects** — screen shake, impact flashes, and particle systems
-- **Animation toggle** — turn all animations on/off
+### [Animations](https://github.com/bh679/Chess/wiki/Feature:-Combat-Animations)
+- [**Move animations**](https://github.com/bh679/Chess/wiki/Feature:-Move-Animations) — smooth piece movement with easing
+- [**Combat animations**](https://github.com/bh679/Chess/wiki/Feature:-Combat-Animations) — unique per-piece capture animations (pawn thrust, knight leap, bishop slash, rook crush, queen spin, king sword swing)
+- [**Enhanced combat effects**](https://github.com/bh679/Chess/wiki/Feature:-Combat-Animations) — screen shake, impact flashes, and particle systems
+- [**Animation toggle**](https://github.com/bh679/Chess/wiki/Feature:-Combat-Animations) — turn all animations on/off
 
-### Game Database & History
-- **Local-first persistence** — all game data (moves, results, metadata) is written to localStorage immediately and never blocks gameplay; a background sync timer pushes data to the server every 10 seconds
-- **Offline resilience** — if the server is down, games are fully preserved locally and sync automatically when connectivity returns
-- **Idempotent sync** — duplicate moves are safely deduplicated via server-side UNIQUE constraints; partial syncs resume from where they left off
-- **Server-side storage** — synced games are stored via REST API in a SQLite database (see [chess-api](https://github.com/bh679/chess-api))
-- **Game history browser** — browse past games with player info, results, and move counts
-- **Replay viewer** — step through any saved game move by move with:
+### [Game Database & History](https://github.com/bh679/Chess/wiki/Feature:-Local-Storage)
+- [**Local-first persistence**](https://github.com/bh679/Chess/wiki/Feature:-Local-Storage) — all game data (moves, results, metadata) is written to localStorage immediately and never blocks gameplay; a background sync timer pushes data to the server every 10 seconds
+- [**Offline resilience**](https://github.com/bh679/Chess/wiki/Feature:-Local-Storage) — if the server is down, games are fully preserved locally and sync automatically when connectivity returns
+- [**Idempotent sync**](https://github.com/bh679/Chess/wiki/Feature:-Server-Sync) — duplicate moves are safely deduplicated via server-side UNIQUE constraints; partial syncs resume from where they left off
+- [**Server-side storage**](https://github.com/bh679/Chess/wiki/Feature:-Server-Sync) — synced games are stored via REST API in a SQLite database (see [chess-api](https://github.com/bh679/chess-api))
+- [**Game history browser**](https://github.com/bh679/Chess/wiki/Feature:-Game-Browser) — browse past games with player info, results, and move counts
+- [**Replay viewer**](https://github.com/bh679/Chess/wiki/Feature:-Replay-Viewer) — step through any saved game move by move with:
   - Reconstructed board positions
   - Horizontal move strip with scroll navigation
   - Reconstructed clock display from move timestamps
@@ -57,14 +63,14 @@ A chess game built to practice working with Claude. Runs in the browser with a c
   - Keyboard navigation (arrow keys, space for play/pause)
 
 ### UI
-- **Captured pieces display** — shows captured pieces with material advantage indicators
-- **Responsive layout** — works on desktop and mobile
-- **Settings panel** — collapsible panel with all game configuration options
-- **Archive menu** — dynamic archive discovery with navigation between versions; opens in new tab from main app, same tab within archives
+- [**Captured pieces display**](https://github.com/bh679/Chess/wiki/Feature:-Captured-Pieces) — shows captured pieces with material advantage indicators
+- [**Responsive layout**](https://github.com/bh679/Chess/wiki/Feature:-Responsive-Design) — works on desktop and mobile
+- [**Settings panel**](https://github.com/bh679/Chess/wiki/Feature:-Settings-Panel) — collapsible panel with all game configuration options
+- [**Archive menu**](https://github.com/bh679/Chess/wiki/Feature:-Archive-Browser) — dynamic archive discovery with navigation between versions; opens in new tab from main app, same tab within archives
 
 ## Roadmap
 
-See [TODO.md](TODO.md) for planned features and ideas.
+See the [project roadmap](https://github.com/bh679/Chess/wiki/Roadmap) for planned features, priorities, and status tracking.
 
 ## Dependencies
 
