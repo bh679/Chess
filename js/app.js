@@ -7,6 +7,7 @@ import { GameDatabase } from './database.js?v=6';
 import { GameBrowser } from './browser.js?v=3';
 import { ReplayViewer } from './replay.js';
 import { AnalysisEngine } from './analysis.js';
+import { EvalBar } from './eval-bar.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -132,6 +133,10 @@ let replayClockSnapshots = [];
 // Analysis state for main-board replay
 let replayAnalysisData = null;
 let replayAnalysisEngine = null;
+
+// Eval bar for main-board replay
+const mainEvalBar = new EvalBar();
+document.getElementById('main-eval-bar').appendChild(mainEvalBar.el);
 
 // Initialise analysis toggle from localStorage
 if (replayAnalyzeCheckbox) {
@@ -1115,6 +1120,7 @@ function replayGoToMove(plyIndex) {
   if (replayAnalysisData) {
     updateAnalysisDetail();
     updateCriticalNav();
+    updateMainEvalBar();
   }
 }
 
@@ -1481,6 +1487,10 @@ function setMainBoardAnalysis(result) {
 
   // Show detail for current move
   updateAnalysisDetail();
+
+  // Show and update eval bar
+  mainEvalBar.show();
+  updateMainEvalBar();
 }
 
 function addClassificationIcons() {
@@ -1679,11 +1689,22 @@ function resetMainBoardAnalysis() {
   // Hide critical nav
   if (replayCritPrevBtn) replayCritPrevBtn.classList.add('hidden');
   if (replayCritNextBtn) replayCritNextBtn.classList.add('hidden');
+  // Hide eval bar
+  mainEvalBar.hide();
+  mainEvalBar.reset();
+
   // Remove classification icons and critical markers
   replayMoveListEl.querySelectorAll('.analysis-icon').forEach(el => el.remove());
   replayMoveListEl.querySelectorAll('.analysis-critical').forEach(el => {
     el.classList.remove('analysis-critical');
   });
+}
+
+function updateMainEvalBar() {
+  if (!replayAnalysisData) return;
+  const posIdx = replayPly + 1;
+  if (posIdx < 0 || posIdx >= replayAnalysisData.positions.length) return;
+  mainEvalBar.update(replayAnalysisData.positions[posIdx].eval);
 }
 
 // --- Replay Keyboard Handler ---

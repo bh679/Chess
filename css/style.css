@@ -98,6 +98,17 @@ body {
   font-size: 1rem;
 }
 
+.board-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+#main-eval-bar {
+  display: flex;
+  align-items: stretch;
+}
+
 /* Board */
 .board {
   display: grid;
