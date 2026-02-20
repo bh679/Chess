@@ -12,10 +12,12 @@ class ArrowOverlay {
   constructor(boardEl) {
     this._boardEl = boardEl;
     this._svg = null;
+    this._defs = null;
     this._engineGroup = null;
     this._userGroup = null;
     this._userArrows = [];     // { from, to, element }
     this._userHighlights = []; // { square, element }
+    this._markerCounter = 0;
     this._createSVG();
   }
 
@@ -28,7 +30,7 @@ class ArrowOverlay {
     const best = this._parseUci(bestMoveUci);
     if (best) {
       this._drawArrow(this._engineGroup, best.from, best.to,
-        COLORS.engineBest, 0.8, 0.25, 'arrow-engine');
+        COLORS.engineBest, 0.85, 0.28);
     }
 
     // PV continuation: moves 2-4 (indices 1-3 of bestLineUci)
@@ -38,7 +40,7 @@ class ArrowOverlay {
         const pv = this._parseUci(bestLineUci[i]);
         if (pv) {
           this._drawArrow(this._engineGroup, pv.from, pv.to,
-            COLORS.enginePV, 0.5, 0.18, 'arrow-pv');
+            COLORS.enginePV, 0.6, 0.2, i + 1);
         }
       }
     }
@@ -60,7 +62,7 @@ class ArrowOverlay {
     }
 
     const el = this._drawArrow(this._userGroup, from, to,
-      COLORS.user, 0.75, 0.22, 'arrow-user');
+      COLORS.user, 0.75, 0.24);
     this._userArrows.push({ from, to, element: el });
   }
 
@@ -101,12 +103,8 @@ class ArrowOverlay {
     this._svg.setAttribute('viewBox', '0 0 8 8');
     this._svg.classList.add('arrow-overlay');
 
-    // Marker definitions
-    const defs = document.createElementNS(SVG_NS, 'defs');
-    defs.appendChild(this._createMarker('arrow-engine', COLORS.engineBest));
-    defs.appendChild(this._createMarker('arrow-pv', COLORS.enginePV));
-    defs.appendChild(this._createMarker('arrow-user', COLORS.user));
-    this._svg.appendChild(defs);
+    this._defs = document.createElementNS(SVG_NS, 'defs');
+    this._svg.appendChild(this._defs);
 
     // Layer groups — engine below user
     this._engineGroup = document.createElementNS(SVG_NS, 'g');
@@ -120,50 +118,113 @@ class ArrowOverlay {
     this._boardEl.appendChild(this._svg);
   }
 
-  _createMarker(id, color) {
+  _createArrowMarker(color) {
+    const id = `arrow-mk-${this._markerCounter++}`;
     const marker = document.createElementNS(SVG_NS, 'marker');
     marker.setAttribute('id', id);
     marker.setAttribute('viewBox', '0 0 10 10');
-    marker.setAttribute('refX', '8');
+    marker.setAttribute('refX', '7');
     marker.setAttribute('refY', '5');
-    marker.setAttribute('markerWidth', '3');
-    marker.setAttribute('markerHeight', '3');
+    marker.setAttribute('markerWidth', '4');
+    marker.setAttribute('markerHeight', '4');
     marker.setAttribute('orient', 'auto-start-reverse');
 
     const path = document.createElementNS(SVG_NS, 'path');
-    path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+    path.setAttribute('d', 'M 1 1 L 9 5 L 1 9 Q 3 5 1 1 z');
     path.setAttribute('fill', color);
     marker.appendChild(path);
 
-    return marker;
+    this._defs.appendChild(marker);
+    return id;
   }
 
   /* ── Drawing Helpers ────────────────────────────────── */
 
-  _drawArrow(group, from, to, color, opacity, width, markerId) {
+  _drawArrow(group, from, to, color, opacity, width, moveNumber) {
     const fromCoords = this._squareToCoords(from);
     const toCoords = this._squareToCoords(to);
     if (!fromCoords || !toCoords) return null;
 
-    // Shorten endpoint so arrowhead doesn't cover piece center
+    const markerId = this._createArrowMarker(color);
+
+    // Shorten start and end so arrows don't cover piece centers
     const shortened = this._shortenLine(
       fromCoords.x, fromCoords.y,
-      toCoords.x, toCoords.y, 0.2
+      toCoords.x, toCoords.y, 0.25
+    );
+    const shortenedStart = this._shortenLine(
+      toCoords.x, toCoords.y,
+      fromCoords.x, fromCoords.y, 0.15
     );
 
-    const line = document.createElementNS(SVG_NS, 'line');
-    line.setAttribute('x1', fromCoords.x);
-    line.setAttribute('y1', fromCoords.y);
-    line.setAttribute('x2', shortened.x);
-    line.setAttribute('y2', shortened.y);
-    line.setAttribute('stroke', color);
-    line.setAttribute('stroke-opacity', opacity);
-    line.setAttribute('stroke-width', width);
-    line.setAttribute('stroke-linecap', 'round');
-    line.setAttribute('marker-end', `url(#${markerId})`);
+    const x1 = shortenedStart.x, y1 = shortenedStart.y;
+    const x2 = shortened.x, y2 = shortened.y;
 
-    group.appendChild(line);
-    return line;
+    // Compute a control point perpendicular to the line for a gentle curve
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const curvature = len * 0.15;
+    // Perpendicular offset (always curve to the right of the arrow direction)
+    const nx = -dy / len * curvature;
+    const ny = dx / len * curvature;
+    const cx = (x1 + x2) / 2 + nx;
+    const cy = (y1 + y2) / 2 + ny;
+
+    const g = document.createElementNS(SVG_NS, 'g');
+
+    // Shadow path for depth
+    const shadow = document.createElementNS(SVG_NS, 'path');
+    shadow.setAttribute('d', `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+    shadow.setAttribute('stroke', 'rgba(0,0,0,0.3)');
+    shadow.setAttribute('stroke-opacity', opacity * 0.5);
+    shadow.setAttribute('stroke-width', width + 0.08);
+    shadow.setAttribute('stroke-linecap', 'round');
+    shadow.setAttribute('fill', 'none');
+    g.appendChild(shadow);
+
+    // Main curved path
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-opacity', opacity);
+    path.setAttribute('stroke-width', width);
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('marker-end', `url(#${markerId})`);
+    g.appendChild(path);
+
+    // Move number label for PV continuation arrows
+    if (moveNumber) {
+      // Position the label at the midpoint of the curve
+      const labelX = (x1 + 2 * cx + x2) / 4;
+      const labelY = (y1 + 2 * cy + y2) / 4;
+
+      // Background circle
+      const bg = document.createElementNS(SVG_NS, 'circle');
+      bg.setAttribute('cx', labelX);
+      bg.setAttribute('cy', labelY);
+      bg.setAttribute('r', '0.28');
+      bg.setAttribute('fill', color);
+      bg.setAttribute('fill-opacity', '0.9');
+      g.appendChild(bg);
+
+      // Number text
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('x', labelX);
+      text.setAttribute('y', labelY);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('dominant-baseline', 'central');
+      text.setAttribute('font-size', '0.32');
+      text.setAttribute('font-weight', '700');
+      text.setAttribute('fill', '#fff');
+      text.setAttribute('font-family', 'system-ui, sans-serif');
+      text.textContent = moveNumber;
+      g.appendChild(text);
+    }
+
+    group.appendChild(g);
+    return g;
   }
 
   _drawHighlight(group, square, color, opacity) {
