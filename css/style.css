@@ -2270,6 +2270,13 @@ button.replay-summary-btn {
   margin-bottom: 16px;
 }
 
+.pgs-progress-text {
+  text-align: center;
+  color: #999;
+  font-size: 0.9rem;
+  padding: 12px 0;
+}
+
 .pgs-error {
   text-align: center;
   color: #999;
@@ -2371,7 +2378,7 @@ button.replay-summary-btn {
 
 .pgs-class-label {
   color: #999;
-  padding-left: 6px;
+  text-align: center;
 }
 
 /* Action buttons */

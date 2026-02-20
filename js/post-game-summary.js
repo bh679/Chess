@@ -35,6 +35,7 @@ class PostGameSummary {
     this._headerEl = null;
     this._progressEl = null;
     this._progressFillEl = null;
+    this._progressTextEl = null;
     this._bodyEl = null;
     this._actionsEl = null;
     this._onReview = null;
@@ -50,6 +51,7 @@ class PostGameSummary {
   show(gameRecord, analysisResult) {
     this._currentRecord = gameRecord;
     this._progressEl.classList.add('hidden');
+    this._progressTextEl.classList.add('hidden');
     this._renderResult(gameRecord);
     this._renderBody(gameRecord, analysisResult.summary);
     this._overlay.classList.remove('hidden');
@@ -72,6 +74,7 @@ class PostGameSummary {
     this._renderResult(gameRecord);
     this._bodyEl.innerHTML = '';
     this._progressEl.classList.remove('hidden');
+    this._progressTextEl.classList.remove('hidden');
     this._progressFillEl.style.width = '0%';
     this._overlay.classList.remove('hidden');
 
@@ -89,12 +92,14 @@ class PostGameSummary {
         }
       );
       this._progressEl.classList.add('hidden');
+      this._progressTextEl.classList.add('hidden');
       this._renderBody(gameRecord, result.summary);
     } catch (err) {
       if (err !== 'stopped') {
         console.warn('Post-game analysis failed:', err);
       }
       this._progressEl.classList.add('hidden');
+      this._progressTextEl.classList.add('hidden');
       this._bodyEl.innerHTML = '<div class="pgs-error">Analysis failed. Try again later.</div>';
     }
   }
@@ -135,6 +140,12 @@ class PostGameSummary {
     this._progressFillEl.className = 'analysis-progress-fill';
     this._progressEl.appendChild(this._progressFillEl);
     this._contentEl.appendChild(this._progressEl);
+
+    // Progress text
+    this._progressTextEl = document.createElement('div');
+    this._progressTextEl.className = 'pgs-progress-text hidden';
+    this._progressTextEl.textContent = 'Analyzing game\u2026';
+    this._contentEl.appendChild(this._progressTextEl);
 
     // Body (accuracy + classifications)
     this._bodyEl = document.createElement('div');
