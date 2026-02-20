@@ -1,3 +1,4 @@
+import { Chess } from './chess.js';
 import { Game } from './game.js';
 import { Board } from './board.js';
 import { Timer } from './timer.js?v=2';
@@ -65,18 +66,44 @@ const startGameBtn = document.getElementById('start-game-btn');
 const gameTypeLabel = document.getElementById('game-type-label');
 const appEl = document.querySelector('.app');
 
+// Confirmation modal DOM elements
+const confirmModal = document.getElementById('confirm-modal');
+const confirmModalTitle = document.getElementById('confirm-modal-title');
+const confirmModalMessage = document.getElementById('confirm-modal-message');
+const confirmModalOk = document.getElementById('confirm-modal-ok');
+const confirmModalCancel = document.getElementById('confirm-modal-cancel');
+
+// Replay-on-board DOM elements
+const replayControlsEl = document.getElementById('replay-controls');
+const replayMoveListEl = document.getElementById('replay-move-list');
+const replayStartBtn = document.getElementById('replay-main-start');
+const replayPrevBtn = document.getElementById('replay-main-prev');
+const replayPlayBtn = document.getElementById('replay-main-play');
+const replayNextBtn = document.getElementById('replay-main-next');
+const replayEndBtn = document.getElementById('replay-main-end');
+const replayResultEl = document.getElementById('replay-main-result');
+
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
 const ai = new AI();
 const db = new GameDatabase();
 const replayViewer = new ReplayViewer();
-const gameBrowser = new GameBrowser(db, replayViewer);
+const gameBrowser = new GameBrowser(db, replayViewer, enterReplayMode);
 
 let moveCount = 0;
 let gameId = 0;
 let currentDbGameId = null;
 let customWhiteName = null;
 let customBlackName = null;
+
+// Replay-on-board state
+let isReplayMode = false;
+let replayGame = null;
+let replayPly = -1;
+let replayPlaying = false;
+let replayTimer = null;
+let replayMoveDetails = [];
+let replayClockSnapshots = [];
 
 function renderCaptured() {
   const captured = game.getCaptured();
@@ -224,6 +251,11 @@ function getTimeControlLabel() {
 // --- Game Flow ---
 
 function startNewGame() {
+  // Exit replay mode if active
+  if (isReplayMode) {
+    exitReplayMode(false);
+  }
+
   // End the current game as abandoned if moves were made and game isn't over
   if (currentDbGameId && moveCount > 0 && !game.isGameOver()) {
     db.endGame(currentDbGameId, 'abandoned', 'abandoned');
@@ -326,6 +358,7 @@ function startNewGame() {
 }
 
 board.onMove((result) => {
+  if (isReplayMode) return;
   moveCount++;
   showingGameInfo = false;
 
@@ -400,6 +433,7 @@ startGameBtn.addEventListener('click', () => {
 // --- Editable Player Names ---
 
 function startNameEdit(nameEl, side) {
+  if (isReplayMode) return;
   // Prevent double-editing
   if (nameEl.querySelector('.player-name-input')) return;
 
@@ -684,14 +718,14 @@ function closeAllPopups() {
 
 // Click player icon to toggle Human ↔ AI (only before first move)
 playerIconWhite.addEventListener('click', () => {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   aiWhiteToggle.checked = !aiWhiteToggle.checked;
   aiWhiteToggle.dispatchEvent(new Event('change'));
   startNewGame();
 });
 
 playerIconBlack.addEventListener('click', () => {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   aiBlackToggle.checked = !aiBlackToggle.checked;
   aiBlackToggle.dispatchEvent(new Event('change'));
   startNewGame();
@@ -699,14 +733,14 @@ playerIconBlack.addEventListener('click', () => {
 
 // Click game type label to toggle Chess960 ↔ Standard (only before first move)
 gameTypeLabel.addEventListener('click', () => {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   chess960Toggle.checked = !chess960Toggle.checked;
   startNewGame();
 });
 
 // Click timer for time control dropdown (only before first move)
 function showTimerDropdown(timerEl) {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   closeAllPopups();
 
   const dropdown = document.createElement('div');
@@ -766,7 +800,7 @@ timerBlackEl.addEventListener('click', (e) => {
 
 // Click ELO label for inline slider popup (only before first move, only for AI)
 function showEloPopup(eloEl, side) {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   closeAllPopups();
 
   const isWhite = side === 'w';
@@ -851,6 +885,510 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// --- Confirmation Modal ---
+
+function showConfirmation(message, title) {
+  return new Promise((resolve) => {
+    confirmModalTitle.textContent = title || 'Confirm';
+    confirmModalMessage.textContent = message;
+    confirmModal.classList.remove('hidden');
+
+    function cleanup() {
+      confirmModal.classList.add('hidden');
+      confirmModalOk.removeEventListener('click', onOk);
+      confirmModalCancel.removeEventListener('click', onCancel);
+      confirmModal.removeEventListener('click', onBackdrop);
+    }
+
+    function onOk() {
+      cleanup();
+      resolve(true);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(false);
+    }
+
+    function onBackdrop(e) {
+      if (e.target === confirmModal) {
+        cleanup();
+        resolve(false);
+      }
+    }
+
+    confirmModalOk.addEventListener('click', onOk);
+    confirmModalCancel.addEventListener('click', onCancel);
+    confirmModal.addEventListener('click', onBackdrop);
+  });
+}
+
+// --- Replay on Main Board ---
+
+async function enterReplayMode(gameRecord) {
+  // Confirm if there's an active live game (not if already in replay mode)
+  if (!isReplayMode && moveCount > 0 && !game.isGameOver()) {
+    const confirmed = await showConfirmation(
+      'You have a game in progress. Abandon it to review this game?',
+      'Abandon Game?'
+    );
+    if (!confirmed) {
+      return;
+    }
+    // End the current game as abandoned
+    if (currentDbGameId) {
+      db.endGame(currentDbGameId, 'abandoned', 'abandoned');
+    }
+    moveCount = 0;
+  }
+
+  if (isReplayMode) exitReplayMode(false);
+
+  ai.stop();
+  timer.stop();
+
+  isReplayMode = true;
+  replayGame = gameRecord;
+  replayPly = -1;
+  replayPlaying = false;
+
+  // Precompute move details (from/to for highlighting)
+  replayMoveDetails = [];
+  const scratch = new Chess(gameRecord.startingFen);
+  for (const move of gameRecord.moves) {
+    const result = scratch.move(move.san);
+    if (result) {
+      replayMoveDetails.push({
+        fen: move.fen,
+        from: result.from,
+        to: result.to,
+        san: move.san,
+        side: move.side,
+      });
+    }
+  }
+
+  // Reconstruct clocks
+  replayClockSnapshots = reconstructClocks(gameRecord);
+
+  // Disable board input and show replay border
+  board.setInteractive(false);
+  boardEl.classList.add('replay-mode-border');
+
+  // Update player bars
+  updatePlayerBarsForReplay(gameRecord);
+
+  // Update status
+  statusEl.textContent = 'Replay Mode';
+  statusEl.className = 'status replay-mode';
+
+  // Hide normal game controls that don't apply
+  startGameBtn.classList.add('hidden');
+  appEl.classList.remove('pre-game');
+  closeAllPopups();
+
+  // Build move list
+  buildReplayMoveList(gameRecord);
+
+  // Show replay controls
+  replayControlsEl.classList.remove('hidden');
+
+  // Show result
+  if (gameRecord.result) {
+    replayResultEl.textContent = formatReplayResult(gameRecord);
+    replayResultEl.style.display = '';
+  } else {
+    replayResultEl.style.display = 'none';
+  }
+
+  // Render starting position
+  replayGoToMove(-1);
+
+  // Highlight New Game button to indicate how to exit
+  newGameBtn.classList.add('game-ended');
+
+  // Set up keyboard handler
+  document.addEventListener('keydown', replayKeyHandler);
+}
+
+function exitReplayMode(startNew = true) {
+  if (!isReplayMode) return;
+
+  stopReplayPlayback();
+
+  isReplayMode = false;
+  replayGame = null;
+  replayPly = -1;
+  replayMoveDetails = [];
+  replayClockSnapshots = [];
+
+  // Re-enable board input and remove replay border
+  board.setInteractive(true);
+  boardEl.classList.remove('replay-mode-border');
+
+  // Hide replay controls
+  replayControlsEl.classList.add('hidden');
+
+  // Remove keyboard handler
+  document.removeEventListener('keydown', replayKeyHandler);
+
+  if (startNew) startNewGame();
+}
+
+// --- Replay Navigation ---
+
+function replayGoToMove(plyIndex) {
+  if (!replayGame) return;
+  const maxPly = replayGame.moves.length - 1;
+  replayPly = Math.max(-1, Math.min(plyIndex, maxPly));
+
+  if (replayPly === -1) {
+    game.chess.load(replayGame.startingFen);
+    game._lastMove = null;
+  } else {
+    const detail = replayMoveDetails[replayPly];
+    game.chess.load(detail.fen);
+    game._lastMove = { from: detail.from, to: detail.to };
+  }
+
+  board.render();
+  highlightReplayMove();
+  updateReplayButtons();
+  updateReplayTimers();
+
+  if (replayPly === -1) {
+    statusEl.textContent = 'Replay Mode \u2014 Starting Position';
+  } else {
+    const moveNum = Math.floor(replayPly / 2) + 1;
+    const side = replayMoveDetails[replayPly].side === 'w' ? '' : '...';
+    statusEl.textContent = `Replay Mode \u2014 ${moveNum}${side} ${replayMoveDetails[replayPly].san}`;
+  }
+  statusEl.className = 'status replay-mode';
+}
+
+function replayNext() {
+  if (!replayGame) return;
+  if (replayPly >= replayGame.moves.length - 1) {
+    stopReplayPlayback();
+    return;
+  }
+  replayGoToMove(replayPly + 1);
+}
+
+function replayPrev() {
+  replayGoToMove(replayPly - 1);
+}
+
+function replayGoToStart() {
+  stopReplayPlayback();
+  replayGoToMove(-1);
+}
+
+function replayGoToEnd() {
+  stopReplayPlayback();
+  if (replayGame) {
+    replayGoToMove(replayGame.moves.length - 1);
+  }
+}
+
+// --- Replay Playback ---
+
+function toggleReplayPlayback() {
+  if (replayPlaying) {
+    stopReplayPlayback();
+  } else {
+    startReplayPlayback();
+  }
+}
+
+function startReplayPlayback() {
+  if (!replayGame) return;
+  if (replayPly >= replayGame.moves.length - 1) {
+    replayGoToMove(-1);
+  }
+  replayPlaying = true;
+  replayPlayBtn.textContent = '\u23F8';
+  replayPlayBtn.classList.add('playing');
+  scheduleReplayNext();
+}
+
+function stopReplayPlayback() {
+  replayPlaying = false;
+  if (replayTimer) {
+    clearTimeout(replayTimer);
+    replayTimer = null;
+  }
+  if (replayPlayBtn) {
+    replayPlayBtn.textContent = '\u25B6';
+    replayPlayBtn.classList.remove('playing');
+  }
+}
+
+function scheduleReplayNext() {
+  if (!replayPlaying || !replayGame) return;
+  if (replayPly >= replayGame.moves.length - 1) {
+    stopReplayPlayback();
+    return;
+  }
+
+  const nextPly = replayPly + 1;
+  const nextMove = replayGame.moves[nextPly];
+  let delay;
+
+  if (replayPly === -1) {
+    delay = nextMove.timestamp - replayGame.startTime;
+  } else {
+    delay = nextMove.timestamp - replayGame.moves[replayPly].timestamp;
+  }
+
+  delay = Math.max(200, Math.min(delay, 5000));
+
+  replayTimer = setTimeout(() => {
+    replayNext();
+    if (replayPlaying) scheduleReplayNext();
+  }, delay);
+}
+
+// --- Replay Clock Reconstruction ---
+
+function parseReplayTimeControl(tc) {
+  if (!tc || tc === 'none' || tc === 'No Timer') return null;
+  const oddsMatch = tc.match(/W(\d+)\s*\/\s*B(\d+)\s*\+(\d+)/);
+  if (oddsMatch) {
+    return {
+      baseSec: parseInt(oddsMatch[1], 10) * 60,
+      blackBaseSec: parseInt(oddsMatch[2], 10) * 60,
+      increment: parseInt(oddsMatch[3], 10),
+    };
+  }
+  const match = tc.match(/(\d+)\+(\d+)/);
+  if (!match) return null;
+  return { baseSec: parseInt(match[1], 10) * 60, increment: parseInt(match[2], 10) };
+}
+
+function reconstructClocks(gameRecord) {
+  const snapshots = [];
+  const tc = parseReplayTimeControl(gameRecord.timeControl);
+  if (!tc) {
+    for (let i = 0; i < gameRecord.moves.length; i++) snapshots.push(null);
+    return snapshots;
+  }
+
+  let whiteTime = tc.baseSec;
+  let blackTime = tc.blackBaseSec || tc.baseSec;
+  let prevTimestamp = gameRecord.startTime;
+
+  for (const move of gameRecord.moves) {
+    const spent = (move.timestamp - prevTimestamp) / 1000;
+    if (move.side === 'w') {
+      whiteTime = Math.max(0, whiteTime - spent) + tc.increment;
+    } else {
+      blackTime = Math.max(0, blackTime - spent) + tc.increment;
+    }
+    snapshots.push({ w: whiteTime, b: blackTime });
+    prevTimestamp = move.timestamp;
+  }
+  return snapshots;
+}
+
+function formatClockTime(seconds) {
+  if (seconds == null) return '--:--';
+  const s = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    return `${h}:${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  }
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function updateReplayTimers() {
+  if (!replayGame) return;
+
+  if (replayPly === -1) {
+    const tc = parseReplayTimeControl(replayGame.timeControl);
+    if (tc) {
+      timerWhiteEl.textContent = formatClockTime(tc.baseSec);
+      timerBlackEl.textContent = formatClockTime(tc.blackBaseSec || tc.baseSec);
+    } else {
+      timerWhiteEl.textContent = '--:--';
+      timerBlackEl.textContent = '--:--';
+    }
+    timerWhiteEl.classList.remove('timer-active', 'timer-low');
+    timerBlackEl.classList.remove('timer-active', 'timer-low');
+    return;
+  }
+
+  const snapshot = replayClockSnapshots[replayPly];
+  if (!snapshot) {
+    timerWhiteEl.textContent = '--:--';
+    timerBlackEl.textContent = '--:--';
+    timerWhiteEl.classList.remove('timer-active', 'timer-low');
+    timerBlackEl.classList.remove('timer-active', 'timer-low');
+    return;
+  }
+
+  timerWhiteEl.textContent = formatClockTime(snapshot.w);
+  timerBlackEl.textContent = formatClockTime(snapshot.b);
+
+  const nextPly = replayPly + 1;
+  if (nextPly < replayGame.moves.length) {
+    const nextSide = replayGame.moves[nextPly].side;
+    timerWhiteEl.classList.toggle('timer-active', nextSide === 'w');
+    timerBlackEl.classList.toggle('timer-active', nextSide === 'b');
+  } else {
+    timerWhiteEl.classList.remove('timer-active');
+    timerBlackEl.classList.remove('timer-active');
+  }
+}
+
+// --- Replay Player Bars ---
+
+function updatePlayerBarsForReplay(gameRecord) {
+  const w = gameRecord.white;
+  const b = gameRecord.black;
+
+  playerNameWhite.textContent = w.name || 'White';
+  playerNameBlack.textContent = b.name || 'Black';
+  playerIconWhite.textContent = w.isAI ? '\uD83E\uDD16' : '\uD83D\uDC64';
+  playerIconBlack.textContent = b.isAI ? '\uD83E\uDD16' : '\uD83D\uDC64';
+
+  if (w.elo) {
+    playerEloWhite.textContent = w.elo;
+    playerEloWhite.classList.remove('hidden');
+  } else {
+    playerEloWhite.classList.add('hidden');
+  }
+
+  if (b.elo) {
+    playerEloBlack.textContent = b.elo;
+    playerEloBlack.classList.remove('hidden');
+  } else {
+    playerEloBlack.classList.add('hidden');
+  }
+
+  capturedByWhiteEl.innerHTML = '';
+  capturedByBlackEl.innerHTML = '';
+
+  gameTypeLabel.textContent = gameRecord.gameType === 'chess960' ? 'Chess960' : 'Standard';
+}
+
+// --- Replay Move List ---
+
+function buildReplayMoveList(gameRecord) {
+  replayMoveListEl.innerHTML = '';
+
+  for (let i = 0; i < gameRecord.moves.length; i++) {
+    const move = gameRecord.moves[i];
+    const moveNum = Math.floor(i / 2) + 1;
+    const isWhite = move.side === 'w';
+
+    if (isWhite) {
+      const numEl = document.createElement('span');
+      numEl.className = 'strip-move-num';
+      numEl.textContent = `${moveNum}.`;
+      replayMoveListEl.appendChild(numEl);
+    }
+
+    const moveEl = document.createElement('span');
+    moveEl.className = 'strip-move';
+    moveEl.textContent = move.san;
+    moveEl.dataset.ply = i;
+    moveEl.addEventListener('click', () => {
+      stopReplayPlayback();
+      replayGoToMove(parseInt(moveEl.dataset.ply, 10));
+    });
+    replayMoveListEl.appendChild(moveEl);
+  }
+}
+
+function highlightReplayMove() {
+  replayMoveListEl.querySelectorAll('.strip-move-active').forEach(el => {
+    el.classList.remove('strip-move-active');
+  });
+
+  if (replayPly >= 0) {
+    const el = replayMoveListEl.querySelector(`.strip-move[data-ply="${replayPly}"]`);
+    if (el) {
+      el.classList.add('strip-move-active');
+      el.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+    }
+  } else {
+    replayMoveListEl.scrollLeft = 0;
+  }
+}
+
+// --- Replay Button State ---
+
+function updateReplayButtons() {
+  if (!replayGame) return;
+  const atStart = replayPly === -1;
+  const atEnd = replayPly >= replayGame.moves.length - 1;
+
+  replayStartBtn.disabled = atStart;
+  replayPrevBtn.disabled = atStart;
+  replayNextBtn.disabled = atEnd;
+  replayEndBtn.disabled = atEnd;
+}
+
+function formatReplayResult(gameRecord) {
+  if (!gameRecord.result) return '';
+  if (gameRecord.result === 'abandoned') return 'Abandoned';
+
+  const reasons = {
+    checkmate: 'Checkmate',
+    stalemate: 'Stalemate',
+    timeout: 'Time out',
+    insufficient: 'Insufficient material',
+    threefold: 'Threefold repetition',
+    '50-move': 'Fifty-move rule',
+    draw: 'Draw',
+  };
+
+  const reason = reasons[gameRecord.resultReason] || '';
+  if (gameRecord.result === 'draw') return reason ? `Draw \u2014 ${reason}` : 'Draw';
+  const winner = gameRecord.result === 'white' ? 'White' : 'Black';
+  return reason ? `${reason}! ${winner} wins` : `${winner} wins`;
+}
+
+// --- Replay Keyboard Handler ---
+
+function replayKeyHandler(e) {
+  if (!isReplayMode) return;
+
+  switch (e.key) {
+    case 'ArrowLeft':
+      e.preventDefault();
+      replayPrev();
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      replayNext();
+      break;
+    case ' ':
+      e.preventDefault();
+      toggleReplayPlayback();
+      break;
+    case 'Home':
+      e.preventDefault();
+      replayGoToStart();
+      break;
+    case 'End':
+      e.preventDefault();
+      replayGoToEnd();
+      break;
+  }
+}
+
+// Wire up replay control buttons
+replayStartBtn.addEventListener('click', replayGoToStart);
+replayPrevBtn.addEventListener('click', replayPrev);
+replayPlayBtn.addEventListener('click', toggleReplayPlayback);
+replayNextBtn.addEventListener('click', replayNext);
+replayEndBtn.addEventListener('click', replayGoToEnd);
 
 // Dev indicator management
 const devIndicator = document.getElementById('dev-indicator');

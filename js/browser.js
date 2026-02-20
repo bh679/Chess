@@ -1,16 +1,17 @@
 /**
  * GameBrowser — Modal overlay listing past games with pagination.
  * Two tabs: "My Games" (filtered by localStorage IDs) and "Public" (all server games).
- * Click a game to open it in the ReplayViewer.
+ * Click a game to review it on the main board (or in the ReplayViewer as fallback).
  */
 
 const PAGE_SIZE = 15;
 const MIN_DISPLAY_MOVES = 4; // at least 2 moves per player
 
 class GameBrowser {
-  constructor(database, replayViewer) {
+  constructor(database, replayViewer, onReviewOnBoard) {
     this._db = database;
     this._replay = replayViewer;
+    this._onReviewOnBoard = onReviewOnBoard || null;
     this._overlay = null;
     this._listEl = null;
     this._paginationEl = null;
@@ -153,13 +154,17 @@ class GameBrowser {
 
       row.appendChild(meta);
 
-      // Click to open replay
+      // Click to review on main board (preferred) or open replay modal (fallback)
       row.addEventListener('click', async () => {
         try {
           const fullGame = await this._db.getGame(game.id);
           if (fullGame && fullGame.moves.length > 0) {
             this.close();
-            this._replay.open(fullGame);
+            if (this._onReviewOnBoard) {
+              this._onReviewOnBoard(fullGame);
+            } else {
+              this._replay.open(fullGame);
+            }
           }
         } catch (err) {
           console.warn('Failed to load game:', err);
