@@ -27,11 +27,8 @@ class GameBrowser {
     this._pageInfoEl = null;
     this._prevPageBtn = null;
     this._nextPageBtn = null;
-    this._tabMine = null;
-    this._tabPublic = null;
     this._currentPage = 0;
     this._totalGames = 0;
-    this._activeTab = 'mine'; // 'mine' | 'public'
     this._analysisEngine = null; // lazy-created on first analyze
 
     // Filter state
@@ -40,8 +37,8 @@ class GameBrowser {
       playerType: 'all',
       timeControl: 'all',
       gameType: 'all',
-      me: false,
-      inProgress: false,
+      me: true,
+      showLive: false,
       eloMin: '',
       eloMax: '',
       playerSearch: ''
@@ -68,7 +65,6 @@ class GameBrowser {
     this._currentPage = 0;
     this._resetFilters();
     this._overlay.classList.remove('hidden');
-    this._setActiveTab(this._activeTab);
     await this._loadPage(0);
   }
 
@@ -130,21 +126,6 @@ class GameBrowser {
     }
   }
 
-  // --- Tab Switching ---
-
-  _setActiveTab(tab) {
-    this._activeTab = tab;
-    this._tabMine.classList.toggle('browser-tab-active', tab === 'mine');
-    this._tabPublic.classList.toggle('browser-tab-active', tab === 'public');
-  }
-
-  async _switchTab(tab) {
-    if (this._activeTab === tab) return;
-    this._setActiveTab(tab);
-    this._currentPage = 0;
-    await this._loadPage(0);
-  }
-
   // --- Filters ---
 
   _resetFilters() {
@@ -153,8 +134,8 @@ class GameBrowser {
       playerType: 'all',
       timeControl: 'all',
       gameType: 'all',
-      me: false,
-      inProgress: false,
+      me: true,
+      showLive: false,
       eloMin: '',
       eloMax: '',
       playerSearch: ''
@@ -173,8 +154,8 @@ class GameBrowser {
     this._filterEls.eloMax.value = this._filters.eloMax;
     this._filterEls.playerSearch.value = this._filters.playerSearch;
     this._advancedPanelEl.classList.toggle('hidden', !this._advancedVisible);
-    this._updateToggleBtn(this._filterEls.me, this._filters.me, 'My Games', 'Public');
-    this._updateToggleBtn(this._filterEls.inProgress, this._filters.inProgress, 'Live', 'History');
+    this._updateToggleBtn(this._filterEls.me, this._filters.me, 'My Games', 'All Games');
+    this._updateToggleBtn(this._filterEls.showLive, !this._filters.showLive, 'History', 'Live');
     this._updateAdvancedToggle();
   }
 
@@ -223,9 +204,13 @@ class GameBrowser {
   _applyFilters(games) {
     const f = this._filters;
     return games.filter(g => {
-      // In Progress quick filter
-      if (f.inProgress) {
+      // History/Live toggle
+      if (f.showLive) {
+        // Live mode: only show in-progress games
         if (g.result !== null && g.result !== undefined) return false;
+      } else {
+        // History mode: only show completed games
+        if (g.result === null || g.result === undefined) return false;
       }
 
       // Result (advanced)
@@ -294,7 +279,7 @@ class GameBrowser {
 
   _hasActiveFilters() {
     const f = this._filters;
-    return f.me || f.inProgress || f.playerSearch !== '' ||
+    return f.playerSearch !== '' ||
       f.result !== 'all' || f.playerType !== 'all' ||
       f.timeControl !== 'all' || f.gameType !== 'all' ||
       f.eloMin !== '' || f.eloMax !== '';
@@ -337,12 +322,7 @@ class GameBrowser {
     this._currentPage = page;
 
     try {
-      let allGames;
-      if (this._activeTab === 'mine') {
-        allGames = await this._db.listGames({ limit: 9999, offset: 0 });
-      } else {
-        allGames = await this._db.listAllGames({ limit: 9999, offset: 0 });
-      }
+      const allGames = await this._db.listAllGames({ limit: 9999, offset: 0 });
 
       this._allLoadedGames = allGames;
       this._populateDynamicFilters(allGames);
@@ -370,13 +350,7 @@ class GameBrowser {
     if (games.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'browser-empty';
-      if (this._hasActiveFilters()) {
-        empty.textContent = 'No games match the current filters.';
-      } else {
-        empty.textContent = this._activeTab === 'mine'
-          ? 'No games recorded yet.'
-          : 'No public games available.';
-      }
+      empty.textContent = 'No games match the current filters.';
       this._listEl.appendChild(empty);
       return;
     }
@@ -384,7 +358,7 @@ class GameBrowser {
     for (const game of games) {
       const row = document.createElement('div');
       row.className = 'browser-game';
-      if (this._activeTab === 'public' && this._db.isOwnGame(game.id)) {
+      if (this._db.isOwnGame(game.id)) {
         row.classList.add('browser-game-own');
       }
       row.dataset.gameId = game.id;
@@ -509,24 +483,6 @@ class GameBrowser {
 
     content.appendChild(header);
 
-    // Tabs
-    const tabs = document.createElement('div');
-    tabs.className = 'browser-tabs';
-
-    this._tabMine = document.createElement('button');
-    this._tabMine.className = 'browser-tab browser-tab-active';
-    this._tabMine.textContent = 'My Games';
-    this._tabMine.addEventListener('click', () => this._switchTab('mine'));
-    tabs.appendChild(this._tabMine);
-
-    this._tabPublic = document.createElement('button');
-    this._tabPublic.className = 'browser-tab';
-    this._tabPublic.textContent = 'Public';
-    this._tabPublic.addEventListener('click', () => this._switchTab('public'));
-    tabs.appendChild(this._tabPublic);
-
-    content.appendChild(tabs);
-
     // Quick filter row + advanced panel
     this._buildFilterBar(content);
 
@@ -580,27 +536,27 @@ class GameBrowser {
     const quickRow = document.createElement('div');
     quickRow.className = 'browser-filter-quick';
 
-    // My games toggle button
+    // My games toggle button (active by default)
     this._filterEls.me = document.createElement('button');
-    this._filterEls.me.className = 'browser-filter-pill';
-    this._filterEls.me.textContent = 'Public';
+    this._filterEls.me.className = 'browser-filter-pill browser-filter-toggle-on';
+    this._filterEls.me.textContent = 'My Games';
     this._filterEls.me.addEventListener('click', () => {
       this._filters.me = !this._filters.me;
-      this._updateToggleBtn(this._filterEls.me, this._filters.me, 'My Games', 'Public');
+      this._updateToggleBtn(this._filterEls.me, this._filters.me, 'My Games', 'All Games');
       this._onFilterChange();
     });
     quickRow.appendChild(this._filterEls.me);
 
-    // Live / History toggle button
-    this._filterEls.inProgress = document.createElement('button');
-    this._filterEls.inProgress.className = 'browser-filter-pill';
-    this._filterEls.inProgress.textContent = 'History';
-    this._filterEls.inProgress.addEventListener('click', () => {
-      this._filters.inProgress = !this._filters.inProgress;
-      this._updateToggleBtn(this._filterEls.inProgress, this._filters.inProgress, 'Live', 'History');
+    // History / Live toggle button (History=default/green, Live=toggled/green)
+    this._filterEls.showLive = document.createElement('button');
+    this._filterEls.showLive.className = 'browser-filter-pill browser-filter-toggle-on';
+    this._filterEls.showLive.textContent = 'History';
+    this._filterEls.showLive.addEventListener('click', () => {
+      this._filters.showLive = !this._filters.showLive;
+      this._updateToggleBtn(this._filterEls.showLive, !this._filters.showLive, 'History', 'Live');
       this._onFilterChange();
     });
-    quickRow.appendChild(this._filterEls.inProgress);
+    quickRow.appendChild(this._filterEls.showLive);
 
     // Time Control dropdown (quick access)
     this._filterEls.timeControl = document.createElement('select');

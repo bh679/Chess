@@ -1970,24 +1970,45 @@ body {
   padding: 6px 0;
 }
 
-.browser-filter-pill {
+/* Shared quick-row control base — matches #new-game style, smaller */
+.browser-filter-pill,
+.browser-filter-quick-tc,
+.browser-filter-quick-search,
+.browser-filter-advanced-toggle {
   padding: 4px 10px;
-  background: #2a2725;
+  background: #272522;
   color: #999;
-  border: 1px solid #3d3a37;
-  border-radius: 14px;
+  border: 1px solid #4a4744;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.75rem;
   font-family: inherit;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  user-select: none;
+  line-height: 1.3;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.browser-filter-pill:hover {
-  color: #ccc;
-  border-color: #555;
+.browser-filter-pill:hover,
+.browser-filter-quick-tc:hover,
+.browser-filter-quick-search:hover,
+.browser-filter-advanced-toggle:hover {
+  border-color: #6a6764;
+  color: #e0e0e0;
+  background: #2d2a27;
+}
+
+.browser-filter-pill:focus,
+.browser-filter-quick-tc:focus,
+.browser-filter-quick-search:focus,
+.browser-filter-advanced-toggle:focus {
+  border-color: #4a9e5c;
+  outline: none;
+}
+
+/* Toggle buttons */
+.browser-filter-pill {
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
 }
 
 .browser-filter-pill.browser-filter-toggle-on {
@@ -1996,37 +2017,38 @@ body {
   border-color: #4a9e5c;
 }
 
-.browser-filter-quick-tc {
-  max-width: 100px;
-  padding: 4px 6px;
-  font-size: 0.75rem;
-  border-radius: 14px;
+.browser-filter-pill.browser-filter-toggle-on:hover {
+  background: #3d8a4e;
+  border-color: #3d8a4e;
 }
 
+/* Time control dropdown */
+.browser-filter-quick-tc {
+  max-width: 110px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 22px;
+}
+
+.browser-filter-quick-tc option {
+  background: #272522;
+  color: #e0e0e0;
+}
+
+/* Player search */
 .browser-filter-quick-search {
   flex: 1;
   min-width: 0;
-  border-radius: 14px;
-  font-size: 0.75rem;
-  padding: 4px 10px;
 }
 
+/* Advanced toggle (chevron + badge) */
 .browser-filter-advanced-toggle {
-  background: none;
-  border: 1px solid #3d3a37;
-  color: #888;
-  border-radius: 4px;
-  cursor: pointer;
+  white-space: nowrap;
   font-size: 0.7rem;
   padding: 4px 8px;
-  line-height: 1;
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.browser-filter-advanced-toggle:hover {
-  color: #ccc;
-  border-color: #555;
 }
 
 .browser-filter-toggle-active {
