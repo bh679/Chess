@@ -1,3 +1,5 @@
+import { EvalBar } from './eval-bar.js';
+
 /**
  * ReplayViewer — Full-screen overlay for replaying saved chess games.
  * Uses a lightweight static board renderer (FEN → DOM), horizontal
@@ -58,6 +60,9 @@ class ReplayViewer {
     this._accuracyPanel = null;
     this._critPrevBtn = null;
     this._critNextBtn = null;
+
+    // Evaluation bar
+    this._evalBar = null;
 
     this._buildDOM();
   }
@@ -167,6 +172,12 @@ class ReplayViewer {
 
     // Show detail panel for current move
     this._updateDetailPanel();
+
+    // Show and update eval bar
+    if (this._evalBar) {
+      this._evalBar.show();
+      this._updateEvalBar();
+    }
   }
 
   /**
@@ -216,6 +227,11 @@ class ReplayViewer {
     // Hide critical nav
     if (this._critPrevBtn) this._critPrevBtn.classList.add('hidden');
     if (this._critNextBtn) this._critNextBtn.classList.add('hidden');
+    // Hide eval bar
+    if (this._evalBar) {
+      this._evalBar.hide();
+      this._evalBar.reset();
+    }
     // Remove classification icons and critical markers from move strips
     if (this._overlay) {
       this._overlay.querySelectorAll('.analysis-icon').forEach(el => el.remove());
@@ -366,6 +382,16 @@ class ReplayViewer {
     } else {
       this._detailLineEl.textContent = '';
     }
+  }
+
+  /**
+   * Update evaluation bar for the current position.
+   */
+  _updateEvalBar() {
+    if (!this._evalBar || !this._analysisData) return;
+    const posIdx = this._currentPly + 1;
+    if (posIdx < 0 || posIdx >= this._analysisData.positions.length) return;
+    this._evalBar.update(this._analysisData.positions[posIdx].eval);
   }
 
   /**
@@ -586,6 +612,7 @@ class ReplayViewer {
     if (this._analysisData) {
       this._updateDetailPanel();
       this._updateCriticalNav();
+      this._updateEvalBar();
     }
   }
 
@@ -1020,11 +1047,21 @@ class ReplayViewer {
     this._blackMovesCtnr = blackStrip.querySelector('.strip-moves');
     boardArea.appendChild(blackStrip);
 
+    // Board + eval bar row
+    const boardRow = document.createElement('div');
+    boardRow.className = 'replay-board-row';
+
+    // Eval bar (left of board)
+    this._evalBar = new EvalBar();
+    boardRow.appendChild(this._evalBar.el);
+
     // Board
     this._boardEl = document.createElement('div');
     this._boardEl.className = 'board replay-board';
     this._buildBoardSquares();
-    boardArea.appendChild(this._boardEl);
+    boardRow.appendChild(this._boardEl);
+
+    boardArea.appendChild(boardRow);
 
     // White moves strip (below board)
     const whiteStrip = this._buildMoveStrip('white-moves');
