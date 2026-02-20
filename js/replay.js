@@ -17,10 +17,15 @@ const PIECE_MAP = {
 };
 
 const CLASSIFICATION_ICONS = {
-  best:       { text: '\u2713', cls: 'analysis-best' },       // checkmark
-  good:       { text: '\u25CF', cls: 'analysis-good' },       // dot
+  brilliant:  { text: '!!',    cls: 'analysis-brilliant' },
+  great:      { text: '!',     cls: 'analysis-great' },
+  best:       { text: '\u2713', cls: 'analysis-best' },
+  excellent:  { text: '\u25CF', cls: 'analysis-excellent' },
+  good:       { text: '\u25CF', cls: 'analysis-good' },
+  book:       { text: '\u2261', cls: 'analysis-book' },
   inaccuracy: { text: '?!',    cls: 'analysis-inaccuracy' },
   mistake:    { text: '?',     cls: 'analysis-mistake' },
+  miss:       { text: '\u00D7', cls: 'analysis-miss' },
   blunder:    { text: '??',    cls: 'analysis-blunder' },
 };
 
@@ -63,6 +68,10 @@ class ReplayViewer {
 
     // Evaluation bar
     this._evalBar = null;
+
+    // Post-game summary
+    this._summaryCallback = null;
+    this._summaryBtn = null;
 
     this._buildDOM();
   }
@@ -149,6 +158,14 @@ class ReplayViewer {
    */
   setAnalyzeCallback(callback) {
     this._analyzeCallback = callback;
+  }
+
+  /**
+   * Set callback for when the "Summary" button is clicked.
+   * @param {Function} callback — receives (gameRecord, analysisData)
+   */
+  setSummaryCallback(callback) {
+    this._summaryCallback = callback;
   }
 
   /**
@@ -318,7 +335,18 @@ class ReplayViewer {
 
       const breakdown = document.createElement('div');
       breakdown.className = 'accuracy-breakdown';
-      breakdown.textContent = `B:${s.best} G:${s.good} I:${s.inaccuracy} M:${s.mistake} BL:${s.blunder}`;
+      const parts = [];
+      if (s.brilliant) parts.push(`!!:${s.brilliant}`);
+      if (s.great) parts.push(`!:${s.great}`);
+      parts.push(`B:${s.best || 0}`);
+      if (s.excellent) parts.push(`E:${s.excellent}`);
+      parts.push(`G:${s.good || 0}`);
+      if (s.book) parts.push(`Bk:${s.book}`);
+      parts.push(`I:${s.inaccuracy || 0}`);
+      parts.push(`M:${s.mistake || 0}`);
+      if (s.miss) parts.push(`Ms:${s.miss}`);
+      parts.push(`BL:${s.blunder || 0}`);
+      breakdown.textContent = parts.join(' ');
       div.appendChild(breakdown);
 
       this._accuracyPanel.appendChild(div);
@@ -1008,6 +1036,17 @@ class ReplayViewer {
     toggleWrapper.appendChild(toggleText);
     toggleWrapper.appendChild(switchEl);
     header.appendChild(toggleWrapper);
+
+    // Summary button
+    this._summaryBtn = document.createElement('button');
+    this._summaryBtn.className = 'replay-summary-btn';
+    this._summaryBtn.textContent = 'Summary';
+    this._summaryBtn.addEventListener('click', () => {
+      if (this._summaryCallback && this._game) {
+        this._summaryCallback(this._game, this._analysisData);
+      }
+    });
+    header.appendChild(this._summaryBtn);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'replay-close-btn';

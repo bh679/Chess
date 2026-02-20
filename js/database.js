@@ -142,6 +142,15 @@ class GameDatabase {
     return false;
   }
 
+  /**
+   * Get a local game record by its local ID. Synchronous.
+   * @param {string} localId
+   * @returns {Object|null}
+   */
+  getLocalGame(localId) {
+    return this._games[localId] || null;
+  }
+
   /* ------------------------------------------------------------------ */
   /*  Read-only server queries (used by GameBrowser / ReplayViewer)      */
   /* ------------------------------------------------------------------ */

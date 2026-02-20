@@ -1673,10 +1673,15 @@ body {
   vertical-align: middle;
 }
 
+.analysis-brilliant { color: #1bada6; }
+.analysis-great { color: #5c8bb0; }
 .analysis-best { color: #4a9e5c; }
+.analysis-excellent { color: #96bc4b; }
 .analysis-good { color: #7ec894; }
+.analysis-book { color: #a88865; }
 .analysis-inaccuracy { color: #ffd700; }
 .analysis-mistake { color: #ff9800; }
+.analysis-miss { color: #e6912a; }
 .analysis-blunder { color: #ff6b6b; }
 
 /* Critical moment marker on move strip items */
@@ -2182,6 +2187,250 @@ body {
   .replay-main-btn {
     padding: 6px 10px;
     font-size: 0.9rem;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Replay Summary Button                                              */
+/* ------------------------------------------------------------------ */
+
+.replay-summary-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  margin-top: 6px;
+  background: #3d3a37;
+  color: #e0e0e0;
+  border: 1px solid #4d4a47;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.replay-summary-btn:hover {
+  background: #4d4a47;
+}
+
+.replay-summary-btn.hidden {
+  display: none;
+}
+
+/* Full-screen replay viewer summary button (in header) */
+button.replay-summary-btn {
+  width: auto;
+  margin: 0;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Post-Game Summary Modal                                            */
+/* ------------------------------------------------------------------ */
+
+.pgs-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+}
+
+.pgs-modal.hidden {
+  display: none;
+}
+
+.pgs-content {
+  background: #272522;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  color: #e0e0e0;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.pgs-header {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+.pgs-body {
+  margin-bottom: 16px;
+}
+
+.pgs-error {
+  text-align: center;
+  color: #999;
+  padding: 24px 0;
+}
+
+/* Player accuracy comparison */
+.pgs-players {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pgs-player {
+  flex: 1;
+  text-align: center;
+}
+
+.pgs-player-name {
+  font-size: 0.85rem;
+  color: #ccc;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pgs-accuracy-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.pgs-player-white .pgs-accuracy-value {
+  color: #f0f0f0;
+}
+
+.pgs-player-black .pgs-accuracy-value {
+  color: #b0b0b0;
+}
+
+.pgs-accuracy-bar {
+  height: 6px;
+  background: #3d3a37;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pgs-accuracy-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.pgs-accuracy-fill-white {
+  background: linear-gradient(90deg, #4a9e5c, #96bc4b);
+}
+
+.pgs-accuracy-fill-black {
+  background: linear-gradient(90deg, #5c8bb0, #4a9e5c);
+}
+
+/* Classification breakdown grid */
+.pgs-classifications {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pgs-class-row {
+  display: grid;
+  grid-template-columns: 40px 24px 1fr 40px;
+  align-items: center;
+  padding: 5px 8px;
+  background: #1a1816;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.pgs-class-count {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.pgs-class-count-white {
+  color: #f0f0f0;
+}
+
+.pgs-class-count-black {
+  color: #b0b0b0;
+}
+
+.pgs-class-icon {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.pgs-class-label {
+  color: #999;
+  padding-left: 6px;
+}
+
+/* Action buttons */
+.pgs-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pgs-btn {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.pgs-btn:hover {
+  opacity: 0.85;
+}
+
+.pgs-btn-review {
+  background: #4a9e5c;
+  color: #fff;
+}
+
+.pgs-btn-new {
+  background: #5c8bb0;
+  color: #fff;
+}
+
+.pgs-btn-close {
+  flex: 0 0 44px;
+  background: #3d3a37;
+  color: #999;
+  font-size: 1.2rem;
+}
+
+.pgs-btn-close:hover {
+  background: #4d4a47;
+  color: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .pgs-content {
+    padding: 16px;
+    width: 95%;
+  }
+
+  .pgs-accuracy-value {
+    font-size: 1.6rem;
+  }
+
+  .pgs-class-row {
+    font-size: 0.8rem;
+    padding: 4px 6px;
   }
 }
 
