@@ -21,6 +21,9 @@ class Board {
     this._animationsEnabled = true;
     this._interactive = true;
     this._ai = null;
+    this._premove = null;
+    this._premovesEnabled = false;
+    this._skipNextClick = false;
     this._rightClickStart = null;
     this._rightClickMoved = false;
 
@@ -49,6 +52,49 @@ class Board {
     this._moveCallback = callback;
   }
 
+  setPremovesEnabled(enabled) {
+    this._premovesEnabled = enabled;
+  }
+
+  setPremove(from, to) {
+    this.clearPremove();
+    this._premove = { from, to };
+    this._renderPremoveHighlights();
+  }
+
+  clearPremove() {
+    if (this._premove) {
+      const fromEl = this._getSquareEl(this._premove.from);
+      const toEl = this._getSquareEl(this._premove.to);
+      if (fromEl) fromEl.classList.remove('premove-from');
+      if (toEl) toEl.classList.remove('premove-to');
+      this._premove = null;
+    }
+  }
+
+  getPremove() {
+    return this._premove;
+  }
+
+  executePremove() {
+    if (!this._premove) return false;
+    const { from, to } = this._premove;
+    this.clearPremove();
+
+    const legalMoves = this.game.getLegalMoves(from);
+    if (!legalMoves.includes(to)) return false;
+
+    const promotion = this.game.isPromotion(from, to) ? 'q' : undefined;
+    const result = this.game.makeMove(from, to, promotion);
+    if (result.success) {
+      this._clearSelection();
+      this.render();
+      if (this._moveCallback) this._moveCallback(result);
+      return true;
+    }
+    return false;
+  }
+
   render() {
     const board = this.game.getBoard();
     const lastMove = this.game.getLastMove();
@@ -61,7 +107,7 @@ class Board {
         const el = this._getSquareEl(square);
 
         // Clear state classes
-        el.classList.remove('selected', 'legal-move', 'legal-capture', 'last-move', 'check');
+        el.classList.remove('selected', 'legal-move', 'legal-capture', 'last-move', 'check', 'premove-from', 'premove-to');
 
         // Remove existing piece
         const existingImg = el.querySelector('.piece');
@@ -89,6 +135,8 @@ class Board {
         }
       }
     }
+
+    this._renderPremoveHighlights();
   }
 
   _buildGrid() {
@@ -123,6 +171,7 @@ class Board {
     // Click handling
     this.container.addEventListener('click', (e) => {
       if (this._dragging) return;
+      if (this._skipNextClick) { this._skipNextClick = false; return; }
       const squareEl = e.target.closest('.square');
       if (!squareEl) return;
       this._arrowOverlay.clearUserAnnotations();
@@ -207,7 +256,15 @@ class Board {
   _handleSquareClick(square) {
     if (!this._interactive) return;
     if (this.game.isGameOver()) return;
-    if (this._ai && this._ai.isEnabled() && this._ai.isAITurn(this.game.getTurn())) return;
+
+    const isOpponentTurn = this._ai && this._ai.isEnabled() &&
+                           this._ai.isAITurn(this.game.getTurn());
+
+    if (isOpponentTurn) {
+      if (!this._premovesEnabled) return;
+      this._handlePremoveClick(square);
+      return;
+    }
 
     const board = this.game.getBoard();
     const piece = this._getPieceAt(square, board);
@@ -232,16 +289,24 @@ class Board {
   _handleDragStart(square, x, y) {
     if (!this._interactive) return;
     if (this.game.isGameOver()) return;
-    if (this._ai && this._ai.isEnabled() && this._ai.isAITurn(this.game.getTurn())) return;
 
     const board = this.game.getBoard();
     const piece = this._getPieceAt(square, board);
-    const turn = this.game.getTurn();
+    const isOpponentTurn = this._ai && this._ai.isEnabled() &&
+                           this._ai.isAITurn(this.game.getTurn());
+    let isPremove = false;
 
-    if (!piece || piece.color !== turn) return;
-
-    // Select this square (shows legal moves)
-    this._selectSquare(square);
+    if (isOpponentTurn) {
+      if (!this._premovesEnabled) return;
+      const playerColor = this.game.getTurn() === 'w' ? 'b' : 'w';
+      if (!piece || piece.color !== playerColor) return;
+      this._selectSquareForPremove(square);
+      isPremove = true;
+    } else {
+      const turn = this.game.getTurn();
+      if (!piece || piece.color !== turn) return;
+      this._selectSquare(square);
+    }
 
     // Create floating piece
     const squareEl = this._getSquareEl(square);
@@ -268,6 +333,7 @@ class Board {
       moved: false,
       startX: x,
       startY: y,
+      isPremove,
     };
   }
 
@@ -287,7 +353,7 @@ class Board {
   _handleDragEnd(x, y) {
     if (!this._dragging) return;
 
-    const { square: fromSquare, clone, originalImg, moved } = this._dragging;
+    const { square: fromSquare, clone, originalImg, moved, isPremove } = this._dragging;
     this._dragging = null;
 
     // Remove floating piece
@@ -295,11 +361,22 @@ class Board {
     originalImg.classList.remove('ghost');
 
     // If we didn't actually drag, let click handle it
-    if (!moved) return;
+    if (!moved) {
+      this._skipNextClick = true;
+      return;
+    }
 
     // Find the square under the cursor
     const targetEl = document.elementFromPoint(x, y);
     const squareEl = targetEl?.closest('.square');
+
+    if (isPremove) {
+      if (squareEl && squareEl.dataset.square !== fromSquare) {
+        this.setPremove(fromSquare, squareEl.dataset.square);
+      }
+      this._clearSelection();
+      return;
+    }
 
     if (squareEl && this._legalMoves.includes(squareEl.dataset.square)) {
       this._executeMove(fromSquare, squareEl.dataset.square);
@@ -461,6 +538,52 @@ class Board {
         if (this._moveCallback) this._moveCallback(result);
       }
     });
+  }
+
+  _handlePremoveClick(square) {
+    const board = this.game.getBoard();
+    const piece = this._getPieceAt(square, board);
+    const playerColor = this.game.getTurn() === 'w' ? 'b' : 'w';
+
+    // If we have a selected square, set or change the premove
+    if (this._selectedSquare) {
+      if (square === this._selectedSquare) {
+        this._clearSelection();
+        return;
+      }
+      if (piece && piece.color === playerColor) {
+        this._selectSquareForPremove(square);
+        return;
+      }
+      this.setPremove(this._selectedSquare, square);
+      this._clearSelection();
+      return;
+    }
+
+    // Select our own piece for premove
+    if (piece && piece.color === playerColor) {
+      this._selectSquareForPremove(square);
+      return;
+    }
+
+    // Clicked empty/opponent with nothing selected — cancel premove
+    this.clearPremove();
+    this._clearSelection();
+  }
+
+  _selectSquareForPremove(square) {
+    this._clearSelection();
+    this._selectedSquare = square;
+    this._legalMoves = [];
+    this._getSquareEl(square).classList.add('selected');
+  }
+
+  _renderPremoveHighlights() {
+    if (!this._premove) return;
+    const fromEl = this._getSquareEl(this._premove.from);
+    const toEl = this._getSquareEl(this._premove.to);
+    if (fromEl) fromEl.classList.add('premove-from');
+    if (toEl) toEl.classList.add('premove-to');
   }
 
   _getSquareEl(square) {

@@ -160,6 +160,16 @@ body {
   background: radial-gradient(ellipse at center, #ff0000 0%, #e70000 25%, rgba(169, 0, 0, 0) 89%);
 }
 
+/* Premove highlights */
+.square.light.premove-from,
+.square.light.premove-to {
+  background-color: #b3b8e8 !important;
+}
+.square.dark.premove-from,
+.square.dark.premove-to {
+  background-color: #7a80c0 !important;
+}
+
 /* Legal move dots */
 .square.legal-move::after {
   content: '';

@@ -17,6 +17,7 @@ A chess game built to practice working with Claude. Runs in the browser with a c
 - [**Legal move highlighting**](https://github.com/bh679/Chess/wiki/Feature:-Chess-Board) — selected pieces show available moves and captures
 - [**Pawn promotion modal**](https://github.com/bh679/Chess/wiki/Feature:-Piece-Promotion) — choose between queen, rook, bishop, or knight
 - [**Last move highlighting**](https://github.com/bh679/Chess/wiki/Feature:-Move-Animations) — the most recent move is highlighted on the board
+- [**Premoves**](https://github.com/bh679/Chess/wiki/Feature:-Premoves) — queue a move during the opponent's turn that executes instantly when your turn begins (settings toggle, default off)
 
 ### [AI Opponents](https://github.com/bh679/Chess/wiki/Feature:-AI-Opponents)
 - [**Stockfish WASM engine**](https://github.com/bh679/Chess/wiki/Feature:-AI-Opponents) — full Stockfish chess engine running as a Web Worker
