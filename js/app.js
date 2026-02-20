@@ -32,6 +32,10 @@ const ANALYSIS_CACHE_KEY = 'chess-analysis-cache';
 // Art style configuration
 const STYLE_PATHS = {
   classic: 'img/pieces',
+  sovereign: 'img/pieces-sovereign',
+  staunton: 'img/pieces-staunton',
+  gothic: 'img/pieces-gothic',
+  kawaii: 'img/pieces-kawaii',
   pixel: 'img/pieces-pixel',
   neo: 'img/pieces-neo',
   fish: 'img/pieces-fish',
@@ -64,6 +68,7 @@ const evalBarToggle = document.getElementById('eval-bar-toggle');
 const premovesToggle = document.getElementById('premoves-toggle');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
+const settingsBackdrop = document.getElementById('settings-backdrop');
 const artStylePicker = document.getElementById('art-style-picker');
 const aiWhiteToggle = document.getElementById('ai-white-toggle');
 const aiWhiteEloSlider = document.getElementById('ai-white-elo');
@@ -773,15 +778,30 @@ premovesToggle.addEventListener('change', () => {
   if (!premovesToggle.checked) board.clearPremove();
 });
 
-// Settings panel toggle
-settingsToggle.addEventListener('click', () => {
-  const isHidden = settingsPanel.classList.toggle('hidden');
-  settingsToggle.classList.toggle('active', !isHidden);
-  settingsToggle.setAttribute('aria-expanded', !isHidden);
+// Settings panel toggle (bottom sheet)
+function openSettings() {
+  settingsPanel.classList.add('open');
+  settingsBackdrop.classList.add('visible');
+  settingsToggle.classList.add('active');
+  settingsToggle.setAttribute('aria-expanded', 'true');
+}
 
-  // Toggle scroll mode — enable scrolling when settings are open
-  document.querySelector('.app').classList.toggle('settings-open', !isHidden);
+function closeSettings() {
+  settingsPanel.classList.remove('open');
+  settingsBackdrop.classList.remove('visible');
+  settingsToggle.classList.remove('active');
+  settingsToggle.setAttribute('aria-expanded', 'false');
+}
+
+settingsToggle.addEventListener('click', () => {
+  if (settingsPanel.classList.contains('open')) {
+    closeSettings();
+  } else {
+    openSettings();
+  }
 });
+
+settingsBackdrop.addEventListener('click', closeSettings);
 
 // Art style picker
 artStylePicker.addEventListener('click', (e) => {
