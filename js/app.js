@@ -927,8 +927,8 @@ function showConfirmation(message, title) {
 // --- Replay on Main Board ---
 
 async function enterReplayMode(gameRecord) {
-  // Confirm if there's an active in-progress game
-  if (moveCount > 0 && !game.isGameOver()) {
+  // Confirm if there's an active live game (not if already in replay mode)
+  if (!isReplayMode && moveCount > 0 && !game.isGameOver()) {
     const confirmed = await showConfirmation(
       'You have a game in progress. Abandon it to review this game?',
       'Abandon Game?'
@@ -940,6 +940,7 @@ async function enterReplayMode(gameRecord) {
     if (currentDbGameId) {
       db.endGame(currentDbGameId, 'abandoned', 'abandoned');
     }
+    moveCount = 0;
   }
 
   if (isReplayMode) exitReplayMode(false);
