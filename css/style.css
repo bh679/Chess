@@ -900,6 +900,32 @@ body {
   background: #5a5754;
 }
 
+/* Confirmation modal */
+.confirm-modal-message {
+  color: #ccc;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+#confirm-modal-ok {
+  background: #4a9e5c;
+  color: white;
+}
+
+#confirm-modal-ok:hover {
+  background: #3d8a4e;
+}
+
+#confirm-modal-cancel {
+  background: #4a4744;
+  color: #ccc;
+}
+
+#confirm-modal-cancel:hover {
+  background: #5a5754;
+}
+
 /* Footer */
 .footer {
   margin-top: auto;
@@ -1759,28 +1785,13 @@ body {
   text-align: center;
 }
 
+.board.replay-mode-border {
+  border: 3px solid #64b5f6;
+  box-shadow: 0 0 12px rgba(100, 181, 246, 0.4);
+}
+
 .status.replay-mode {
   color: #64b5f6;
-}
-
-/* "Review on Board" button in game browser cards */
-.browser-review-btn {
-  margin-top: 6px;
-  padding: 5px 10px;
-  background: #3d3a37;
-  color: #ccc;
-  border: 1px solid #4a4744;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.browser-review-btn:hover {
-  background: #4a9e5c;
-  color: white;
-  border-color: #4a9e5c;
 }
 
 /* =========================================

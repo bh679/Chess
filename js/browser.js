@@ -1,7 +1,7 @@
 /**
  * GameBrowser — Modal overlay listing past games with pagination.
  * Two tabs: "My Games" (filtered by localStorage IDs) and "Public" (all server games).
- * Click a game to open it in the ReplayViewer.
+ * Click a game to review it on the main board (or in the ReplayViewer as fallback).
  */
 
 const PAGE_SIZE = 15;
@@ -154,38 +154,22 @@ class GameBrowser {
 
       row.appendChild(meta);
 
-      // Click to open replay in modal
+      // Click to review on main board (preferred) or open replay modal (fallback)
       row.addEventListener('click', async () => {
         try {
           const fullGame = await this._db.getGame(game.id);
           if (fullGame && fullGame.moves.length > 0) {
             this.close();
-            this._replay.open(fullGame);
+            if (this._onReviewOnBoard) {
+              this._onReviewOnBoard(fullGame);
+            } else {
+              this._replay.open(fullGame);
+            }
           }
         } catch (err) {
           console.warn('Failed to load game:', err);
         }
       });
-
-      // "Review on Board" button
-      if (this._onReviewOnBoard) {
-        const reviewBtn = document.createElement('button');
-        reviewBtn.className = 'browser-review-btn';
-        reviewBtn.textContent = 'Review on Board';
-        reviewBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          try {
-            const fullGame = await this._db.getGame(game.id);
-            if (fullGame && fullGame.moves.length > 0) {
-              this.close();
-              this._onReviewOnBoard(fullGame);
-            }
-          } catch (err) {
-            console.warn('Failed to load game for review:', err);
-          }
-        });
-        row.appendChild(reviewBtn);
-      }
 
       this._listEl.appendChild(row);
     }

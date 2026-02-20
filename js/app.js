@@ -66,6 +66,13 @@ const startGameBtn = document.getElementById('start-game-btn');
 const gameTypeLabel = document.getElementById('game-type-label');
 const appEl = document.querySelector('.app');
 
+// Confirmation modal DOM elements
+const confirmModal = document.getElementById('confirm-modal');
+const confirmModalTitle = document.getElementById('confirm-modal-title');
+const confirmModalMessage = document.getElementById('confirm-modal-message');
+const confirmModalOk = document.getElementById('confirm-modal-ok');
+const confirmModalCancel = document.getElementById('confirm-modal-cancel');
+
 // Replay-on-board DOM elements
 const replayControlsEl = document.getElementById('replay-controls');
 const replayMoveListEl = document.getElementById('replay-move-list');
@@ -879,12 +886,54 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// --- Confirmation Modal ---
+
+function showConfirmation(message, title) {
+  return new Promise((resolve) => {
+    confirmModalTitle.textContent = title || 'Confirm';
+    confirmModalMessage.textContent = message;
+    confirmModal.classList.remove('hidden');
+
+    function cleanup() {
+      confirmModal.classList.add('hidden');
+      confirmModalOk.removeEventListener('click', onOk);
+      confirmModalCancel.removeEventListener('click', onCancel);
+      confirmModal.removeEventListener('click', onBackdrop);
+    }
+
+    function onOk() {
+      cleanup();
+      resolve(true);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(false);
+    }
+
+    function onBackdrop(e) {
+      if (e.target === confirmModal) {
+        cleanup();
+        resolve(false);
+      }
+    }
+
+    confirmModalOk.addEventListener('click', onOk);
+    confirmModalCancel.addEventListener('click', onCancel);
+    confirmModal.addEventListener('click', onBackdrop);
+  });
+}
+
 // --- Replay on Main Board ---
 
-function enterReplayMode(gameRecord) {
+async function enterReplayMode(gameRecord) {
   // Confirm if there's an active in-progress game
   if (moveCount > 0 && !game.isGameOver()) {
-    if (!confirm('You have a game in progress. Abandon it to review this game?')) {
+    const confirmed = await showConfirmation(
+      'You have a game in progress. Abandon it to review this game?',
+      'Abandon Game?'
+    );
+    if (!confirmed) {
       return;
     }
     // End the current game as abandoned
@@ -922,8 +971,9 @@ function enterReplayMode(gameRecord) {
   // Reconstruct clocks
   replayClockSnapshots = reconstructClocks(gameRecord);
 
-  // Disable board input
+  // Disable board input and show replay border
   board.setInteractive(false);
+  boardEl.classList.add('replay-mode-border');
 
   // Update player bars
   updatePlayerBarsForReplay(gameRecord);
@@ -972,8 +1022,9 @@ function exitReplayMode(startNew = true) {
   replayMoveDetails = [];
   replayClockSnapshots = [];
 
-  // Re-enable board input
+  // Re-enable board input and remove replay border
   board.setInteractive(true);
+  boardEl.classList.remove('replay-mode-border');
 
   // Hide replay controls
   replayControlsEl.classList.add('hidden');
