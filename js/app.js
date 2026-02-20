@@ -1,3 +1,4 @@
+import { Chess } from './chess.js';
 import { Game } from './game.js';
 import { Board } from './board.js';
 import { Timer } from './timer.js?v=2';
@@ -5,10 +6,21 @@ import { AI } from './ai.js?v=2';
 import { GameDatabase } from './database.js?v=6';
 import { GameBrowser } from './browser.js?v=3';
 import { ReplayViewer } from './replay.js';
+import { AnalysisEngine } from './analysis.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
 const PIECE_DISPLAY = { k: 'K', q: 'Q', r: 'R', b: 'B', n: 'N', p: 'P' };
+
+// Analysis classification icons (shared with replay.js)
+const CLASSIFICATION_ICONS = {
+  best:       { text: '\u2713', cls: 'analysis-best' },
+  good:       { text: '\u25CF', cls: 'analysis-good' },
+  inaccuracy: { text: '?!',    cls: 'analysis-inaccuracy' },
+  mistake:    { text: '?',     cls: 'analysis-mistake' },
+  blunder:    { text: '??',    cls: 'analysis-blunder' },
+};
+const ANALYSIS_CACHE_KEY = 'chess-analysis-cache';
 
 // Art style configuration
 const STYLE_PATHS = {
@@ -65,18 +77,66 @@ const startGameBtn = document.getElementById('start-game-btn');
 const gameTypeLabel = document.getElementById('game-type-label');
 const appEl = document.querySelector('.app');
 
+// Confirmation modal DOM elements
+const confirmModal = document.getElementById('confirm-modal');
+const confirmModalTitle = document.getElementById('confirm-modal-title');
+const confirmModalMessage = document.getElementById('confirm-modal-message');
+const confirmModalOk = document.getElementById('confirm-modal-ok');
+const confirmModalCancel = document.getElementById('confirm-modal-cancel');
+
+// Replay-on-board DOM elements
+const replayControlsEl = document.getElementById('replay-controls');
+const replayMoveListEl = document.getElementById('replay-move-list');
+const replayStartBtn = document.getElementById('replay-main-start');
+const replayPrevBtn = document.getElementById('replay-main-prev');
+const replayPlayBtn = document.getElementById('replay-main-play');
+const replayNextBtn = document.getElementById('replay-main-next');
+const replayEndBtn = document.getElementById('replay-main-end');
+const replayResultEl = document.getElementById('replay-main-result');
+
+// Analysis DOM elements for main-board replay
+const replayAnalyzeCheckbox = document.getElementById('replay-auto-analyze');
+const replayProgressEl = document.getElementById('replay-analysis-progress');
+const replayProgressFillEl = document.getElementById('replay-analysis-progress-fill');
+const replayAccuracyEl = document.getElementById('replay-analysis-accuracy');
+const replayDetailEl = document.getElementById('replay-analysis-detail');
+const replayClassEl = document.getElementById('replay-analysis-classification');
+const replayEvalEl = document.getElementById('replay-analysis-eval');
+const replayBestEl = document.getElementById('replay-analysis-best');
+const replayLineEl = document.getElementById('replay-analysis-line');
+const replayCritPrevBtn = document.getElementById('replay-crit-prev');
+const replayCritNextBtn = document.getElementById('replay-crit-next');
+
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
 const ai = new AI();
 const db = new GameDatabase();
 const replayViewer = new ReplayViewer();
-const gameBrowser = new GameBrowser(db, replayViewer);
+const gameBrowser = new GameBrowser(db, replayViewer, enterReplayMode);
 
 let moveCount = 0;
 let gameId = 0;
 let currentDbGameId = null;
 let customWhiteName = null;
 let customBlackName = null;
+
+// Replay-on-board state
+let isReplayMode = false;
+let replayGame = null;
+let replayPly = -1;
+let replayPlaying = false;
+let replayTimer = null;
+let replayMoveDetails = [];
+let replayClockSnapshots = [];
+
+// Analysis state for main-board replay
+let replayAnalysisData = null;
+let replayAnalysisEngine = null;
+
+// Initialise analysis toggle from localStorage
+if (replayAnalyzeCheckbox) {
+  replayAnalyzeCheckbox.checked = localStorage.getItem('chess-auto-analyze') !== 'false';
+}
 
 function renderCaptured() {
   const captured = game.getCaptured();
@@ -224,6 +284,11 @@ function getTimeControlLabel() {
 // --- Game Flow ---
 
 function startNewGame() {
+  // Exit replay mode if active
+  if (isReplayMode) {
+    exitReplayMode(false);
+  }
+
   // End the current game as abandoned if moves were made and game isn't over
   if (currentDbGameId && moveCount > 0 && !game.isGameOver()) {
     db.endGame(currentDbGameId, 'abandoned', 'abandoned');
@@ -285,8 +350,8 @@ function startNewGame() {
   playerIconBlack.textContent = bIsAI ? '🤖' : '👤';
   const wEloVal = parseInt(aiWhiteEloSlider.value, 10);
   const bEloVal = parseInt(aiBlackEloSlider.value, 10);
-  const wName = wIsAI ? 'Stockfish' : (customWhiteName || 'Human');
-  const bName = bIsAI ? 'Stockfish' : (customBlackName || 'Human');
+  const wName = wIsAI ? ai.getEngineName() : (customWhiteName || 'Human');
+  const bName = bIsAI ? ai.getEngineName() : (customBlackName || 'Human');
   playerNameWhite.textContent = wName;
   playerNameBlack.textContent = bName;
   playerEloWhite.textContent = wIsAI ? wEloVal : '';
@@ -306,12 +371,12 @@ function startNewGame() {
     timeControl: getTimeControlLabel(),
     startingFen: game.chess.fen(),
     white: {
-      name: wIsAI ? `Stockfish ${wEloVal}` : wName,
+      name: wIsAI ? `${ai.getEngineName()} ${wEloVal}` : wName,
       isAI: wIsAI,
       elo: wIsAI ? wEloVal : null,
     },
     black: {
-      name: bIsAI ? `Stockfish ${bEloVal}` : bName,
+      name: bIsAI ? `${ai.getEngineName()} ${bEloVal}` : bName,
       isAI: bIsAI,
       elo: bIsAI ? bEloVal : null,
     },
@@ -326,6 +391,7 @@ function startNewGame() {
 }
 
 board.onMove((result) => {
+  if (isReplayMode) return;
   moveCount++;
   showingGameInfo = false;
 
@@ -400,6 +466,7 @@ startGameBtn.addEventListener('click', () => {
 // --- Editable Player Names ---
 
 function startNameEdit(nameEl, side) {
+  if (isReplayMode) return;
   // Prevent double-editing
   if (nameEl.querySelector('.player-name-input')) return;
 
@@ -684,14 +751,14 @@ function closeAllPopups() {
 
 // Click player icon to toggle Human ↔ AI (only before first move)
 playerIconWhite.addEventListener('click', () => {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   aiWhiteToggle.checked = !aiWhiteToggle.checked;
   aiWhiteToggle.dispatchEvent(new Event('change'));
   startNewGame();
 });
 
 playerIconBlack.addEventListener('click', () => {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   aiBlackToggle.checked = !aiBlackToggle.checked;
   aiBlackToggle.dispatchEvent(new Event('change'));
   startNewGame();
@@ -699,14 +766,14 @@ playerIconBlack.addEventListener('click', () => {
 
 // Click game type label to toggle Chess960 ↔ Standard (only before first move)
 gameTypeLabel.addEventListener('click', () => {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   chess960Toggle.checked = !chess960Toggle.checked;
   startNewGame();
 });
 
 // Click timer for time control dropdown (only before first move)
 function showTimerDropdown(timerEl) {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   closeAllPopups();
 
   const dropdown = document.createElement('div');
@@ -766,7 +833,7 @@ timerBlackEl.addEventListener('click', (e) => {
 
 // Click ELO label for inline slider popup (only before first move, only for AI)
 function showEloPopup(eloEl, side) {
-  if (moveCount > 0) return;
+  if (isReplayMode || moveCount > 0) return;
   closeAllPopups();
 
   const isWhite = side === 'w';
@@ -851,6 +918,827 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// --- Confirmation Modal ---
+
+function showConfirmation(message, title) {
+  return new Promise((resolve) => {
+    confirmModalTitle.textContent = title || 'Confirm';
+    confirmModalMessage.textContent = message;
+    confirmModal.classList.remove('hidden');
+
+    function cleanup() {
+      confirmModal.classList.add('hidden');
+      confirmModalOk.removeEventListener('click', onOk);
+      confirmModalCancel.removeEventListener('click', onCancel);
+      confirmModal.removeEventListener('click', onBackdrop);
+    }
+
+    function onOk() {
+      cleanup();
+      resolve(true);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(false);
+    }
+
+    function onBackdrop(e) {
+      if (e.target === confirmModal) {
+        cleanup();
+        resolve(false);
+      }
+    }
+
+    confirmModalOk.addEventListener('click', onOk);
+    confirmModalCancel.addEventListener('click', onCancel);
+    confirmModal.addEventListener('click', onBackdrop);
+  });
+}
+
+// --- Replay on Main Board ---
+
+async function enterReplayMode(gameRecord) {
+  // Confirm if there's an active live game (not if already in replay mode)
+  if (!isReplayMode && moveCount > 0 && !game.isGameOver()) {
+    const confirmed = await showConfirmation(
+      'You have a game in progress. Abandon it to review this game?',
+      'Abandon Game?'
+    );
+    if (!confirmed) {
+      return;
+    }
+    // End the current game as abandoned
+    if (currentDbGameId) {
+      db.endGame(currentDbGameId, 'abandoned', 'abandoned');
+    }
+    moveCount = 0;
+  }
+
+  if (isReplayMode) exitReplayMode(false);
+
+  ai.stop();
+  timer.stop();
+
+  isReplayMode = true;
+  replayGame = gameRecord;
+  replayPly = -1;
+  replayPlaying = false;
+
+  // Precompute move details (from/to for highlighting)
+  replayMoveDetails = [];
+  const scratch = new Chess(gameRecord.startingFen);
+  for (const move of gameRecord.moves) {
+    const result = scratch.move(move.san);
+    if (result) {
+      replayMoveDetails.push({
+        fen: move.fen,
+        from: result.from,
+        to: result.to,
+        san: move.san,
+        side: move.side,
+      });
+    }
+  }
+
+  // Reconstruct clocks
+  replayClockSnapshots = reconstructClocks(gameRecord);
+
+  // Disable board input and show replay border
+  board.setInteractive(false);
+  boardEl.classList.add('replay-mode-border');
+
+  // Update player bars
+  updatePlayerBarsForReplay(gameRecord);
+
+  // Update status
+  statusEl.textContent = 'Replay Mode';
+  statusEl.className = 'status replay-mode';
+
+  // Hide normal game controls that don't apply
+  startGameBtn.classList.add('hidden');
+  appEl.classList.remove('pre-game');
+  closeAllPopups();
+
+  // Build move list
+  buildReplayMoveList(gameRecord);
+
+  // Show replay controls
+  replayControlsEl.classList.remove('hidden');
+
+  // Show result
+  if (gameRecord.result) {
+    replayResultEl.textContent = formatReplayResult(gameRecord);
+    replayResultEl.style.display = '';
+  } else {
+    replayResultEl.style.display = 'none';
+  }
+
+  // Render starting position
+  replayGoToMove(-1);
+
+  // Highlight New Game button to indicate how to exit
+  newGameBtn.classList.add('game-ended');
+
+  // Set up keyboard handler
+  document.addEventListener('keydown', replayKeyHandler);
+
+  // Auto-analyze if toggle is enabled
+  resetMainBoardAnalysis();
+  if (replayAnalyzeCheckbox && replayAnalyzeCheckbox.checked) {
+    runMainBoardAnalysis(gameRecord);
+  }
+}
+
+function exitReplayMode(startNew = true) {
+  if (!isReplayMode) return;
+
+  stopReplayPlayback();
+
+  // Stop analysis if running
+  if (replayAnalysisEngine) {
+    replayAnalysisEngine.stop();
+  }
+  resetMainBoardAnalysis();
+
+  isReplayMode = false;
+  replayGame = null;
+  replayPly = -1;
+  replayMoveDetails = [];
+  replayClockSnapshots = [];
+
+  // Re-enable board input and remove replay border
+  board.setInteractive(true);
+  boardEl.classList.remove('replay-mode-border');
+
+  // Hide replay controls
+  replayControlsEl.classList.add('hidden');
+
+  // Remove keyboard handler
+  document.removeEventListener('keydown', replayKeyHandler);
+
+  if (startNew) startNewGame();
+}
+
+// --- Replay Navigation ---
+
+function replayGoToMove(plyIndex) {
+  if (!replayGame) return;
+  const maxPly = replayGame.moves.length - 1;
+  replayPly = Math.max(-1, Math.min(plyIndex, maxPly));
+
+  if (replayPly === -1) {
+    game.chess.load(replayGame.startingFen);
+    game._lastMove = null;
+  } else {
+    const detail = replayMoveDetails[replayPly];
+    game.chess.load(detail.fen);
+    game._lastMove = { from: detail.from, to: detail.to };
+  }
+
+  board.render();
+  highlightReplayMove();
+  updateReplayButtons();
+  updateReplayTimers();
+
+  if (replayPly === -1) {
+    statusEl.textContent = 'Replay Mode \u2014 Starting Position';
+  } else {
+    const moveNum = Math.floor(replayPly / 2) + 1;
+    const side = replayMoveDetails[replayPly].side === 'w' ? '' : '...';
+    statusEl.textContent = `Replay Mode \u2014 ${moveNum}${side} ${replayMoveDetails[replayPly].san}`;
+  }
+  statusEl.className = 'status replay-mode';
+
+  // Update analysis detail panel for current ply
+  if (replayAnalysisData) {
+    updateAnalysisDetail();
+    updateCriticalNav();
+  }
+}
+
+function replayNext() {
+  if (!replayGame) return;
+  if (replayPly >= replayGame.moves.length - 1) {
+    stopReplayPlayback();
+    return;
+  }
+  replayGoToMove(replayPly + 1);
+}
+
+function replayPrev() {
+  replayGoToMove(replayPly - 1);
+}
+
+function replayGoToStart() {
+  stopReplayPlayback();
+  replayGoToMove(-1);
+}
+
+function replayGoToEnd() {
+  stopReplayPlayback();
+  if (replayGame) {
+    replayGoToMove(replayGame.moves.length - 1);
+  }
+}
+
+// --- Replay Playback ---
+
+function toggleReplayPlayback() {
+  if (replayPlaying) {
+    stopReplayPlayback();
+  } else {
+    startReplayPlayback();
+  }
+}
+
+function startReplayPlayback() {
+  if (!replayGame) return;
+  if (replayPly >= replayGame.moves.length - 1) {
+    replayGoToMove(-1);
+  }
+  replayPlaying = true;
+  replayPlayBtn.textContent = '\u23F8';
+  replayPlayBtn.classList.add('playing');
+  scheduleReplayNext();
+}
+
+function stopReplayPlayback() {
+  replayPlaying = false;
+  if (replayTimer) {
+    clearTimeout(replayTimer);
+    replayTimer = null;
+  }
+  if (replayPlayBtn) {
+    replayPlayBtn.textContent = '\u25B6';
+    replayPlayBtn.classList.remove('playing');
+  }
+}
+
+function scheduleReplayNext() {
+  if (!replayPlaying || !replayGame) return;
+  if (replayPly >= replayGame.moves.length - 1) {
+    stopReplayPlayback();
+    return;
+  }
+
+  const nextPly = replayPly + 1;
+  const nextMove = replayGame.moves[nextPly];
+  let delay;
+
+  if (replayPly === -1) {
+    delay = nextMove.timestamp - replayGame.startTime;
+  } else {
+    delay = nextMove.timestamp - replayGame.moves[replayPly].timestamp;
+  }
+
+  delay = Math.max(200, Math.min(delay, 5000));
+
+  replayTimer = setTimeout(() => {
+    replayNext();
+    if (replayPlaying) scheduleReplayNext();
+  }, delay);
+}
+
+// --- Replay Clock Reconstruction ---
+
+function parseReplayTimeControl(tc) {
+  if (!tc || tc === 'none' || tc === 'No Timer') return null;
+  const oddsMatch = tc.match(/W(\d+)\s*\/\s*B(\d+)\s*\+(\d+)/);
+  if (oddsMatch) {
+    return {
+      baseSec: parseInt(oddsMatch[1], 10) * 60,
+      blackBaseSec: parseInt(oddsMatch[2], 10) * 60,
+      increment: parseInt(oddsMatch[3], 10),
+    };
+  }
+  const match = tc.match(/(\d+)\+(\d+)/);
+  if (!match) return null;
+  return { baseSec: parseInt(match[1], 10) * 60, increment: parseInt(match[2], 10) };
+}
+
+function reconstructClocks(gameRecord) {
+  const snapshots = [];
+  const tc = parseReplayTimeControl(gameRecord.timeControl);
+  if (!tc) {
+    for (let i = 0; i < gameRecord.moves.length; i++) snapshots.push(null);
+    return snapshots;
+  }
+
+  let whiteTime = tc.baseSec;
+  let blackTime = tc.blackBaseSec || tc.baseSec;
+  let prevTimestamp = gameRecord.startTime;
+
+  for (const move of gameRecord.moves) {
+    const spent = (move.timestamp - prevTimestamp) / 1000;
+    if (move.side === 'w') {
+      whiteTime = Math.max(0, whiteTime - spent) + tc.increment;
+    } else {
+      blackTime = Math.max(0, blackTime - spent) + tc.increment;
+    }
+    snapshots.push({ w: whiteTime, b: blackTime });
+    prevTimestamp = move.timestamp;
+  }
+  return snapshots;
+}
+
+function formatClockTime(seconds) {
+  if (seconds == null) return '--:--';
+  const s = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    return `${h}:${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  }
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function updateReplayTimers() {
+  if (!replayGame) return;
+
+  if (replayPly === -1) {
+    const tc = parseReplayTimeControl(replayGame.timeControl);
+    if (tc) {
+      timerWhiteEl.textContent = formatClockTime(tc.baseSec);
+      timerBlackEl.textContent = formatClockTime(tc.blackBaseSec || tc.baseSec);
+    } else {
+      timerWhiteEl.textContent = '--:--';
+      timerBlackEl.textContent = '--:--';
+    }
+    timerWhiteEl.classList.remove('timer-active', 'timer-low');
+    timerBlackEl.classList.remove('timer-active', 'timer-low');
+    return;
+  }
+
+  const snapshot = replayClockSnapshots[replayPly];
+  if (!snapshot) {
+    timerWhiteEl.textContent = '--:--';
+    timerBlackEl.textContent = '--:--';
+    timerWhiteEl.classList.remove('timer-active', 'timer-low');
+    timerBlackEl.classList.remove('timer-active', 'timer-low');
+    return;
+  }
+
+  timerWhiteEl.textContent = formatClockTime(snapshot.w);
+  timerBlackEl.textContent = formatClockTime(snapshot.b);
+
+  const nextPly = replayPly + 1;
+  if (nextPly < replayGame.moves.length) {
+    const nextSide = replayGame.moves[nextPly].side;
+    timerWhiteEl.classList.toggle('timer-active', nextSide === 'w');
+    timerBlackEl.classList.toggle('timer-active', nextSide === 'b');
+  } else {
+    timerWhiteEl.classList.remove('timer-active');
+    timerBlackEl.classList.remove('timer-active');
+  }
+}
+
+// --- Replay Player Bars ---
+
+function updatePlayerBarsForReplay(gameRecord) {
+  const w = gameRecord.white;
+  const b = gameRecord.black;
+
+  playerNameWhite.textContent = w.name || 'White';
+  playerNameBlack.textContent = b.name || 'Black';
+  playerIconWhite.textContent = w.isAI ? '\uD83E\uDD16' : '\uD83D\uDC64';
+  playerIconBlack.textContent = b.isAI ? '\uD83E\uDD16' : '\uD83D\uDC64';
+
+  if (w.elo) {
+    playerEloWhite.textContent = w.elo;
+    playerEloWhite.classList.remove('hidden');
+  } else {
+    playerEloWhite.classList.add('hidden');
+  }
+
+  if (b.elo) {
+    playerEloBlack.textContent = b.elo;
+    playerEloBlack.classList.remove('hidden');
+  } else {
+    playerEloBlack.classList.add('hidden');
+  }
+
+  capturedByWhiteEl.innerHTML = '';
+  capturedByBlackEl.innerHTML = '';
+
+  gameTypeLabel.textContent = gameRecord.gameType === 'chess960' ? 'Chess960' : 'Standard';
+}
+
+// --- Replay Move List ---
+
+function buildReplayMoveList(gameRecord) {
+  replayMoveListEl.innerHTML = '';
+
+  for (let i = 0; i < gameRecord.moves.length; i++) {
+    const move = gameRecord.moves[i];
+    const moveNum = Math.floor(i / 2) + 1;
+    const isWhite = move.side === 'w';
+
+    if (isWhite) {
+      const numEl = document.createElement('span');
+      numEl.className = 'strip-move-num';
+      numEl.textContent = `${moveNum}.`;
+      replayMoveListEl.appendChild(numEl);
+    }
+
+    const moveEl = document.createElement('span');
+    moveEl.className = 'strip-move';
+    moveEl.textContent = move.san;
+    moveEl.dataset.ply = i;
+    moveEl.addEventListener('click', () => {
+      stopReplayPlayback();
+      replayGoToMove(parseInt(moveEl.dataset.ply, 10));
+    });
+    replayMoveListEl.appendChild(moveEl);
+  }
+}
+
+function highlightReplayMove() {
+  replayMoveListEl.querySelectorAll('.strip-move-active').forEach(el => {
+    el.classList.remove('strip-move-active');
+  });
+
+  if (replayPly >= 0) {
+    const el = replayMoveListEl.querySelector(`.strip-move[data-ply="${replayPly}"]`);
+    if (el) {
+      el.classList.add('strip-move-active');
+      el.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+    }
+  } else {
+    replayMoveListEl.scrollLeft = 0;
+  }
+}
+
+// --- Replay Button State ---
+
+function updateReplayButtons() {
+  if (!replayGame) return;
+  const atStart = replayPly === -1;
+  const atEnd = replayPly >= replayGame.moves.length - 1;
+
+  replayStartBtn.disabled = atStart;
+  replayPrevBtn.disabled = atStart;
+  replayNextBtn.disabled = atEnd;
+  replayEndBtn.disabled = atEnd;
+}
+
+function formatReplayResult(gameRecord) {
+  if (!gameRecord.result) return '';
+  if (gameRecord.result === 'abandoned') return 'Abandoned';
+
+  const reasons = {
+    checkmate: 'Checkmate',
+    stalemate: 'Stalemate',
+    timeout: 'Time out',
+    insufficient: 'Insufficient material',
+    threefold: 'Threefold repetition',
+    '50-move': 'Fifty-move rule',
+    draw: 'Draw',
+  };
+
+  const reason = reasons[gameRecord.resultReason] || '';
+  if (gameRecord.result === 'draw') return reason ? `Draw \u2014 ${reason}` : 'Draw';
+  const winner = gameRecord.result === 'white' ? 'White' : 'Black';
+  return reason ? `${reason}! ${winner} wins` : `${winner} wins`;
+}
+
+// --- Main-Board Analysis ---
+
+function loadCachedAnalysis(serverId) {
+  if (!serverId) return null;
+  try {
+    const raw = localStorage.getItem(ANALYSIS_CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw);
+    const entry = cache.entries[serverId];
+    return entry ? entry.result : null;
+  } catch {
+    return null;
+  }
+}
+
+async function runMainBoardAnalysis(gameRecord) {
+  if (!gameRecord || !gameRecord.moves || gameRecord.moves.length === 0) return;
+
+  // Check cache first
+  const serverId = gameRecord.serverId || null;
+  const cached = loadCachedAnalysis(serverId);
+  if (cached) {
+    setMainBoardAnalysis(cached);
+    return;
+  }
+
+  // Lazily create engine
+  if (!replayAnalysisEngine) {
+    replayAnalysisEngine = new AnalysisEngine();
+  }
+
+  const totalPositions = gameRecord.moves.length + 1;
+  replayProgressEl.classList.remove('hidden');
+  replayProgressFillEl.style.width = '0%';
+
+  try {
+    const result = await replayAnalysisEngine.analyze(
+      gameRecord.moves,
+      gameRecord.startingFen,
+      {
+        depth: 18,
+        serverId: serverId,
+        onProgress: ({ current, total }) => {
+          const pct = total > 0 ? (current / total * 100) : 0;
+          replayProgressFillEl.style.width = `${pct}%`;
+        }
+      }
+    );
+    setMainBoardAnalysis(result);
+  } catch (err) {
+    if (err !== 'stopped') {
+      console.warn('Analysis failed:', err);
+    }
+    replayProgressEl.classList.add('hidden');
+    replayProgressFillEl.style.width = '0%';
+  }
+}
+
+function setMainBoardAnalysis(result) {
+  replayAnalysisData = result;
+
+  // Hide progress bar
+  replayProgressEl.classList.add('hidden');
+  replayProgressFillEl.style.width = '0%';
+
+  // Add classification icons to move list
+  addClassificationIcons();
+
+  // Render accuracy summary
+  renderAccuracy();
+
+  // Update critical moment nav
+  updateCriticalNav();
+
+  // Show detail for current move
+  updateAnalysisDetail();
+}
+
+function addClassificationIcons() {
+  if (!replayAnalysisData) return;
+
+  const moveEls = replayMoveListEl.querySelectorAll('.strip-move[data-ply]');
+  const criticalSet = new Set(replayAnalysisData.criticalMoments);
+
+  moveEls.forEach(el => {
+    const ply = parseInt(el.dataset.ply, 10);
+    const posIdx = ply + 1; // positions[0] = starting, positions[ply+1] = after move
+    if (posIdx >= replayAnalysisData.positions.length) return;
+
+    const pos = replayAnalysisData.positions[posIdx];
+    if (!pos || !pos.classification) return;
+
+    const iconDef = CLASSIFICATION_ICONS[pos.classification];
+    if (!iconDef) return;
+
+    // Remove any existing icon
+    const existing = el.querySelector('.analysis-icon');
+    if (existing) existing.remove();
+
+    const icon = document.createElement('span');
+    icon.className = `analysis-icon ${iconDef.cls}`;
+    icon.textContent = iconDef.text;
+    el.prepend(icon);
+
+    // Mark critical moments
+    if (criticalSet.has(posIdx)) {
+      el.classList.add('analysis-critical');
+    }
+  });
+}
+
+function renderAccuracy() {
+  if (!replayAnalysisData || !replayAccuracyEl) return;
+
+  const summary = replayAnalysisData.summary;
+  replayAccuracyEl.innerHTML = '';
+  replayAccuracyEl.classList.remove('hidden');
+
+  for (const side of ['white', 'black']) {
+    const s = summary[side];
+    const div = document.createElement('div');
+    div.className = 'accuracy-side';
+
+    const header = document.createElement('div');
+    header.className = 'accuracy-header';
+
+    const label = document.createElement('span');
+    label.className = 'accuracy-label';
+    label.textContent = side === 'white' ? 'White' : 'Black';
+    header.appendChild(label);
+
+    const value = document.createElement('span');
+    value.className = 'accuracy-value';
+    value.textContent = `${s.accuracy}%`;
+    header.appendChild(value);
+
+    div.appendChild(header);
+
+    const barOuter = document.createElement('div');
+    barOuter.className = 'accuracy-bar';
+    const barFill = document.createElement('div');
+    barFill.className = 'accuracy-fill';
+    barFill.style.width = `${s.accuracy}%`;
+    barOuter.appendChild(barFill);
+    div.appendChild(barOuter);
+
+    const breakdown = document.createElement('div');
+    breakdown.className = 'accuracy-breakdown';
+    breakdown.textContent = `B:${s.best} G:${s.good} I:${s.inaccuracy} M:${s.mistake} BL:${s.blunder}`;
+    div.appendChild(breakdown);
+
+    replayAccuracyEl.appendChild(div);
+  }
+}
+
+function updateAnalysisDetail() {
+  if (!replayAnalysisData || !replayDetailEl) {
+    if (replayDetailEl) replayDetailEl.classList.add('hidden');
+    return;
+  }
+
+  const posIdx = replayPly + 1;
+  if (posIdx < 0 || posIdx >= replayAnalysisData.positions.length) {
+    replayDetailEl.classList.add('hidden');
+    return;
+  }
+
+  const pos = replayAnalysisData.positions[posIdx];
+  replayDetailEl.classList.remove('hidden');
+
+  // Classification + cpLoss
+  if (pos.classification) {
+    const iconDef = CLASSIFICATION_ICONS[pos.classification] || {};
+    replayClassEl.innerHTML = '';
+    const icon = document.createElement('span');
+    icon.className = `analysis-icon ${iconDef.cls || ''}`;
+    icon.textContent = iconDef.text || '';
+    replayClassEl.appendChild(icon);
+    const label = document.createElement('span');
+    const classLabel = pos.classification.charAt(0).toUpperCase() + pos.classification.slice(1);
+    label.textContent = ` ${classLabel}${pos.cpLoss > 0 ? ` (${pos.cpLoss}cp)` : ''}`;
+    replayClassEl.appendChild(label);
+  } else {
+    replayClassEl.textContent = 'Starting position';
+  }
+
+  // Eval
+  const evalPawns = pos.eval / 100;
+  const evalSign = evalPawns >= 0 ? '+' : '';
+  const evalDisplay = Math.abs(pos.eval) >= 9900
+    ? (pos.eval > 0 ? '+M' : '-M')
+    : `${evalSign}${evalPawns.toFixed(2)}`;
+  replayEvalEl.textContent = `Eval: ${evalDisplay}`;
+
+  // Best move
+  if (pos.bestMoveUci) {
+    replayBestEl.textContent = `Best: ${pos.bestMoveUci}`;
+  } else {
+    replayBestEl.textContent = '';
+  }
+
+  // PV line (first 5 moves)
+  if (pos.bestLineUci && pos.bestLineUci.length > 0) {
+    const line = pos.bestLineUci.slice(0, 5).join(' ');
+    replayLineEl.textContent = `Line: ${line}`;
+  } else {
+    replayLineEl.textContent = '';
+  }
+}
+
+function updateCriticalNav() {
+  if (!replayAnalysisData || !replayAnalysisData.criticalMoments.length) {
+    if (replayCritPrevBtn) replayCritPrevBtn.classList.add('hidden');
+    if (replayCritNextBtn) replayCritNextBtn.classList.add('hidden');
+    return;
+  }
+
+  replayCritPrevBtn.classList.remove('hidden');
+  replayCritNextBtn.classList.remove('hidden');
+
+  const moments = replayAnalysisData.criticalMoments;
+  const curPos = replayPly + 1;
+
+  const prevCrit = moments.filter(m => m < curPos);
+  const nextCrit = moments.filter(m => m > curPos);
+
+  replayCritPrevBtn.disabled = prevCrit.length === 0;
+  replayCritNextBtn.disabled = nextCrit.length === 0;
+}
+
+function goToPrevCritical() {
+  if (!replayAnalysisData) return;
+  const moments = replayAnalysisData.criticalMoments;
+  const curPos = replayPly + 1;
+  const prev = moments.filter(m => m < curPos);
+  if (prev.length > 0) {
+    const targetPos = prev[prev.length - 1];
+    stopReplayPlayback();
+    replayGoToMove(targetPos - 1);
+  }
+}
+
+function goToNextCritical() {
+  if (!replayAnalysisData) return;
+  const moments = replayAnalysisData.criticalMoments;
+  const curPos = replayPly + 1;
+  const next = moments.filter(m => m > curPos);
+  if (next.length > 0) {
+    const targetPos = next[0];
+    stopReplayPlayback();
+    replayGoToMove(targetPos - 1);
+  }
+}
+
+function resetMainBoardAnalysis() {
+  replayAnalysisData = null;
+
+  // Hide progress
+  if (replayProgressEl) {
+    replayProgressEl.classList.add('hidden');
+    replayProgressFillEl.style.width = '0%';
+  }
+  // Hide detail panel
+  if (replayDetailEl) {
+    replayDetailEl.classList.add('hidden');
+  }
+  // Hide accuracy panel
+  if (replayAccuracyEl) {
+    replayAccuracyEl.classList.add('hidden');
+    replayAccuracyEl.innerHTML = '';
+  }
+  // Hide critical nav
+  if (replayCritPrevBtn) replayCritPrevBtn.classList.add('hidden');
+  if (replayCritNextBtn) replayCritNextBtn.classList.add('hidden');
+  // Remove classification icons and critical markers
+  replayMoveListEl.querySelectorAll('.analysis-icon').forEach(el => el.remove());
+  replayMoveListEl.querySelectorAll('.analysis-critical').forEach(el => {
+    el.classList.remove('analysis-critical');
+  });
+}
+
+// --- Replay Keyboard Handler ---
+
+function replayKeyHandler(e) {
+  if (!isReplayMode) return;
+
+  switch (e.key) {
+    case 'ArrowLeft':
+      e.preventDefault();
+      replayPrev();
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      replayNext();
+      break;
+    case ' ':
+      e.preventDefault();
+      toggleReplayPlayback();
+      break;
+    case 'Home':
+      e.preventDefault();
+      replayGoToStart();
+      break;
+    case 'End':
+      e.preventDefault();
+      replayGoToEnd();
+      break;
+  }
+}
+
+// Wire up replay control buttons
+replayStartBtn.addEventListener('click', replayGoToStart);
+replayPrevBtn.addEventListener('click', replayPrev);
+replayPlayBtn.addEventListener('click', toggleReplayPlayback);
+replayNextBtn.addEventListener('click', replayNext);
+replayEndBtn.addEventListener('click', replayGoToEnd);
+
+// Wire up analysis toggle and critical nav buttons
+if (replayAnalyzeCheckbox) {
+  replayAnalyzeCheckbox.addEventListener('change', () => {
+    const enabled = replayAnalyzeCheckbox.checked;
+    localStorage.setItem('chess-auto-analyze', enabled ? 'true' : 'false');
+    if (enabled) {
+      if (isReplayMode && replayGame && !replayAnalysisData) {
+        runMainBoardAnalysis(replayGame);
+      }
+    } else {
+      if (replayAnalysisEngine) replayAnalysisEngine.stop();
+      resetMainBoardAnalysis();
+    }
+  });
+}
+if (replayCritPrevBtn) replayCritPrevBtn.addEventListener('click', goToPrevCritical);
+if (replayCritNextBtn) replayCritNextBtn.addEventListener('click', goToNextCritical);
 
 // Dev indicator management
 const devIndicator = document.getElementById('dev-indicator');

@@ -18,6 +18,7 @@ class Board {
     this._legalMoves = [];
     this._dragging = null;
     this._animationsEnabled = true;
+    this._interactive = true;
     this._ai = null;
 
     this._buildGrid();
@@ -26,6 +27,10 @@ class Board {
 
   setAnimationsEnabled(enabled) {
     this._animationsEnabled = enabled;
+  }
+
+  setInteractive(enabled) {
+    this._interactive = enabled;
   }
 
   setAI(ai) {
@@ -157,6 +162,7 @@ class Board {
   }
 
   _handleSquareClick(square) {
+    if (!this._interactive) return;
     if (this.game.isGameOver()) return;
     if (this._ai && this._ai.isEnabled() && this._ai.isAITurn(this.game.getTurn())) return;
 
@@ -181,6 +187,7 @@ class Board {
   }
 
   _handleDragStart(square, x, y) {
+    if (!this._interactive) return;
     if (this.game.isGameOver()) return;
     if (this._ai && this._ai.isEnabled() && this._ai.isAITurn(this.game.getTurn())) return;
 

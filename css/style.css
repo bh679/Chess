@@ -900,6 +900,32 @@ body {
   background: #5a5754;
 }
 
+/* Confirmation modal */
+.confirm-modal-message {
+  color: #ccc;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+#confirm-modal-ok {
+  background: #4a9e5c;
+  color: white;
+}
+
+#confirm-modal-ok:hover {
+  background: #3d8a4e;
+}
+
+#confirm-modal-cancel {
+  background: #4a4744;
+  color: #ccc;
+}
+
+#confirm-modal-cancel:hover {
+  background: #5a5754;
+}
+
 /* Footer */
 .footer {
   margin-top: auto;
@@ -1528,6 +1554,220 @@ body {
 }
 
 /* =========================================
+   Analysis Review
+   ========================================= */
+
+/* Auto-Analyze toggle in header */
+.auto-analyze-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  color: #999;
+  font-size: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auto-analyze-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.auto-analyze-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.auto-analyze-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #3d3a37;
+  border-radius: 9px;
+  transition: background-color 0.2s;
+}
+
+.auto-analyze-slider::before {
+  content: '';
+  position: absolute;
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background: #999;
+  border-radius: 50%;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.auto-analyze-switch input:checked + .auto-analyze-slider {
+  background: #4a9e5c;
+}
+
+.auto-analyze-switch input:checked + .auto-analyze-slider::before {
+  transform: translateX(14px);
+  background: #fff;
+}
+
+/* Progress bar */
+.analysis-progress {
+  height: 3px;
+  background: #3d3a37;
+  width: 100%;
+  overflow: hidden;
+}
+
+.analysis-progress.hidden {
+  display: none;
+}
+
+.analysis-progress-fill {
+  height: 100%;
+  background: #4a9e5c;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* Classification icons in move strips */
+.analysis-icon {
+  font-size: 0.6rem;
+  margin-right: 1px;
+  font-weight: bold;
+  font-style: normal;
+  vertical-align: middle;
+}
+
+.analysis-best { color: #4a9e5c; }
+.analysis-good { color: #7ec894; }
+.analysis-inaccuracy { color: #ffd700; }
+.analysis-mistake { color: #ff9800; }
+.analysis-blunder { color: #ff6b6b; }
+
+/* Critical moment marker on move strip items */
+.analysis-critical {
+  border-left: 2px solid #ff6b6b !important;
+  padding-left: 5px !important;
+}
+
+/* Move detail panel */
+.analysis-detail {
+  padding: 6px 12px;
+  background: #272522;
+  border-top: 1px solid #3d3a37;
+  font-size: 0.78rem;
+  color: #ccc;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.analysis-detail.hidden {
+  display: none;
+}
+
+.analysis-detail-classification {
+  font-weight: 600;
+}
+
+.analysis-detail-eval {
+  font-family: 'Courier New', Courier, monospace;
+  color: #e0e0e0;
+}
+
+.analysis-detail-best,
+.analysis-detail-line {
+  color: #999;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Accuracy summary panel */
+.analysis-accuracy {
+  padding: 8px 16px;
+  border-top: 1px solid #3d3a37;
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.analysis-accuracy.hidden {
+  display: none;
+}
+
+.accuracy-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.accuracy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.78rem;
+}
+
+.accuracy-label {
+  color: #999;
+}
+
+.accuracy-value {
+  font-weight: 600;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+}
+
+.accuracy-bar {
+  height: 4px;
+  background: #3d3a37;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.accuracy-fill {
+  height: 100%;
+  background: #4a9e5c;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.accuracy-breakdown {
+  font-size: 0.65rem;
+  color: #666;
+  letter-spacing: 0.3px;
+}
+
+/* Critical moment navigation buttons */
+.replay-btn-crit {
+  background: #3d3a37;
+  border: none;
+  color: #999;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.replay-btn-crit:hover {
+  background: #4a4744;
+  color: #ff6b6b;
+}
+
+.replay-btn-crit:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.replay-btn-crit.hidden {
+  display: none;
+}
+
+/* =========================================
    Game Browser
    ========================================= */
 
@@ -1679,6 +1919,133 @@ body {
 }
 
 /* =========================================
+   Replay on Main Board
+   ========================================= */
+
+.replay-main-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(90vw, 60vh, 600px);
+  margin: 0 auto;
+}
+
+.replay-main-controls.hidden {
+  display: none;
+}
+
+.replay-main-move-list {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  width: 100%;
+  padding: 6px 4px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  background: #1e1c1a;
+  border-radius: 4px;
+}
+
+.replay-main-move-list::-webkit-scrollbar {
+  display: none;
+}
+
+.replay-main-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.replay-main-btn {
+  background: #3d3a37;
+  border: none;
+  color: #e0e0e0;
+  font-size: 1rem;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.replay-main-btn:hover {
+  background: #4a4744;
+}
+
+.replay-main-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.replay-main-btn-play {
+  background: #4a9e5c;
+  padding: 8px 18px;
+  font-size: 1.1rem;
+}
+
+.replay-main-btn-play:hover {
+  background: #3d8a4e;
+}
+
+.replay-main-btn-play.playing {
+  background: #c4a03a;
+}
+
+.replay-main-btn-play.playing:hover {
+  background: #b0902e;
+}
+
+.replay-main-result {
+  color: #ffd700;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+/* Analysis toggle inside main-board replay controls */
+.replay-main-controls .auto-analyze-toggle {
+  align-self: flex-end;
+  margin-right: 0;
+}
+
+/* Critical moment nav buttons */
+.replay-crit-btn {
+  font-size: 0.75rem !important;
+  padding: 6px 8px !important;
+  color: #ffd700 !important;
+}
+
+.replay-crit-btn.hidden {
+  display: none;
+}
+
+/* Analysis panels inside main-board replay */
+.replay-main-controls .analysis-detail {
+  width: 100%;
+}
+
+.replay-main-controls .analysis-accuracy {
+  width: 100%;
+}
+
+.replay-main-controls .analysis-progress {
+  border-radius: 2px;
+}
+
+.board.replay-mode-border {
+  border: 3px solid #64b5f6;
+  box-shadow: 0 0 12px rgba(100, 181, 246, 0.4);
+}
+
+.status.replay-mode {
+  color: #64b5f6;
+}
+
+/* =========================================
    Responsive: Replay Viewer
    ========================================= */
 
@@ -1705,6 +2072,15 @@ body {
 
   .strip-move-num {
     font-size: 0.65rem;
+  }
+
+  .replay-main-controls {
+    width: 100%;
+  }
+
+  .replay-main-btn {
+    padding: 6px 10px;
+    font-size: 0.9rem;
   }
 }
 
