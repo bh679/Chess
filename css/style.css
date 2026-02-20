@@ -711,6 +711,41 @@ body {
   align-items: center;
 }
 
+.engine-select {
+  width: 100%;
+  max-width: 160px;
+  padding: 4px 6px;
+  font-size: 0.7rem;
+  background: #1a1816;
+  color: #e0e0e0;
+  border: 1px solid #4a4744;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+  overflow: hidden;
+  max-height: 30px;
+  opacity: 1;
+}
+
+.engine-select.hidden {
+  max-height: 0;
+  opacity: 0;
+  padding: 0 6px;
+  border: 0;
+  pointer-events: none;
+}
+
+.engine-select:focus {
+  outline: none;
+  border-color: #4a9e5c;
+}
+
+.engine-select option {
+  background: #272522;
+  color: #e0e0e0;
+}
+
 .ai-elo-wrapper {
   display: flex;
   align-items: center;
