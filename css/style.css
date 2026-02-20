@@ -2077,6 +2077,10 @@ body {
   border: 1px solid #1a1816;
 }
 
+.eval-bar.hidden {
+  display: none;
+}
+
 .eval-bar-black {
   background: #3d3a37;
   height: 50%;
