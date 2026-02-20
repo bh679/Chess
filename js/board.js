@@ -1,4 +1,5 @@
 import { Combat } from './combat.js';
+import { ArrowOverlay } from './arrows.js';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -20,9 +21,16 @@ class Board {
     this._animationsEnabled = true;
     this._interactive = true;
     this._ai = null;
+    this._rightClickStart = null;
+    this._rightClickMoved = false;
 
     this._buildGrid();
+    this._arrowOverlay = new ArrowOverlay(containerEl);
     this._bindEvents();
+  }
+
+  getArrowOverlay() {
+    return this._arrowOverlay;
   }
 
   setAnimationsEnabled(enabled) {
@@ -117,10 +125,11 @@ class Board {
       if (this._dragging) return;
       const squareEl = e.target.closest('.square');
       if (!squareEl) return;
+      this._arrowOverlay.clearUserAnnotations();
       this._handleSquareClick(squareEl.dataset.square);
     });
 
-    // Drag handling — mouse
+    // Drag handling — mouse (left button)
     this.container.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
       const squareEl = e.target.closest('.square');
@@ -132,11 +141,29 @@ class Board {
         e.preventDefault();
         this._handleDragMove(e.clientX, e.clientY);
       }
+      if (this._rightClickStart) {
+        this._rightClickMoved = true;
+      }
     });
     document.addEventListener('mouseup', (e) => {
       if (this._dragging) {
         this._handleDragEnd(e.clientX, e.clientY);
       }
+      if (e.button === 2 && this._rightClickStart) {
+        this._handleRightClickEnd(e.clientX, e.clientY);
+      }
+    });
+
+    // Right-click arrow drawing
+    this.container.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+    this.container.addEventListener('mousedown', (e) => {
+      if (e.button !== 2) return;
+      const squareEl = e.target.closest('.square');
+      if (!squareEl) return;
+      this._rightClickStart = squareEl.dataset.square;
+      this._rightClickMoved = false;
     });
 
     // Drag handling — touch
@@ -159,6 +186,22 @@ class Board {
         this._handleDragEnd(touch.clientX, touch.clientY);
       }
     });
+  }
+
+  _handleRightClickEnd(x, y) {
+    const startSquare = this._rightClickStart;
+    this._rightClickStart = null;
+
+    const targetEl = document.elementFromPoint(x, y);
+    const squareEl = targetEl?.closest('.square');
+    if (!squareEl) return;
+
+    const endSquare = squareEl.dataset.square;
+    if (endSquare === startSquare && !this._rightClickMoved) {
+      this._arrowOverlay.toggleHighlight(endSquare);
+    } else if (endSquare !== startSquare) {
+      this._arrowOverlay.addUserArrow(startSquare, endSquare);
+    }
   }
 
   _handleSquareClick(square) {
@@ -351,6 +394,8 @@ class Board {
   }
 
   _executeMove(from, to) {
+    this._arrowOverlay.clearUserAnnotations();
+
     // Check for promotion
     if (this.game.isPromotion(from, to)) {
       this._showPromotionModal(from, to);
@@ -407,6 +452,7 @@ class Board {
    * Execute a move on behalf of the AI (skips promotion modal)
    */
   executeAIMove(from, to, promotion) {
+    this._arrowOverlay.clearUserAnnotations();
     this._animateMove(from, to, () => {
       const result = this.game.makeMove(from, to, promotion);
       if (result.success) {

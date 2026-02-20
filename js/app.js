@@ -337,6 +337,7 @@ function startNewGame() {
 
   const chess960 = chess960Toggle.checked;
   game.newGame(chess960);
+  board.getArrowOverlay().clear();
   board.render();
   moveCount = 0;
 
@@ -1154,6 +1155,9 @@ function exitReplayMode(startNew = true) {
   replayMoveDetails = [];
   replayClockSnapshots = [];
 
+  // Clear all arrows
+  board.getArrowOverlay().clear();
+
   // Re-enable board input and remove replay border
   board.setInteractive(true);
   boardEl.classList.remove('replay-mode-border');
@@ -1197,11 +1201,14 @@ function replayGoToMove(plyIndex) {
   }
   statusEl.className = 'status replay-mode';
 
-  // Update analysis detail panel for current ply
+  // Update analysis detail panel and engine arrows for current ply
   if (replayAnalysisData) {
     updateAnalysisDetail();
     updateCriticalNav();
     updateMainEvalBar();
+    updateEngineArrows();
+  } else {
+    board.getArrowOverlay().clearEngineArrows();
   }
 }
 
@@ -1566,8 +1573,9 @@ function setMainBoardAnalysis(result) {
   // Update critical moment nav
   updateCriticalNav();
 
-  // Show detail for current move
+  // Show detail and engine arrows for current move
   updateAnalysisDetail();
+  updateEngineArrows();
 
   // Show and update eval bar (only if toggle is on)
   if (evalBarToggle && evalBarToggle.checked) {
@@ -1705,6 +1713,20 @@ function updateAnalysisDetail() {
     replayLineEl.textContent = `Line: ${line}`;
   } else {
     replayLineEl.textContent = '';
+  }
+}
+
+function updateEngineArrows() {
+  const overlay = board.getArrowOverlay();
+  overlay.clearEngineArrows();
+
+  if (!replayAnalysisData) return;
+  const posIdx = replayPly + 1;
+  if (posIdx < 0 || posIdx >= replayAnalysisData.positions.length) return;
+
+  const pos = replayAnalysisData.positions[posIdx];
+  if (pos.bestMoveUci) {
+    overlay.setEngineArrows(pos.bestMoveUci, pos.bestLineUci || []);
   }
 }
 
