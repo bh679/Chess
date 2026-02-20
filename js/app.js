@@ -55,6 +55,7 @@ const customTimeCancel = document.getElementById('custom-time-cancel');
 const chess960Toggle = document.getElementById('chess960-toggle');
 const animationsToggle = document.getElementById('animations-toggle');
 const evalBarToggle = document.getElementById('eval-bar-toggle');
+const premovesToggle = document.getElementById('premoves-toggle');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
 const artStylePicker = document.getElementById('art-style-picker');
@@ -333,6 +334,7 @@ function startNewGame() {
 
   gameId++;
   ai.stop();
+  board.clearPremove();
   newGameBtn.classList.remove('game-ended');
 
   const chess960 = chess960Toggle.checked;
@@ -479,6 +481,7 @@ board.onMove((result) => {
 
   if (game.isGameOver()) {
     timer.stop();
+    board.clearPremove();
     newGameBtn.classList.add('game-ended');
     updateStatus();
 
@@ -489,6 +492,17 @@ board.onMove((result) => {
   }
 
   updateStatus();
+
+  // Check for queued premove before triggering AI
+  const turn = game.getTurn();
+  if (board.getPremove() && (!ai.isEnabled() || !ai.isAITurn(turn))) {
+    setTimeout(() => {
+      if (!board.executePremove()) {
+        triggerAIMove();
+      }
+    }, 50);
+    return;
+  }
 
   // Trigger AI move if it's the computer's turn
   triggerAIMove();
@@ -673,6 +687,15 @@ if (evalBarToggle) {
     }
   });
 }
+
+// Premoves toggle
+premovesToggle.checked = localStorage.getItem('chess-premoves') === 'true';
+board.setPremovesEnabled(premovesToggle.checked);
+premovesToggle.addEventListener('change', () => {
+  localStorage.setItem('chess-premoves', premovesToggle.checked ? 'true' : 'false');
+  board.setPremovesEnabled(premovesToggle.checked);
+  if (!premovesToggle.checked) board.clearPremove();
+});
 
 // Settings panel toggle
 settingsToggle.addEventListener('click', () => {
@@ -993,6 +1016,7 @@ document.addEventListener('click', () => {
 // Close popups on Escape
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    board.clearPremove();
     const hadPopup = document.querySelector('.elo-popup');
     closeAllPopups();
     if (hadPopup && moveCount === 0) {
