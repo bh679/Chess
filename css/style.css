@@ -900,6 +900,32 @@ body {
   background: #5a5754;
 }
 
+/* Confirmation modal */
+.confirm-modal-message {
+  color: #ccc;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+#confirm-modal-ok {
+  background: #4a9e5c;
+  color: white;
+}
+
+#confirm-modal-ok:hover {
+  background: #3d8a4e;
+}
+
+#confirm-modal-cancel {
+  background: #4a4744;
+  color: #ccc;
+}
+
+#confirm-modal-cancel:hover {
+  background: #5a5754;
+}
+
 /* Footer */
 .footer {
   margin-top: auto;
@@ -1886,6 +1912,103 @@ body {
 }
 
 /* =========================================
+   Replay on Main Board
+   ========================================= */
+
+.replay-main-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(90vw, 60vh, 600px);
+  margin: 0 auto;
+}
+
+.replay-main-controls.hidden {
+  display: none;
+}
+
+.replay-main-move-list {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  width: 100%;
+  padding: 6px 4px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  background: #1e1c1a;
+  border-radius: 4px;
+}
+
+.replay-main-move-list::-webkit-scrollbar {
+  display: none;
+}
+
+.replay-main-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.replay-main-btn {
+  background: #3d3a37;
+  border: none;
+  color: #e0e0e0;
+  font-size: 1rem;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.replay-main-btn:hover {
+  background: #4a4744;
+}
+
+.replay-main-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.replay-main-btn-play {
+  background: #4a9e5c;
+  padding: 8px 18px;
+  font-size: 1.1rem;
+}
+
+.replay-main-btn-play:hover {
+  background: #3d8a4e;
+}
+
+.replay-main-btn-play.playing {
+  background: #c4a03a;
+}
+
+.replay-main-btn-play.playing:hover {
+  background: #b0902e;
+}
+
+.replay-main-result {
+  color: #ffd700;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.board.replay-mode-border {
+  border: 3px solid #64b5f6;
+  box-shadow: 0 0 12px rgba(100, 181, 246, 0.4);
+}
+
+.status.replay-mode {
+  color: #64b5f6;
+}
+
+/* =========================================
    Responsive: Replay Viewer
    ========================================= */
 
@@ -1912,6 +2035,15 @@ body {
 
   .strip-move-num {
     font-size: 0.65rem;
+  }
+
+  .replay-main-controls {
+    width: 100%;
+  }
+
+  .replay-main-btn {
+    padding: 6px 10px;
+    font-size: 0.9rem;
   }
 }
 

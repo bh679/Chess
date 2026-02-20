@@ -15,6 +15,7 @@ class AI {
     this._thinking = false;
     this._resolveMove = null;
     this._rejectMove = null;
+    this._engineName = 'Stockfish';
   }
 
   /**
@@ -35,6 +36,10 @@ class AI {
 
       this._worker.onmessage = (e) => {
         const line = typeof e.data === 'string' ? e.data : String(e.data);
+
+        if (line.startsWith('id name ')) {
+          this._engineName = line.substring(8);
+        }
 
         if (line === 'uciok') {
           uciReady = true;
@@ -103,6 +108,13 @@ class AI {
    */
   getElo(turn) {
     return turn === 'w' ? this._whiteElo : this._blackElo;
+  }
+
+  /**
+   * Get the engine name reported during UCI handshake
+   */
+  getEngineName() {
+    return this._engineName;
   }
 
   /**
