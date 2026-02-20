@@ -1672,6 +1672,118 @@ body {
 }
 
 /* =========================================
+   Replay on Main Board
+   ========================================= */
+
+.replay-main-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(90vw, 60vh, 600px);
+  margin: 0 auto;
+}
+
+.replay-main-controls.hidden {
+  display: none;
+}
+
+.replay-main-move-list {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  width: 100%;
+  padding: 6px 4px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  background: #1e1c1a;
+  border-radius: 4px;
+}
+
+.replay-main-move-list::-webkit-scrollbar {
+  display: none;
+}
+
+.replay-main-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.replay-main-btn {
+  background: #3d3a37;
+  border: none;
+  color: #e0e0e0;
+  font-size: 1rem;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.replay-main-btn:hover {
+  background: #4a4744;
+}
+
+.replay-main-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.replay-main-btn-play {
+  background: #4a9e5c;
+  padding: 8px 18px;
+  font-size: 1.1rem;
+}
+
+.replay-main-btn-play:hover {
+  background: #3d8a4e;
+}
+
+.replay-main-btn-play.playing {
+  background: #c4a03a;
+}
+
+.replay-main-btn-play.playing:hover {
+  background: #b0902e;
+}
+
+.replay-main-result {
+  color: #ffd700;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.status.replay-mode {
+  color: #64b5f6;
+}
+
+/* "Review on Board" button in game browser cards */
+.browser-review-btn {
+  margin-top: 6px;
+  padding: 5px 10px;
+  background: #3d3a37;
+  color: #ccc;
+  border: 1px solid #4a4744;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.browser-review-btn:hover {
+  background: #4a9e5c;
+  color: white;
+  border-color: #4a9e5c;
+}
+
+/* =========================================
    Responsive: Replay Viewer
    ========================================= */
 
@@ -1698,6 +1810,15 @@ body {
 
   .strip-move-num {
     font-size: 0.65rem;
+  }
+
+  .replay-main-controls {
+    width: 100%;
+  }
+
+  .replay-main-btn {
+    padding: 6px 10px;
+    font-size: 0.9rem;
   }
 }
 

@@ -8,9 +8,10 @@ const PAGE_SIZE = 15;
 const MIN_DISPLAY_MOVES = 4; // at least 2 moves per player
 
 class GameBrowser {
-  constructor(database, replayViewer) {
+  constructor(database, replayViewer, onReviewOnBoard) {
     this._db = database;
     this._replay = replayViewer;
+    this._onReviewOnBoard = onReviewOnBoard || null;
     this._overlay = null;
     this._listEl = null;
     this._paginationEl = null;
@@ -153,7 +154,7 @@ class GameBrowser {
 
       row.appendChild(meta);
 
-      // Click to open replay
+      // Click to open replay in modal
       row.addEventListener('click', async () => {
         try {
           const fullGame = await this._db.getGame(game.id);
@@ -165,6 +166,26 @@ class GameBrowser {
           console.warn('Failed to load game:', err);
         }
       });
+
+      // "Review on Board" button
+      if (this._onReviewOnBoard) {
+        const reviewBtn = document.createElement('button');
+        reviewBtn.className = 'browser-review-btn';
+        reviewBtn.textContent = 'Review on Board';
+        reviewBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            const fullGame = await this._db.getGame(game.id);
+            if (fullGame && fullGame.moves.length > 0) {
+              this.close();
+              this._onReviewOnBoard(fullGame);
+            }
+          } catch (err) {
+            console.warn('Failed to load game for review:', err);
+          }
+        });
+        row.appendChild(reviewBtn);
+      }
 
       this._listEl.appendChild(row);
     }
