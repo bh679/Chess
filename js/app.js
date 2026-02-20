@@ -54,6 +54,7 @@ const customTimeOk = document.getElementById('custom-time-ok');
 const customTimeCancel = document.getElementById('custom-time-cancel');
 const chess960Toggle = document.getElementById('chess960-toggle');
 const animationsToggle = document.getElementById('animations-toggle');
+const evalBarToggle = document.getElementById('eval-bar-toggle');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
 const artStylePicker = document.getElementById('art-style-picker');
@@ -167,6 +168,11 @@ async function liveEval() {
 // Initialise analysis toggle from localStorage
 if (replayAnalyzeCheckbox) {
   replayAnalyzeCheckbox.checked = localStorage.getItem('chess-auto-analyze') !== 'false';
+}
+
+// Initialise eval bar toggle from localStorage (default: off for live play)
+if (evalBarToggle) {
+  evalBarToggle.checked = localStorage.getItem('chess-eval-bar') === 'true';
 }
 
 function renderCaptured() {
@@ -413,10 +419,15 @@ function startNewGame() {
     },
   });
 
-  // Show eval bar and run initial evaluation for starting position
-  mainEvalBar.show();
-  mainEvalBar.reset();
-  liveEval();
+  // Show eval bar if the toggle is enabled, and run initial evaluation
+  if (evalBarToggle && evalBarToggle.checked) {
+    mainEvalBar.show();
+    mainEvalBar.reset();
+    liveEval();
+  } else {
+    mainEvalBar.hide();
+    mainEvalBar.reset();
+  }
 
   // If AI plays White, show start button instead of auto-starting
   if (ai.isEnabled() && ai.isAITurn('w')) {
@@ -460,8 +471,10 @@ board.onMove((result) => {
     }
   }
 
-  // Update live eval bar after every move
-  liveEval();
+  // Update live eval bar after every move (if toggle is on)
+  if (evalBarToggle && evalBarToggle.checked) {
+    liveEval();
+  }
 
   if (game.isGameOver()) {
     timer.stop();
@@ -630,6 +643,26 @@ customTimeCancel.addEventListener('click', () => {
 animationsToggle.addEventListener('change', () => {
   board.setAnimationsEnabled(animationsToggle.checked);
 });
+
+// Eval bar toggle — persists preference and shows/hides bar during live play
+if (evalBarToggle) {
+  evalBarToggle.addEventListener('change', () => {
+    const enabled = evalBarToggle.checked;
+    localStorage.setItem('chess-eval-bar', enabled ? 'true' : 'false');
+
+    if (isReplayMode) return; // replay manages its own eval bar visibility
+
+    if (enabled) {
+      mainEvalBar.show();
+      mainEvalBar.reset();
+      liveEval();
+    } else {
+      mainEvalBar.hide();
+      mainEvalBar.reset();
+      if (liveEvalEngine) liveEvalEngine.stop();
+    }
+  });
+}
 
 // Settings panel toggle
 settingsToggle.addEventListener('click', () => {
