@@ -216,6 +216,13 @@ class ReplayViewer {
     // Hide critical nav
     if (this._critPrevBtn) this._critPrevBtn.classList.add('hidden');
     if (this._critNextBtn) this._critNextBtn.classList.add('hidden');
+    // Remove classification icons and critical markers from move strips
+    if (this._overlay) {
+      this._overlay.querySelectorAll('.analysis-icon').forEach(el => el.remove());
+      this._overlay.querySelectorAll('.analysis-critical').forEach(el => {
+        el.classList.remove('analysis-critical');
+      });
+    }
   }
 
   /**
@@ -910,12 +917,17 @@ class ReplayViewer {
     slider.className = 'auto-analyze-slider';
 
     this._autoAnalyzeCheckbox.addEventListener('change', () => {
-      localStorage.setItem('chess-auto-analyze',
-        this._autoAnalyzeCheckbox.checked ? 'true' : 'false');
-      // If toggled on and a game is loaded but not yet analyzed, start analysis
-      if (this._autoAnalyzeCheckbox.checked && this._game &&
-          !this._analysisData && this._analyzeCallback) {
-        this._analyzeCallback(this._game);
+      const enabled = this._autoAnalyzeCheckbox.checked;
+      localStorage.setItem('chess-auto-analyze', enabled ? 'true' : 'false');
+      if (enabled) {
+        // Toggled on: start analysis if game loaded but not yet analyzed
+        if (this._game && !this._analysisData && this._analyzeCallback) {
+          this._analyzeCallback(this._game);
+        }
+      } else {
+        // Toggled off: clear analysis data and remove UI elements
+        this._analysisData = null;
+        this._resetAnalysisUI();
       }
     });
 
