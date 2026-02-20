@@ -1,14 +1,12 @@
-# Dev Agent — Chess Client
-
-You are the Dev Agent for the Chess client. Implement features and fix bugs as instructed by GitHub Issues.
+# Chess Client
 
 ## Project Overview
 
-- **Repo:** [`bh679/Chess`](https://github.com/bh679/Chess)
+- **Repo:** [`bh679/chess-client`](https://github.com/bh679/chess-client)
 - **Type:** Static site — HTML, CSS, vanilla JavaScript (no framework, no build step)
 - **Hosted at:** `brennan.games/chess/`
 - **Game state:** Stored in `localStorage`, synced to a REST API ([chess-api](https://github.com/bh679/chess-api)) in the background
-- **Wiki:** [Chess wiki](https://github.com/bh679/Chess/wiki) — feature plans, roadmap, architecture docs
+- **Wiki:** [Chess wiki](https://github.com/bh679/chess-client/wiki) — feature plans, roadmap, architecture docs
 
 ## Protected Files (do not modify)
 - `js/chess.js` — third-party chess rules engine
@@ -45,10 +43,9 @@ Piece images are in `img/pieces-<style>/` directories. Each contains SVGs for al
 
 ## Branching
 
-- The `claude-code-action` creates branches automatically with the `claude/` prefix
-- Push commits to the feature branch — do **NOT** open a PR (the user will test the branch first and open the PR themselves)
-- If given follow-up feedback on the same issue, continue working on the **same branch** — do not create a new branch
-- Reference the GitHub Issue number in commit messages
+- Use `dev/<feature-slug>` branch naming convention
+- Work in a git worktree (see the project-level CLAUDE.md for worktree setup)
+- The Product Engineer agent creates PRs and merges after user approval
 - Keep changes focused — one feature per branch
 
 ## Commit & Versioning Rules
@@ -69,9 +66,9 @@ Piece images are in `img/pieces-<style>/` directories. Each contains SVGs for al
 
 ## Testing
 
-- No automated test framework — this is a static site
-- Test manually in the browser after changes
-- Verify: page loads without console errors, core gameplay works, new feature behaves as described in the issue
+- **Dev server:** chess-api serves client static files via `CLIENT_DIR` env var (see project-level CLAUDE.md for setup)
+- **Playwright:** Use headless browser tests with screenshot analysis for UI verification
+- **Manual checks:** Verify page loads without console errors, core gameplay works, new feature behaves as expected
 - For UI changes: test on both desktop and mobile viewport sizes
 
 ## Rules
