@@ -5,6 +5,8 @@
  *
  * Analysis Review integration: auto-runs Board Analysis and displays
  * classification icons, accuracy, and detail panel in the replay viewer.
+ *
+ * Filters: result, player type, time control, game type, me, elo range, player search.
  */
 
 import { AnalysisEngine } from './analysis.js';
@@ -30,6 +32,27 @@ class GameBrowser {
     this._totalGames = 0;
     this._activeTab = 'mine'; // 'mine' | 'public'
     this._analysisEngine = null; // lazy-created on first analyze
+
+    // Filter state
+    this._filters = {
+      result: 'all',
+      playerType: 'all',
+      timeControl: 'all',
+      gameType: 'all',
+      me: false,
+      eloMin: '',
+      eloMax: '',
+      playerSearch: ''
+    };
+    this._filterBarVisible = false;
+    this._filterEls = {};       // references to filter DOM controls
+    this._filterToggleBtn = null;
+    this._filterBarEl = null;
+    this._playerDatalistEl = null;
+
+    // Cache of all loaded games for dynamic filter population
+    this._allLoadedGames = [];
+
     this._buildDOM();
 
     // Wire up the analyze callback on the replay viewer
@@ -41,6 +64,7 @@ class GameBrowser {
    */
   async open() {
     this._currentPage = 0;
+    this._resetFilters();
     this._overlay.classList.remove('hidden');
     this._setActiveTab(this._activeTab);
     await this._loadPage(0);
@@ -130,6 +154,172 @@ class GameBrowser {
     await this._loadPage(0);
   }
 
+  // --- Filters ---
+
+  _resetFilters() {
+    this._filters = {
+      result: 'all',
+      playerType: 'all',
+      timeControl: 'all',
+      gameType: 'all',
+      me: false,
+      eloMin: '',
+      eloMax: '',
+      playerSearch: ''
+    };
+    this._filterBarVisible = false;
+    this._syncFilterDOM();
+  }
+
+  _syncFilterDOM() {
+    if (!this._filterEls.result) return;
+    this._filterEls.result.value = this._filters.result;
+    this._filterEls.playerType.value = this._filters.playerType;
+    this._filterEls.timeControl.value = this._filters.timeControl;
+    this._filterEls.gameType.value = this._filters.gameType;
+    this._filterEls.me.checked = this._filters.me;
+    this._filterEls.eloMin.value = this._filters.eloMin;
+    this._filterEls.eloMax.value = this._filters.eloMax;
+    this._filterEls.playerSearch.value = this._filters.playerSearch;
+    this._filterBarEl.classList.toggle('hidden', !this._filterBarVisible);
+    this._updateFilterToggleLabel();
+  }
+
+  _readFiltersFromDOM() {
+    this._filters.result = this._filterEls.result.value;
+    this._filters.playerType = this._filterEls.playerType.value;
+    this._filters.timeControl = this._filterEls.timeControl.value;
+    this._filters.gameType = this._filterEls.gameType.value;
+    this._filters.me = this._filterEls.me.checked;
+    this._filters.eloMin = this._filterEls.eloMin.value;
+    this._filters.eloMax = this._filterEls.eloMax.value;
+    this._filters.playerSearch = this._filterEls.playerSearch.value;
+  }
+
+  _activeFilterCount() {
+    let count = 0;
+    if (this._filters.result !== 'all') count++;
+    if (this._filters.playerType !== 'all') count++;
+    if (this._filters.timeControl !== 'all') count++;
+    if (this._filters.gameType !== 'all') count++;
+    if (this._filters.me) count++;
+    if (this._filters.eloMin !== '') count++;
+    if (this._filters.eloMax !== '') count++;
+    if (this._filters.playerSearch !== '') count++;
+    return count;
+  }
+
+  _updateFilterToggleLabel() {
+    const count = this._activeFilterCount();
+    this._filterToggleBtn.textContent = count > 0 ? `Filters (${count})` : 'Filters';
+    this._filterToggleBtn.classList.toggle('browser-filter-toggle-active', count > 0);
+  }
+
+  _onFilterChange() {
+    this._readFiltersFromDOM();
+    this._updateFilterToggleLabel();
+    this._currentPage = 0;
+    this._loadPage(0);
+  }
+
+  _applyFilters(games) {
+    const f = this._filters;
+    return games.filter(g => {
+      // Result
+      if (f.result !== 'all') {
+        if (f.result === 'in_progress') {
+          if (g.result !== null && g.result !== undefined) return false;
+        } else if (g.result !== f.result) {
+          return false;
+        }
+      }
+
+      // Player type
+      if (f.playerType !== 'all') {
+        const wAI = g.white.isAI;
+        const bAI = g.black.isAI;
+        if (f.playerType === 'hvh' && (wAI || bAI)) return false;
+        if (f.playerType === 'hvai' && !(wAI !== bAI)) return false;
+        if (f.playerType === 'avai' && !(wAI && bAI)) return false;
+      }
+
+      // Time control
+      if (f.timeControl !== 'all') {
+        const tc = g.timeControl || 'none';
+        if (tc !== f.timeControl) return false;
+      }
+
+      // Game type
+      if (f.gameType !== 'all') {
+        if ((g.gameType || 'standard') !== f.gameType) return false;
+      }
+
+      // Me (own games)
+      if (f.me && !this._db.isOwnGame(g.id)) return false;
+
+      // Elo range
+      const eloMin = f.eloMin !== '' ? parseInt(f.eloMin, 10) : null;
+      const eloMax = f.eloMax !== '' ? parseInt(f.eloMax, 10) : null;
+      if (eloMin !== null || eloMax !== null) {
+        const wElo = g.white.elo;
+        const bElo = g.black.elo;
+        if (wElo == null && bElo == null) return false;
+        if (eloMin !== null) {
+          const maxElo = Math.max(wElo || 0, bElo || 0);
+          if (maxElo < eloMin) return false;
+        }
+        if (eloMax !== null) {
+          const minElo = Math.min(
+            wElo != null ? wElo : Infinity,
+            bElo != null ? bElo : Infinity
+          );
+          if (minElo > eloMax) return false;
+        }
+      }
+
+      // Player search
+      if (f.playerSearch !== '') {
+        const q = f.playerSearch.toLowerCase();
+        const wName = (g.white.name || '').toLowerCase();
+        const bName = (g.black.name || '').toLowerCase();
+        if (!wName.startsWith(q) && !bName.startsWith(q)) return false;
+      }
+
+      return true;
+    });
+  }
+
+  _populateDynamicFilters(games) {
+    // Time controls
+    const tcSet = new Set();
+    for (const g of games) {
+      tcSet.add(g.timeControl || 'none');
+    }
+    const tcSelect = this._filterEls.timeControl;
+    const currentTC = tcSelect.value;
+    while (tcSelect.options.length > 1) tcSelect.remove(1);
+    for (const tc of [...tcSet].sort()) {
+      const opt = document.createElement('option');
+      opt.value = tc;
+      opt.textContent = tc === 'none' ? 'No clock' : tc;
+      tcSelect.appendChild(opt);
+    }
+    tcSelect.value = currentTC;
+
+    // Player names for datalist
+    const nameSet = new Set();
+    for (const g of games) {
+      if (g.white.name) nameSet.add(g.white.name);
+      if (g.black.name) nameSet.add(g.black.name);
+    }
+    this._playerDatalistEl.innerHTML = '';
+    for (const name of [...nameSet].sort()) {
+      const opt = document.createElement('option');
+      opt.value = name;
+      this._playerDatalistEl.appendChild(opt);
+    }
+  }
+
   // --- Data Loading ---
 
   async _loadPage(page) {
@@ -142,7 +332,14 @@ class GameBrowser {
       } else {
         allGames = await this._db.listAllGames({ limit: 9999, offset: 0 });
       }
-      const filtered = allGames.filter(g => g.moveCount >= MIN_DISPLAY_MOVES);
+
+      // Cache for dynamic filter population
+      this._allLoadedGames = allGames;
+      this._populateDynamicFilters(allGames);
+
+      // Apply min-moves filter then user filters
+      const afterMinMoves = allGames.filter(g => g.moveCount >= MIN_DISPLAY_MOVES);
+      const filtered = this._applyFilters(afterMinMoves);
       this._totalGames = filtered.length;
 
       const start = page * PAGE_SIZE;
@@ -164,9 +361,13 @@ class GameBrowser {
     if (games.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'browser-empty';
-      empty.textContent = this._activeTab === 'mine'
-        ? 'No games recorded yet.'
-        : 'No public games available.';
+      if (this._activeFilterCount() > 0) {
+        empty.textContent = 'No games match the current filters.';
+      } else {
+        empty.textContent = this._activeTab === 'mine'
+          ? 'No games recorded yet.'
+          : 'No public games available.';
+      }
       this._listEl.appendChild(empty);
       return;
     }
@@ -322,6 +523,9 @@ class GameBrowser {
 
     content.appendChild(tabs);
 
+    // Filter toggle + filter bar
+    this._buildFilterBar(content);
+
     // Game list
     this._listEl = document.createElement('div');
     this._listEl.className = 'browser-list';
@@ -363,6 +567,162 @@ class GameBrowser {
     });
 
     document.body.appendChild(this._overlay);
+  }
+
+  _buildFilterBar(parent) {
+    // Toggle button
+    this._filterToggleBtn = document.createElement('button');
+    this._filterToggleBtn.className = 'browser-filter-toggle';
+    this._filterToggleBtn.textContent = 'Filters';
+    this._filterToggleBtn.addEventListener('click', () => {
+      this._filterBarVisible = !this._filterBarVisible;
+      this._filterBarEl.classList.toggle('hidden', !this._filterBarVisible);
+    });
+    parent.appendChild(this._filterToggleBtn);
+
+    // Filter bar (collapsible)
+    this._filterBarEl = document.createElement('div');
+    this._filterBarEl.className = 'browser-filter-bar hidden';
+
+    const grid = document.createElement('div');
+    grid.className = 'browser-filter-grid';
+
+    // Helper to create a filter group
+    const makeGroup = (label, controlEl) => {
+      const group = document.createElement('div');
+      group.className = 'browser-filter-group';
+      const lbl = document.createElement('label');
+      lbl.className = 'browser-filter-label';
+      lbl.textContent = label;
+      group.appendChild(lbl);
+      group.appendChild(controlEl);
+      return group;
+    };
+
+    // Helper to create a select
+    const makeSelect = (options) => {
+      const sel = document.createElement('select');
+      sel.className = 'browser-filter-select';
+      for (const [value, text] of options) {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = text;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener('change', () => this._onFilterChange());
+      return sel;
+    };
+
+    // Result
+    this._filterEls.result = makeSelect([
+      ['all', 'All'],
+      ['white', 'White wins'],
+      ['black', 'Black wins'],
+      ['draw', 'Draw'],
+      ['abandoned', 'Abandoned'],
+      ['in_progress', 'In progress']
+    ]);
+    grid.appendChild(makeGroup('Result', this._filterEls.result));
+
+    // Player Type
+    this._filterEls.playerType = makeSelect([
+      ['all', 'All'],
+      ['hvh', 'Human vs Human'],
+      ['hvai', 'Human vs AI'],
+      ['avai', 'AI vs AI']
+    ]);
+    grid.appendChild(makeGroup('Player Type', this._filterEls.playerType));
+
+    // Time Control (dynamic options added later)
+    this._filterEls.timeControl = makeSelect([['all', 'All']]);
+    grid.appendChild(makeGroup('Time Control', this._filterEls.timeControl));
+
+    // Game Type
+    this._filterEls.gameType = makeSelect([
+      ['all', 'All'],
+      ['standard', 'Standard'],
+      ['chess960', 'Chess960']
+    ]);
+    grid.appendChild(makeGroup('Game Type', this._filterEls.gameType));
+
+    // Me (checkbox)
+    const meWrapper = document.createElement('div');
+    meWrapper.className = 'browser-filter-group browser-filter-group-me';
+    const meLabel = document.createElement('label');
+    meLabel.className = 'browser-filter-label browser-filter-me-label';
+    this._filterEls.me = document.createElement('input');
+    this._filterEls.me.type = 'checkbox';
+    this._filterEls.me.className = 'browser-filter-checkbox';
+    this._filterEls.me.addEventListener('change', () => this._onFilterChange());
+    meLabel.appendChild(this._filterEls.me);
+    meLabel.appendChild(document.createTextNode(' My games only'));
+    meWrapper.appendChild(meLabel);
+    grid.appendChild(meWrapper);
+
+    // Elo range
+    const eloGroup = document.createElement('div');
+    eloGroup.className = 'browser-filter-group';
+    const eloLabel = document.createElement('label');
+    eloLabel.className = 'browser-filter-label';
+    eloLabel.textContent = 'Elo Range';
+    eloGroup.appendChild(eloLabel);
+    const eloRow = document.createElement('div');
+    eloRow.className = 'browser-filter-elo-row';
+    this._filterEls.eloMin = document.createElement('input');
+    this._filterEls.eloMin.type = 'number';
+    this._filterEls.eloMin.className = 'browser-filter-input browser-filter-elo';
+    this._filterEls.eloMin.placeholder = 'Min';
+    this._filterEls.eloMin.addEventListener('input', () => this._onFilterChange());
+    eloRow.appendChild(this._filterEls.eloMin);
+    const eloDash = document.createElement('span');
+    eloDash.className = 'browser-filter-elo-dash';
+    eloDash.textContent = '–';
+    eloRow.appendChild(eloDash);
+    this._filterEls.eloMax = document.createElement('input');
+    this._filterEls.eloMax.type = 'number';
+    this._filterEls.eloMax.className = 'browser-filter-input browser-filter-elo';
+    this._filterEls.eloMax.placeholder = 'Max';
+    this._filterEls.eloMax.addEventListener('input', () => this._onFilterChange());
+    eloRow.appendChild(this._filterEls.eloMax);
+    eloGroup.appendChild(eloRow);
+    grid.appendChild(eloGroup);
+
+    // Player search (combo box with datalist)
+    this._playerDatalistEl = document.createElement('datalist');
+    this._playerDatalistEl.id = 'browser-player-names';
+    this._filterEls.playerSearch = document.createElement('input');
+    this._filterEls.playerSearch.type = 'text';
+    this._filterEls.playerSearch.className = 'browser-filter-input';
+    this._filterEls.playerSearch.placeholder = 'Search player...';
+    this._filterEls.playerSearch.setAttribute('list', 'browser-player-names');
+    this._filterEls.playerSearch.addEventListener('input', () => this._onFilterChange());
+    const playerGroup = makeGroup('Player', this._filterEls.playerSearch);
+    playerGroup.appendChild(this._playerDatalistEl);
+    grid.appendChild(playerGroup);
+
+    this._filterBarEl.appendChild(grid);
+
+    // Clear all link
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'browser-filter-clear';
+    clearBtn.textContent = 'Clear all';
+    clearBtn.addEventListener('click', () => {
+      this._filters = {
+        result: 'all',
+        playerType: 'all',
+        timeControl: 'all',
+        gameType: 'all',
+        me: false,
+        eloMin: '',
+        eloMax: '',
+        playerSearch: ''
+      };
+      this._syncFilterDOM();
+      this._onFilterChange();
+    });
+    this._filterBarEl.appendChild(clearBtn);
+
+    parent.appendChild(this._filterBarEl);
   }
 }
 

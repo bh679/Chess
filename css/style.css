@@ -1956,6 +1956,144 @@ body {
   font-size: 0.95rem;
 }
 
+/* --- Browser Filters --- */
+
+.browser-filter-toggle {
+  width: 100%;
+  padding: 6px 0;
+  background: none;
+  color: #888;
+  border: 1px solid #3d3a37;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.browser-filter-toggle:hover {
+  color: #ccc;
+  border-color: #555;
+}
+
+.browser-filter-toggle-active {
+  color: #4a9e5c;
+  border-color: #4a9e5c;
+}
+
+.browser-filter-bar {
+  margin-bottom: 8px;
+  padding: 10px;
+  background: #1a1816;
+  border-radius: 6px;
+}
+
+.browser-filter-bar.hidden {
+  display: none;
+}
+
+.browser-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.browser-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.browser-filter-label {
+  color: #888;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.browser-filter-select,
+.browser-filter-input {
+  padding: 5px 8px;
+  background: #2a2725;
+  color: #e0e0e0;
+  border: 1px solid #3d3a37;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.browser-filter-select:focus,
+.browser-filter-input:focus {
+  border-color: #4a9e5c;
+  outline: none;
+}
+
+.browser-filter-select option {
+  background: #2a2725;
+  color: #e0e0e0;
+}
+
+.browser-filter-group-me {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.browser-filter-me-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #ccc;
+  text-transform: none;
+  letter-spacing: 0;
+  padding-top: 12px;
+}
+
+.browser-filter-checkbox {
+  accent-color: #4a9e5c;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.browser-filter-elo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.browser-filter-elo {
+  width: 70px;
+  flex: 1;
+}
+
+.browser-filter-elo-dash {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.browser-filter-clear {
+  display: block;
+  margin: 8px auto 0;
+  padding: 4px 12px;
+  background: none;
+  color: #888;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-decoration: underline;
+}
+
+.browser-filter-clear:hover {
+  color: #e0e0e0;
+}
+
 /* =========================================
    Replay on Main Board
    ========================================= */
