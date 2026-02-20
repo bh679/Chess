@@ -96,6 +96,20 @@ class AnalysisEngine {
   }
 
   /**
+   * Quick evaluation of a single position at low depth.
+   * Returns centipawns from white's perspective, or null if busy.
+   * @param {string} fen
+   * @param {number} [depth=12]
+   * @returns {Promise<number|null>}
+   */
+  async quickEval(fen, depth = 12) {
+    await this._ensureWorker();
+    if (this._analyzing) return null;
+    const result = await this._evaluatePosition(fen, depth);
+    return result.eval;
+  }
+
+  /**
    * Terminate the worker permanently. Cannot be reused after this.
    */
   destroy() {

@@ -7,6 +7,7 @@ import { GameDatabase } from './database.js?v=6';
 import { GameBrowser } from './browser.js?v=3';
 import { ReplayViewer } from './replay.js';
 import { AnalysisEngine } from './analysis.js';
+import { EvalBar } from './eval-bar.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -53,6 +54,7 @@ const customTimeOk = document.getElementById('custom-time-ok');
 const customTimeCancel = document.getElementById('custom-time-cancel');
 const chess960Toggle = document.getElementById('chess960-toggle');
 const animationsToggle = document.getElementById('animations-toggle');
+const evalBarToggle = document.getElementById('eval-bar-toggle');
 const premovesToggle = document.getElementById('premoves-toggle');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsPanel = document.getElementById('settings-panel');
@@ -134,9 +136,44 @@ let replayClockSnapshots = [];
 let replayAnalysisData = null;
 let replayAnalysisEngine = null;
 
+// Eval bar for main board (used in both live play and replay)
+const mainEvalBar = new EvalBar();
+document.getElementById('main-eval-bar').appendChild(mainEvalBar.el);
+
+// Dedicated analysis engine for live position evaluation (separate from replay/game AI)
+let liveEvalEngine = null;
+
+/**
+ * Evaluate the current board position and update the eval bar.
+ * Uses a dedicated low-depth Stockfish worker that doesn't conflict
+ * with the game AI or the replay analysis engine.
+ */
+async function liveEval() {
+  if (isReplayMode || game.isGameOver()) return;
+
+  if (!liveEvalEngine) {
+    liveEvalEngine = new AnalysisEngine();
+  }
+
+  try {
+    const cp = await liveEvalEngine.quickEval(game.chess.fen());
+    // cp is null if a full analysis is running on this engine
+    if (cp != null && !isReplayMode) {
+      mainEvalBar.update(cp);
+    }
+  } catch {
+    // Worker init failed or was cancelled — ignore
+  }
+}
+
 // Initialise analysis toggle from localStorage
 if (replayAnalyzeCheckbox) {
   replayAnalyzeCheckbox.checked = localStorage.getItem('chess-auto-analyze') !== 'false';
+}
+
+// Initialise eval bar toggle from localStorage (default: off for live play)
+if (evalBarToggle) {
+  evalBarToggle.checked = localStorage.getItem('chess-eval-bar') === 'true';
 }
 
 function renderCaptured() {
@@ -385,6 +422,16 @@ function startNewGame() {
     },
   });
 
+  // Show eval bar if the toggle is enabled, and run initial evaluation
+  if (evalBarToggle && evalBarToggle.checked) {
+    mainEvalBar.show();
+    mainEvalBar.reset();
+    liveEval();
+  } else {
+    mainEvalBar.hide();
+    mainEvalBar.reset();
+  }
+
   // If AI plays White, show start button instead of auto-starting
   if (ai.isEnabled() && ai.isAITurn('w')) {
     startGameBtn.classList.remove('hidden');
@@ -425,6 +472,11 @@ board.onMove((result) => {
     } else {
       timer.switchTo(currentTurn);
     }
+  }
+
+  // Update live eval bar after every move (if toggle is on)
+  if (evalBarToggle && evalBarToggle.checked) {
+    liveEval();
   }
 
   if (game.isGameOver()) {
@@ -606,6 +658,35 @@ customTimeCancel.addEventListener('click', () => {
 animationsToggle.addEventListener('change', () => {
   board.setAnimationsEnabled(animationsToggle.checked);
 });
+
+// Eval bar toggle — persists preference and shows/hides bar during live play
+if (evalBarToggle) {
+  evalBarToggle.addEventListener('change', () => {
+    const enabled = evalBarToggle.checked;
+    localStorage.setItem('chess-eval-bar', enabled ? 'true' : 'false');
+
+    if (isReplayMode) {
+      // In replay mode, show/hide based on toggle + analysis data
+      if (enabled && replayAnalysisData) {
+        mainEvalBar.show();
+        updateMainEvalBar();
+      } else {
+        mainEvalBar.hide();
+      }
+      return;
+    }
+
+    if (enabled) {
+      mainEvalBar.show();
+      mainEvalBar.reset();
+      liveEval();
+    } else {
+      mainEvalBar.hide();
+      mainEvalBar.reset();
+      if (liveEvalEngine) liveEvalEngine.stop();
+    }
+  });
+}
 
 // Premoves toggle
 premovesToggle.checked = localStorage.getItem('chess-premoves') === 'true';
@@ -1006,6 +1087,11 @@ async function enterReplayMode(gameRecord) {
   ai.stop();
   timer.stop();
 
+  // Stop live eval — replay mode uses its own analysis engine
+  if (liveEvalEngine) {
+    liveEvalEngine.stop();
+  }
+
   isReplayMode = true;
   replayGame = gameRecord;
   replayPly = -1;
@@ -1143,6 +1229,7 @@ function replayGoToMove(plyIndex) {
   if (replayAnalysisData) {
     updateAnalysisDetail();
     updateCriticalNav();
+    updateMainEvalBar();
     updateEngineArrows();
   } else {
     board.getArrowOverlay().clearEngineArrows();
@@ -1513,6 +1600,12 @@ function setMainBoardAnalysis(result) {
   // Show detail and engine arrows for current move
   updateAnalysisDetail();
   updateEngineArrows();
+
+  // Show and update eval bar (only if toggle is on)
+  if (evalBarToggle && evalBarToggle.checked) {
+    mainEvalBar.show();
+  }
+  updateMainEvalBar();
 }
 
 function addClassificationIcons() {
@@ -1725,11 +1818,22 @@ function resetMainBoardAnalysis() {
   // Hide critical nav
   if (replayCritPrevBtn) replayCritPrevBtn.classList.add('hidden');
   if (replayCritNextBtn) replayCritNextBtn.classList.add('hidden');
+  // Hide eval bar
+  mainEvalBar.hide();
+  mainEvalBar.reset();
+
   // Remove classification icons and critical markers
   replayMoveListEl.querySelectorAll('.analysis-icon').forEach(el => el.remove());
   replayMoveListEl.querySelectorAll('.analysis-critical').forEach(el => {
     el.classList.remove('analysis-critical');
   });
+}
+
+function updateMainEvalBar() {
+  if (!replayAnalysisData) return;
+  const posIdx = replayPly + 1;
+  if (posIdx < 0 || posIdx >= replayAnalysisData.positions.length) return;
+  mainEvalBar.update(replayAnalysisData.positions[posIdx].eval);
 }
 
 // --- Replay Keyboard Handler ---
