@@ -2348,12 +2348,19 @@ button.replay-summary-btn {
 
 .pgs-class-row {
   display: grid;
-  grid-template-columns: 40px 24px 1fr 40px;
+  grid-template-columns: 40px 1fr 40px;
   align-items: center;
+  justify-items: center;
   padding: 5px 8px;
   background: #1a1816;
   border-radius: 4px;
   font-size: 0.85rem;
+}
+
+.pgs-class-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pgs-class-count {
@@ -2371,14 +2378,12 @@ button.replay-summary-btn {
 }
 
 .pgs-class-icon {
-  text-align: center;
   font-weight: 700;
   font-size: 0.85rem;
 }
 
 .pgs-class-label {
   color: #999;
-  text-align: center;
 }
 
 /* Action buttons */

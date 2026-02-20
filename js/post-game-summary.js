@@ -296,9 +296,13 @@ class PostGameSummary {
       bCountEl.className = 'pgs-class-count pgs-class-count-black';
       bCountEl.textContent = bCount;
 
+      const centerEl = document.createElement('span');
+      centerEl.className = 'pgs-class-center';
+      centerEl.appendChild(iconEl);
+      centerEl.appendChild(labelEl);
+
       row.appendChild(wCountEl);
-      row.appendChild(iconEl);
-      row.appendChild(labelEl);
+      row.appendChild(centerEl);
       row.appendChild(bCountEl);
       grid.appendChild(row);
     }
