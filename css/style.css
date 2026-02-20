@@ -1999,6 +1999,36 @@ body {
   text-align: center;
 }
 
+/* Analysis toggle inside main-board replay controls */
+.replay-main-controls .auto-analyze-toggle {
+  align-self: flex-end;
+  margin-right: 0;
+}
+
+/* Critical moment nav buttons */
+.replay-crit-btn {
+  font-size: 0.75rem !important;
+  padding: 6px 8px !important;
+  color: #ffd700 !important;
+}
+
+.replay-crit-btn.hidden {
+  display: none;
+}
+
+/* Analysis panels inside main-board replay */
+.replay-main-controls .analysis-detail {
+  width: 100%;
+}
+
+.replay-main-controls .analysis-accuracy {
+  width: 100%;
+}
+
+.replay-main-controls .analysis-progress {
+  border-radius: 2px;
+}
+
 .board.replay-mode-border {
   border: 3px solid #64b5f6;
   box-shadow: 0 0 12px rgba(100, 181, 246, 0.4);
