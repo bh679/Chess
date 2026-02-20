@@ -25,17 +25,16 @@ const ANALYSIS_CACHE_KEY = 'chess-analysis-cache';
 
 // Art style configuration
 const STYLE_PATHS = {
-  sovereign: 'img/pieces-sovereign',
   classic: 'img/pieces',
+  sovereign: 'img/pieces-sovereign',
   staunton: 'img/pieces-staunton',
-  minimal: 'img/pieces-minimal',
   gothic: 'img/pieces-gothic',
   kawaii: 'img/pieces-kawaii',
   pixel: 'img/pieces-pixel',
   neo: 'img/pieces-neo',
   fish: 'img/pieces-fish',
 };
-window.chessPiecePath = STYLE_PATHS.sovereign;
+window.chessPiecePath = STYLE_PATHS.classic;
 
 const game = new Game();
 const statusEl = document.getElementById('status');

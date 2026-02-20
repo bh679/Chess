@@ -5,34 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chess</title>
   <link rel="icon" type="image/svg+xml" href="img/pieces/wQ.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
   <link rel="stylesheet" href="css/combat-enhanced.css">
 </head>
 <body>
   <div class="app">
-    <!-- Header bar: game type + status + controls -->
-    <div class="header-bar">
-      <div class="header-left">
-        <span id="game-type-label" class="game-type-label">Chess960</span>
-      </div>
-      <div class="header-center">
-        <div id="status" class="status">White to move</div>
-      </div>
-      <div class="header-right">
-        <button id="settings-toggle" class="header-icon-btn settings-btn" aria-label="Settings" aria-expanded="false" aria-controls="settings-panel">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M8.58 2.06A1 1 0 0 1 9.56 1h.88a1 1 0 0 1 .98.84l.18 1.16a6.5 6.5 0 0 1 1.57.65l.97-.7a1 1 0 0 1 1.29.1l.62.62a1 1 0 0 1 .1 1.29l-.7.97c.28.49.5 1.01.65 1.57l1.16.18a1 1 0 0 1 .84.98v.88a1 1 0 0 1-.84.98l-1.16.18a6.5 6.5 0 0 1-.65 1.57l.7.97a1 1 0 0 1-.1 1.29l-.62.62a1 1 0 0 1-1.29.1l-.97-.7a6.5 6.5 0 0 1-1.57.65l-.18 1.16a1 1 0 0 1-.98.84h-.88a1 1 0 0 1-.98-.84l-.18-1.16a6.5 6.5 0 0 1-1.57-.65l-.97.7a1 1 0 0 1-1.29-.1l-.62-.62a1 1 0 0 1-.1-1.29l.7-.97a6.5 6.5 0 0 1-.65-1.57l-1.16-.18A1 1 0 0 1 1 10.44v-.88a1 1 0 0 1 .84-.98l1.16-.18a6.5 6.5 0 0 1 .65-1.57l-.7-.97a1 1 0 0 1 .1-1.29l.62-.62a1 1 0 0 1 1.29-.1l.97.7a6.5 6.5 0 0 1 1.57-.65l.18-1.16zM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
-        </button>
-        <button id="game-history-btn" class="header-icon-btn history-btn" aria-label="Game History">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1a9 9 0 1 0 0 18A9 9 0 0 0 10 1zm0 16.5a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM10.75 5h-1.5v5.25l4.5 2.67.75-1.23-3.75-2.22V5z"/></svg>
-        </button>
-        <button id="new-game">New Game</button>
-        <button id="start-game-btn" class="start-game-btn hidden">Start</button>
-      </div>
-    </div>
-
     <div class="player-bar top-bar">
       <div id="captured-by-black" class="captured-pieces"></div>
       <div class="timer-group">
@@ -60,22 +37,24 @@
     </div>
 
     <div id="replay-controls" class="replay-main-controls hidden">
-      <label class="auto-analyze-toggle" id="replay-analyze-toggle">
-        <span>Analyze</span>
-        <span class="auto-analyze-switch">
-          <input type="checkbox" id="replay-auto-analyze">
-          <span class="auto-analyze-slider"></span>
-        </span>
-      </label>
       <div id="replay-move-list" class="replay-main-move-list"></div>
-      <div class="replay-main-buttons">
-        <button id="replay-crit-prev" class="replay-main-btn replay-crit-btn hidden" title="Previous Critical Moment">&#9664; Crit</button>
-        <button id="replay-main-start" class="replay-main-btn" title="Start (Home)">|&#9664;</button>
-        <button id="replay-main-prev" class="replay-main-btn" title="Previous (&#8592;)">&#9664;</button>
-        <button id="replay-main-play" class="replay-main-btn replay-main-btn-play" title="Play/Pause (Space)">&#9654;</button>
-        <button id="replay-main-next" class="replay-main-btn" title="Next (&#8594;)">&#9654;</button>
-        <button id="replay-main-end" class="replay-main-btn" title="End (End)">&#9654;|</button>
-        <button id="replay-crit-next" class="replay-main-btn replay-crit-btn hidden" title="Next Critical Moment">Crit &#9654;</button>
+      <div class="replay-nav-row">
+        <div class="replay-main-buttons">
+          <button id="replay-crit-prev" class="replay-main-btn replay-crit-btn hidden" title="Previous Critical Moment">&#9664; Crit</button>
+          <button id="replay-main-start" class="replay-main-btn" title="Start (Home)">|&#9664;</button>
+          <button id="replay-main-prev" class="replay-main-btn" title="Previous (&#8592;)">&#9664;</button>
+          <button id="replay-main-play" class="replay-main-btn replay-main-btn-play" title="Play/Pause (Space)">&#9654;</button>
+          <button id="replay-main-next" class="replay-main-btn" title="Next (&#8594;)">&#9654;</button>
+          <button id="replay-main-end" class="replay-main-btn" title="End (End)">&#9654;|</button>
+          <button id="replay-crit-next" class="replay-main-btn replay-crit-btn hidden" title="Next Critical Moment">Crit &#9654;</button>
+        </div>
+        <label class="auto-analyze-toggle" id="replay-analyze-toggle">
+          <span>Analyze</span>
+          <span class="auto-analyze-switch">
+            <input type="checkbox" id="replay-auto-analyze">
+            <span class="auto-analyze-slider"></span>
+          </span>
+        </label>
       </div>
       <div id="replay-analysis-progress" class="analysis-progress hidden">
         <div id="replay-analysis-progress-fill" class="analysis-progress-fill"></div>
@@ -88,6 +67,26 @@
         <span id="replay-analysis-line" class="analysis-detail-line"></span>
       </div>
       <div id="replay-analysis-accuracy" class="analysis-accuracy hidden"></div>
+    </div>
+
+    <!-- Control bar: game type + status + controls -->
+    <div class="header-bar">
+      <div class="header-left">
+        <span id="game-type-label" class="game-type-label">Chess960</span>
+      </div>
+      <div class="header-center">
+        <div id="status" class="status">White to move</div>
+      </div>
+      <div class="header-right">
+        <button id="settings-toggle" class="header-icon-btn settings-btn" aria-label="Settings" aria-expanded="false" aria-controls="settings-panel">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M8.58 2.06A1 1 0 0 1 9.56 1h.88a1 1 0 0 1 .98.84l.18 1.16a6.5 6.5 0 0 1 1.57.65l.97-.7a1 1 0 0 1 1.29.1l.62.62a1 1 0 0 1 .1 1.29l-.7.97c.28.49.5 1.01.65 1.57l1.16.18a1 1 0 0 1 .84.98v.88a1 1 0 0 1-.84.98l-1.16.18a6.5 6.5 0 0 1-.65 1.57l.7.97a1 1 0 0 1-.1 1.29l-.62.62a1 1 0 0 1-1.29.1l-.97-.7a6.5 6.5 0 0 1-1.57.65l-.18 1.16a1 1 0 0 1-.98.84h-.88a1 1 0 0 1-.98-.84l-.18-1.16a6.5 6.5 0 0 1-1.57-.65l-.97.7a1 1 0 0 1-1.29-.1l-.62-.62a1 1 0 0 1-.1-1.29l.7-.97a6.5 6.5 0 0 1-.65-1.57l-1.16-.18A1 1 0 0 1 1 10.44v-.88a1 1 0 0 1 .84-.98l1.16-.18a6.5 6.5 0 0 1 .65-1.57l-.7-.97a1 1 0 0 1 .1-1.29l.62-.62a1 1 0 0 1 1.29-.1l.97.7a6.5 6.5 0 0 1 1.57-.65l.18-1.16zM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
+        </button>
+        <button id="game-history-btn" class="header-icon-btn history-btn" aria-label="Game History">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1a9 9 0 1 0 0 18A9 9 0 0 0 10 1zm0 16.5a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM10.75 5h-1.5v5.25l4.5 2.67.75-1.23-3.75-2.22V5z"/></svg>
+        </button>
+        <button id="new-game">New Game</button>
+        <button id="start-game-btn" class="start-game-btn hidden">Start</button>
+      </div>
     </div>
   </div>
 
@@ -159,17 +158,14 @@
       </div>
       <div class="settings-row" style="margin-top: 8px;">
         <div class="art-style-picker" id="art-style-picker">
-          <button class="art-style-option selected" data-style="sovereign" aria-label="Sovereign style" title="Sovereign">
-            <img src="img/pieces-sovereign/wN.svg" alt="Sovereign" draggable="false">
-          </button>
-          <button class="art-style-option" data-style="classic" aria-label="Classic style" title="Classic">
+          <button class="art-style-option selected" data-style="classic" aria-label="Classic style" title="Classic">
             <img src="img/pieces/wN.svg" alt="Classic" draggable="false">
+          </button>
+          <button class="art-style-option" data-style="sovereign" aria-label="Sovereign style" title="Sovereign">
+            <img src="img/pieces-sovereign/wN.svg" alt="Sovereign" draggable="false">
           </button>
           <button class="art-style-option" data-style="staunton" aria-label="Staunton style" title="Staunton">
             <img src="img/pieces-staunton/wN.svg" alt="Staunton" draggable="false">
-          </button>
-          <button class="art-style-option" data-style="minimal" aria-label="Minimal style" title="Minimal">
-            <img src="img/pieces-minimal/wN.svg" alt="Minimal" draggable="false">
           </button>
           <button class="art-style-option" data-style="gothic" aria-label="Gothic style" title="Gothic">
             <img src="img/pieces-gothic/wN.svg" alt="Gothic" draggable="false">
