@@ -22,6 +22,7 @@ class Board {
     this._ai = null;
     this._premove = null;
     this._premovesEnabled = false;
+    this._skipNextClick = false;
 
     this._buildGrid();
     this._bindEvents();
@@ -162,6 +163,7 @@ class Board {
     // Click handling
     this.container.addEventListener('click', (e) => {
       if (this._dragging) return;
+      if (this._skipNextClick) { this._skipNextClick = false; return; }
       const squareEl = e.target.closest('.square');
       if (!squareEl) return;
       this._handleSquareClick(squareEl.dataset.square);
@@ -316,7 +318,10 @@ class Board {
     originalImg.classList.remove('ghost');
 
     // If we didn't actually drag, let click handle it
-    if (!moved) return;
+    if (!moved) {
+      this._skipNextClick = true;
+      return;
+    }
 
     // Find the square under the cursor
     const targetEl = document.elementFromPoint(x, y);
