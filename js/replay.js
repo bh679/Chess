@@ -808,6 +808,50 @@ class ReplayViewer {
     movesEl.addEventListener('scroll', updateBtns);
     // Initial state
     setTimeout(updateBtns, 50);
+
+    this._setupDragScroll(movesEl);
+  }
+
+  _setupDragScroll(movesEl) {
+    let isDragging = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+    let hasDragged = false;
+
+    movesEl.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return; // left-click only
+      isDragging = true;
+      hasDragged = false;
+      startX = e.clientX;
+      startScrollLeft = movesEl.scrollLeft;
+      movesEl.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    movesEl.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 5) hasDragged = true;
+      movesEl.scrollLeft = startScrollLeft - dx;
+    });
+
+    const stopDrag = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      movesEl.classList.remove('dragging');
+    };
+
+    movesEl.addEventListener('mouseup', stopDrag);
+    movesEl.addEventListener('mouseleave', stopDrag);
+
+    // Suppress click on move items if user was dragging
+    movesEl.addEventListener('click', (e) => {
+      if (hasDragged) {
+        e.stopPropagation();
+        e.preventDefault();
+        hasDragged = false;
+      }
+    }, true);
   }
 
   // --- Keyboard ---
