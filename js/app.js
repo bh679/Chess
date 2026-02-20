@@ -8,6 +8,7 @@ import { GameBrowser } from './browser.js?v=3';
 import { ReplayViewer } from './replay.js';
 import { AnalysisEngine } from './analysis.js';
 import { EvalBar } from './eval-bar.js';
+import { PostGameSummary } from './post-game-summary.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -15,10 +16,15 @@ const PIECE_DISPLAY = { k: 'K', q: 'Q', r: 'R', b: 'B', n: 'N', p: 'P' };
 
 // Analysis classification icons (shared with replay.js)
 const CLASSIFICATION_ICONS = {
+  brilliant:  { text: '!!',    cls: 'analysis-brilliant' },
+  great:      { text: '!',     cls: 'analysis-great' },
   best:       { text: '\u2713', cls: 'analysis-best' },
+  excellent:  { text: '\u25CF', cls: 'analysis-excellent' },
   good:       { text: '\u25CF', cls: 'analysis-good' },
+  book:       { text: '\u2261', cls: 'analysis-book' },
   inaccuracy: { text: '?!',    cls: 'analysis-inaccuracy' },
   mistake:    { text: '?',     cls: 'analysis-mistake' },
+  miss:       { text: '\u00D7', cls: 'analysis-miss' },
   blunder:    { text: '??',    cls: 'analysis-blunder' },
 };
 const ANALYSIS_CACHE_KEY = 'chess-analysis-cache';
@@ -114,12 +120,14 @@ const replayBestEl = document.getElementById('replay-analysis-best');
 const replayLineEl = document.getElementById('replay-analysis-line');
 const replayCritPrevBtn = document.getElementById('replay-crit-prev');
 const replayCritNextBtn = document.getElementById('replay-crit-next');
+const replaySummaryBtn = document.getElementById('replay-summary-btn');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
 const ai = new AI();
 const db = new GameDatabase();
 const replayViewer = new ReplayViewer();
+const postGameSummary = new PostGameSummary();
 const gameBrowser = new GameBrowser(db, replayViewer, enterReplayMode);
 
 let moveCount = 0;
@@ -147,6 +155,9 @@ document.getElementById('main-eval-bar').appendChild(mainEvalBar.el);
 
 // Dedicated analysis engine for live position evaluation (separate from replay/game AI)
 let liveEvalEngine = null;
+
+// Dedicated analysis engine for post-game summary
+let postGameAnalysisEngine = null;
 
 /**
  * Evaluate the current board position and update the eval bar.
@@ -324,9 +335,68 @@ function getTimeControlLabel() {
   return selectedOption ? selectedOption.textContent : 'none';
 }
 
+/**
+ * Build a game record from the current live game state.
+ * Converts local database format to the replay-compatible format.
+ */
+function buildCurrentGameRecord() {
+  const g = db.getLocalGame(currentDbGameId);
+  if (!g) return null;
+  return {
+    startingFen: g.metadata.startingFen,
+    moves: g.moves,
+    white: g.metadata.white,
+    black: g.metadata.black,
+    result: g.result,
+    resultReason: g.resultReason,
+    timeControl: g.metadata.timeControl,
+    gameType: g.metadata.gameType,
+    startTime: g.createdAt,
+    serverId: g.serverId,
+  };
+}
+
+/**
+ * Trigger the post-game summary after a game ends.
+ */
+function triggerPostGameSummary() {
+  const record = buildCurrentGameRecord();
+  if (!record || !record.moves || record.moves.length === 0) return;
+
+  if (!postGameAnalysisEngine) {
+    postGameAnalysisEngine = new AnalysisEngine();
+  }
+
+  postGameSummary.setCallbacks({
+    onReview: (rec) => enterReplayMode(rec),
+    onNewGame: () => startNewGame(),
+    onClose: () => {},
+  });
+
+  postGameSummary.showWithAnalysis(
+    record,
+    postGameAnalysisEngine,
+    record.serverId || null,
+    {
+      onReview: (rec) => enterReplayMode(rec),
+      onNewGame: () => startNewGame(),
+      onClose: () => {},
+    }
+  );
+}
+
 // --- Game Flow ---
 
 function startNewGame() {
+  // Close post-game summary if open
+  if (postGameSummary.isOpen()) {
+    postGameSummary.close();
+  }
+  // Stop post-game analysis engine if running
+  if (postGameAnalysisEngine) {
+    postGameAnalysisEngine.stop();
+  }
+
   // Exit replay mode if active
   if (isReplayMode) {
     exitReplayMode(false);
@@ -493,6 +563,9 @@ board.onMove((result) => {
     // Save game result to local-first database
     const { result: dbResult, reason } = getGameResult();
     db.endGame(currentDbGameId, dbResult, reason);
+
+    // Auto-trigger post-game summary
+    triggerPostGameSummary();
     return;
   }
 
@@ -523,6 +596,9 @@ timer.onTimeout((loser) => {
   // Save timeout result to local-first database
   const dbResult = loser === 'White' ? 'black' : 'white';
   db.endGame(currentDbGameId, dbResult, 'timeout');
+
+  // Auto-trigger post-game summary
+  triggerPostGameSummary();
 });
 
 newGameBtn.addEventListener('click', startNewGame);
@@ -1626,6 +1702,9 @@ function setMainBoardAnalysis(result) {
     mainEvalBar.show();
   }
   updateMainEvalBar();
+
+  // Show summary button
+  if (replaySummaryBtn) replaySummaryBtn.classList.remove('hidden');
 }
 
 function addClassificationIcons() {
@@ -1698,7 +1777,18 @@ function renderAccuracy() {
 
     const breakdown = document.createElement('div');
     breakdown.className = 'accuracy-breakdown';
-    breakdown.textContent = `B:${s.best} G:${s.good} I:${s.inaccuracy} M:${s.mistake} BL:${s.blunder}`;
+    const bkParts = [];
+    if (s.brilliant) bkParts.push(`!!:${s.brilliant}`);
+    if (s.great) bkParts.push(`!:${s.great}`);
+    bkParts.push(`B:${s.best || 0}`);
+    if (s.excellent) bkParts.push(`E:${s.excellent}`);
+    bkParts.push(`G:${s.good || 0}`);
+    if (s.book) bkParts.push(`Bk:${s.book}`);
+    bkParts.push(`I:${s.inaccuracy || 0}`);
+    bkParts.push(`M:${s.mistake || 0}`);
+    if (s.miss) bkParts.push(`Ms:${s.miss}`);
+    bkParts.push(`BL:${s.blunder || 0}`);
+    breakdown.textContent = bkParts.join(' ');
     div.appendChild(breakdown);
 
     replayAccuracyEl.appendChild(div);
@@ -1841,6 +1931,8 @@ function resetMainBoardAnalysis() {
   // Hide eval bar
   mainEvalBar.hide();
   mainEvalBar.reset();
+  // Hide summary button
+  if (replaySummaryBtn) replaySummaryBtn.classList.add('hidden');
 
   // Remove classification icons and critical markers
   replayMoveListEl.querySelectorAll('.analysis-icon').forEach(el => el.remove());
@@ -1909,6 +2001,62 @@ if (replayAnalyzeCheckbox) {
 }
 if (replayCritPrevBtn) replayCritPrevBtn.addEventListener('click', goToPrevCritical);
 if (replayCritNextBtn) replayCritNextBtn.addEventListener('click', goToNextCritical);
+
+// Wire up post-game summary callback on the full-screen replay viewer
+replayViewer.setSummaryCallback((gameRecord, analysisData) => {
+  if (!postGameAnalysisEngine) {
+    postGameAnalysisEngine = new AnalysisEngine();
+  }
+
+  const callbacks = {
+    onReview: () => {},  // Already in replay, no action needed
+    onNewGame: () => { replayViewer.close(); startNewGame(); },
+    onClose: () => {},
+  };
+
+  postGameSummary.setCallbacks(callbacks);
+
+  if (analysisData) {
+    postGameSummary.show(gameRecord, analysisData);
+  } else {
+    postGameSummary.showWithAnalysis(
+      gameRecord,
+      postGameAnalysisEngine,
+      gameRecord.serverId || null,
+      callbacks
+    );
+  }
+});
+
+// Wire up main-board replay summary button
+if (replaySummaryBtn) {
+  replaySummaryBtn.addEventListener('click', () => {
+    if (!isReplayMode || !replayGame) return;
+
+    if (!postGameAnalysisEngine) {
+      postGameAnalysisEngine = new AnalysisEngine();
+    }
+
+    const callbacks = {
+      onReview: () => {},  // Already in replay mode
+      onNewGame: () => startNewGame(),
+      onClose: () => {},
+    };
+
+    postGameSummary.setCallbacks(callbacks);
+
+    if (replayAnalysisData) {
+      postGameSummary.show(replayGame, { summary: replayAnalysisData.summary });
+    } else {
+      postGameSummary.showWithAnalysis(
+        replayGame,
+        postGameAnalysisEngine,
+        replayGame.serverId || null,
+        callbacks
+      );
+    }
+  });
+}
 
 // Dev indicator management
 const devIndicator = document.getElementById('dev-indicator');

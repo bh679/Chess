@@ -10,8 +10,12 @@
  */
 
 const CACHE_KEY = 'chess-analysis-cache';
+const CACHE_VERSION = 2;  // Bump when classification format changes
 const MAX_CACHE_ENTRIES = 20;
 const MATE_CP = 10000;
+
+// Material values for sacrifice detection
+const MATERIAL_VALUES = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
 class AnalysisEngine {
   constructor() {
@@ -361,7 +365,7 @@ class AnalysisEngine {
       cpLoss = Math.max(0, cpLoss);
 
       curr.cpLoss = cpLoss;
-      curr.classification = this._classifyMove(cpLoss, prev.eval, curr.eval, side);
+      curr.classification = this._classifyMove(cpLoss, prev.eval, curr.eval, side, prev.fen, curr.fen, i, positions);
     }
 
     const criticalMoments = this._findCriticalMoments(positions);
@@ -391,29 +395,117 @@ class AnalysisEngine {
   /* ------------------------------------------------------------------ */
 
   /**
-   * Classify a move based on centipawn loss.
+   * Convert centipawns to win probability (0-1) from white's perspective.
+   */
+  _winProbability(cp) {
+    if (cp >= MATE_CP - 100) return 1;
+    if (cp <= -(MATE_CP - 100)) return 0;
+    return 1 / (1 + Math.pow(10, -cp / 400));
+  }
+
+  /**
+   * Count total material for each side from a FEN string.
+   * @returns {{white: number, black: number}}
+   */
+  _countMaterial(fen) {
+    const board = fen.split(' ')[0];
+    let white = 0, black = 0;
+    for (const ch of board) {
+      const lower = ch.toLowerCase();
+      if (MATERIAL_VALUES[lower] != null) {
+        if (ch === lower) black += MATERIAL_VALUES[lower];
+        else white += MATERIAL_VALUES[lower];
+      }
+    }
+    return { white, black };
+  }
+
+  /**
+   * Classify a move using expected-points model with 10 categories.
    * @param {number} cpLoss
    * @param {number} prevEval — eval before move (White's perspective)
    * @param {number} currEval — eval after move (White's perspective)
    * @param {string} side — 'w' or 'b'
+   * @param {string} prevFen — FEN before the move
+   * @param {string} currFen — FEN after the move
+   * @param {number} posIdx — position index in the analysis
+   * @param {Array} positions — all positions for context
    * @returns {string}
    */
-  _classifyMove(cpLoss, prevEval, currEval, side) {
+  _classifyMove(cpLoss, prevEval, currEval, side, prevFen, currFen, posIdx, positions) {
+    // Book detection: first 8 plies with negligible cp loss
+    if (posIdx <= 8 && cpLoss < 5) {
+      return 'book';
+    }
+
+    // Expected points from moving side's perspective
+    const prevWP = this._winProbability(prevEval);
+    const currWP = this._winProbability(currEval);
+    const prevSideWP = side === 'w' ? prevWP : 1 - prevWP;
+    const currSideWP = side === 'w' ? currWP : 1 - currWP;
+    const epLost = Math.max(0, prevSideWP - currSideWP);
+
     // Check for missed forced mate
     const prevIsMate = Math.abs(prevEval) >= (MATE_CP - 100);
     const currIsMate = Math.abs(currEval) >= (MATE_CP - 100);
-
     if (prevIsMate && !currIsMate) {
       const mateForWhite = prevEval > 0;
       const mateForMovingSide = (side === 'w' && mateForWhite) || (side === 'b' && !mateForWhite);
       if (mateForMovingSide) return 'blunder';
     }
 
-    if (cpLoss === 0) return 'best';
-    if (cpLoss < 50) return 'good';
-    if (cpLoss < 100) return 'inaccuracy';
-    if (cpLoss < 300) return 'mistake';
-    return 'blunder';
+    // Miss detection: opponent just blundered but player didn't capitalize
+    if (posIdx >= 2 && epLost >= 0.05) {
+      const oppPrev = positions[posIdx - 2];
+      const oppCurr = positions[posIdx - 1];
+      if (oppPrev && oppCurr) {
+        const oppPrevWP = this._winProbability(oppPrev.eval);
+        const oppCurrWP = this._winProbability(oppCurr.eval);
+        const oppSide = side === 'w' ? 'b' : 'w';
+        const oppPrevSideWP = oppSide === 'w' ? oppPrevWP : 1 - oppPrevWP;
+        const oppCurrSideWP = oppSide === 'w' ? oppCurrWP : 1 - oppCurrWP;
+        const oppLost = Math.max(0, oppPrevSideWP - oppCurrSideWP);
+        if (oppLost >= 0.08) {
+          return 'miss';
+        }
+      }
+    }
+
+    // Negative classifications (by expected points lost)
+    if (epLost >= 0.20) return 'blunder';
+    if (epLost >= 0.10) return 'mistake';
+    if (epLost >= 0.05) return 'inaccuracy';
+
+    // Positive classifications
+    if (cpLoss === 0) {
+      // Brilliant: sacrifice + best move + not already winning
+      if (prevFen && currFen) {
+        const matBefore = this._countMaterial(prevFen);
+        const matAfter = this._countMaterial(currFen);
+        const sideMat = side === 'w' ? 'white' : 'black';
+        const matLost = matBefore[sideMat] - matAfter[sideMat];
+        const oppMat = side === 'w' ? 'black' : 'white';
+        const oppMatLost = matBefore[oppMat] - matAfter[oppMat];
+        // Net sacrifice: side lost more material than opponent
+        if (matLost > oppMatLost && prevSideWP < 0.90 && currSideWP > 0.20) {
+          return 'brilliant';
+        }
+      }
+
+      // Great: best move that creates a significant eval swing in player's favour
+      const evalSwing = side === 'w' ? (currEval - prevEval) : (prevEval - currEval);
+      if (evalSwing >= 100) {
+        return 'great';
+      }
+
+      return 'best';
+    }
+
+    // Excellent: very small expected points loss
+    if (epLost < 0.02) return 'excellent';
+
+    // Good: small expected points loss
+    return 'good';
   }
 
   /* ------------------------------------------------------------------ */
@@ -438,9 +530,14 @@ class AnalysisEngine {
    * Calculate per-side accuracy and classification counts.
    */
   _calculateAccuracy(positions) {
+    const template = {
+      totalCpLoss: 0, moveCount: 0,
+      brilliant: 0, great: 0, best: 0, excellent: 0, good: 0,
+      book: 0, inaccuracy: 0, mistake: 0, miss: 0, blunder: 0
+    };
     const stats = {
-      white: { totalCpLoss: 0, moveCount: 0, best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 },
-      black: { totalCpLoss: 0, moveCount: 0, best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 }
+      white: { ...template },
+      black: { ...template }
     };
 
     for (let i = 1; i < positions.length; i++) {
@@ -450,7 +547,9 @@ class AnalysisEngine {
       const side = pos.playedSide === 'w' ? 'white' : 'black';
       stats[side].totalCpLoss += pos.cpLoss;
       stats[side].moveCount++;
-      stats[side][pos.classification]++;
+      if (stats[side][pos.classification] != null) {
+        stats[side][pos.classification]++;
+      }
     }
 
     for (const side of ['white', 'black']) {
@@ -481,6 +580,12 @@ class AnalysisEngine {
       const cache = JSON.parse(raw);
       const entry = cache.entries[serverId];
       if (!entry) return null;
+      // Reject entries from older classification versions
+      if (entry.version !== CACHE_VERSION) {
+        delete cache.entries[serverId];
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+        return null;
+      }
       // Update access time
       entry.accessedAt = Date.now();
       localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
@@ -500,7 +605,7 @@ class AnalysisEngine {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       const cache = raw ? JSON.parse(raw) : { entries: {} };
-      cache.entries[serverId] = { result, accessedAt: Date.now() };
+      cache.entries[serverId] = { result, accessedAt: Date.now(), version: CACHE_VERSION };
 
       // LRU eviction: keep max entries
       const keys = Object.keys(cache.entries);

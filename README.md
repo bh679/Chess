@@ -63,6 +63,10 @@ A chess game built to practice working with Claude. Runs in the browser with a c
   - Playback controls (play/pause, step forward/back, jump to start/end)
   - Keyboard navigation (arrow keys, space for play/pause)
 
+### [Analysis](https://github.com/bh679/Chess/wiki/Feature:-Board-Analysis)
+- [**Post-game summary**](https://github.com/bh679/Chess/wiki/Feature:-Post-Game-Summary) — chess.com-style summary screen with per-player accuracy and 10 move classification types (Brilliant, Great, Best, Excellent, Good, Book, Inaccuracy, Mistake, Miss, Blunder); auto-triggers after every game, also available via "Game Summary" button in replay mode
+- [**Board analysis**](https://github.com/bh679/Chess/wiki/Feature:-Board-Analysis) — Stockfish-powered position evaluation with move classification arrows and accuracy percentages
+
 ### UI
 - [**Captured pieces display**](https://github.com/bh679/Chess/wiki/Feature:-Captured-Pieces) — shows captured pieces with material advantage indicators
 - [**Responsive layout**](https://github.com/bh679/Chess/wiki/Feature:-Responsive-Design) — works on desktop and mobile
@@ -119,6 +123,8 @@ js/timer.js             Chess timer with increment support
 js/ai.js                Stockfish WASM integration via Web Worker (UCI protocol)
 js/database.js          Local-first game persistence with background server sync
 js/browser.js           Game history browser UI
+js/analysis.js          Post-game position analysis, 10-type move classification
+js/post-game-summary.js Post-game summary modal (accuracy, classification grid)
 js/replay.js            Replay viewer with board, move strip, and clock reconstruction
 js/chess.js             chess.js engine (full rule enforcement)
 js/lib/stockfish.js     Stockfish WASM engine (Web Worker)
