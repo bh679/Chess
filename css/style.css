@@ -1455,6 +1455,13 @@ body {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   scrollbar-width: none;
+  cursor: grab;
+}
+
+.strip-moves.dragging {
+  cursor: grabbing;
+  user-select: none;
+  scroll-behavior: auto;
 }
 
 .strip-moves::-webkit-scrollbar {
