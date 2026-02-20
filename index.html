@@ -39,15 +39,34 @@
     </div>
 
     <div id="replay-controls" class="replay-main-controls hidden">
+      <label class="auto-analyze-toggle" id="replay-analyze-toggle">
+        <span>Analyze</span>
+        <span class="auto-analyze-switch">
+          <input type="checkbox" id="replay-auto-analyze">
+          <span class="auto-analyze-slider"></span>
+        </span>
+      </label>
       <div id="replay-move-list" class="replay-main-move-list"></div>
       <div class="replay-main-buttons">
+        <button id="replay-crit-prev" class="replay-main-btn replay-crit-btn hidden" title="Previous Critical Moment">&#9664; Crit</button>
         <button id="replay-main-start" class="replay-main-btn" title="Start (Home)">|&#9664;</button>
         <button id="replay-main-prev" class="replay-main-btn" title="Previous (&#8592;)">&#9664;</button>
         <button id="replay-main-play" class="replay-main-btn replay-main-btn-play" title="Play/Pause (Space)">&#9654;</button>
         <button id="replay-main-next" class="replay-main-btn" title="Next (&#8594;)">&#9654;</button>
         <button id="replay-main-end" class="replay-main-btn" title="End (End)">&#9654;|</button>
+        <button id="replay-crit-next" class="replay-main-btn replay-crit-btn hidden" title="Next Critical Moment">Crit &#9654;</button>
+      </div>
+      <div id="replay-analysis-progress" class="analysis-progress hidden">
+        <div id="replay-analysis-progress-fill" class="analysis-progress-fill"></div>
       </div>
       <div id="replay-main-result" class="replay-main-result"></div>
+      <div id="replay-analysis-detail" class="analysis-detail hidden">
+        <span id="replay-analysis-classification" class="analysis-detail-classification"></span>
+        <span id="replay-analysis-eval" class="analysis-detail-eval"></span>
+        <span id="replay-analysis-best" class="analysis-detail-best"></span>
+        <span id="replay-analysis-line" class="analysis-detail-line"></span>
+      </div>
+      <div id="replay-analysis-accuracy" class="analysis-accuracy hidden"></div>
     </div>
 
     <div class="controls">

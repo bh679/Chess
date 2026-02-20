@@ -6,10 +6,21 @@ import { AI } from './ai.js?v=2';
 import { GameDatabase } from './database.js?v=6';
 import { GameBrowser } from './browser.js?v=3';
 import { ReplayViewer } from './replay.js';
+import { AnalysisEngine } from './analysis.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
 const PIECE_DISPLAY = { k: 'K', q: 'Q', r: 'R', b: 'B', n: 'N', p: 'P' };
+
+// Analysis classification icons (shared with replay.js)
+const CLASSIFICATION_ICONS = {
+  best:       { text: '\u2713', cls: 'analysis-best' },
+  good:       { text: '\u25CF', cls: 'analysis-good' },
+  inaccuracy: { text: '?!',    cls: 'analysis-inaccuracy' },
+  mistake:    { text: '?',     cls: 'analysis-mistake' },
+  blunder:    { text: '??',    cls: 'analysis-blunder' },
+};
+const ANALYSIS_CACHE_KEY = 'chess-analysis-cache';
 
 // Art style configuration
 const STYLE_PATHS = {
@@ -83,6 +94,19 @@ const replayNextBtn = document.getElementById('replay-main-next');
 const replayEndBtn = document.getElementById('replay-main-end');
 const replayResultEl = document.getElementById('replay-main-result');
 
+// Analysis DOM elements for main-board replay
+const replayAnalyzeCheckbox = document.getElementById('replay-auto-analyze');
+const replayProgressEl = document.getElementById('replay-analysis-progress');
+const replayProgressFillEl = document.getElementById('replay-analysis-progress-fill');
+const replayAccuracyEl = document.getElementById('replay-analysis-accuracy');
+const replayDetailEl = document.getElementById('replay-analysis-detail');
+const replayClassEl = document.getElementById('replay-analysis-classification');
+const replayEvalEl = document.getElementById('replay-analysis-eval');
+const replayBestEl = document.getElementById('replay-analysis-best');
+const replayLineEl = document.getElementById('replay-analysis-line');
+const replayCritPrevBtn = document.getElementById('replay-crit-prev');
+const replayCritNextBtn = document.getElementById('replay-crit-next');
+
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
 const ai = new AI();
@@ -104,6 +128,15 @@ let replayPlaying = false;
 let replayTimer = null;
 let replayMoveDetails = [];
 let replayClockSnapshots = [];
+
+// Analysis state for main-board replay
+let replayAnalysisData = null;
+let replayAnalysisEngine = null;
+
+// Initialise analysis toggle from localStorage
+if (replayAnalyzeCheckbox) {
+  replayAnalyzeCheckbox.checked = localStorage.getItem('chess-auto-analyze') !== 'false';
+}
 
 function renderCaptured() {
   const captured = game.getCaptured();
@@ -1010,12 +1043,24 @@ async function enterReplayMode(gameRecord) {
 
   // Set up keyboard handler
   document.addEventListener('keydown', replayKeyHandler);
+
+  // Auto-analyze if toggle is enabled
+  resetMainBoardAnalysis();
+  if (replayAnalyzeCheckbox && replayAnalyzeCheckbox.checked) {
+    runMainBoardAnalysis(gameRecord);
+  }
 }
 
 function exitReplayMode(startNew = true) {
   if (!isReplayMode) return;
 
   stopReplayPlayback();
+
+  // Stop analysis if running
+  if (replayAnalysisEngine) {
+    replayAnalysisEngine.stop();
+  }
+  resetMainBoardAnalysis();
 
   isReplayMode = false;
   replayGame = null;
@@ -1065,6 +1110,12 @@ function replayGoToMove(plyIndex) {
     statusEl.textContent = `Replay Mode \u2014 ${moveNum}${side} ${replayMoveDetails[replayPly].san}`;
   }
   statusEl.className = 'status replay-mode';
+
+  // Update analysis detail panel for current ply
+  if (replayAnalysisData) {
+    updateAnalysisDetail();
+    updateCriticalNav();
+  }
 }
 
 function replayNext() {
@@ -1354,6 +1405,287 @@ function formatReplayResult(gameRecord) {
   return reason ? `${reason}! ${winner} wins` : `${winner} wins`;
 }
 
+// --- Main-Board Analysis ---
+
+function loadCachedAnalysis(serverId) {
+  if (!serverId) return null;
+  try {
+    const raw = localStorage.getItem(ANALYSIS_CACHE_KEY);
+    if (!raw) return null;
+    const cache = JSON.parse(raw);
+    const entry = cache.entries[serverId];
+    return entry ? entry.result : null;
+  } catch {
+    return null;
+  }
+}
+
+async function runMainBoardAnalysis(gameRecord) {
+  if (!gameRecord || !gameRecord.moves || gameRecord.moves.length === 0) return;
+
+  // Check cache first
+  const serverId = gameRecord.serverId || null;
+  const cached = loadCachedAnalysis(serverId);
+  if (cached) {
+    setMainBoardAnalysis(cached);
+    return;
+  }
+
+  // Lazily create engine
+  if (!replayAnalysisEngine) {
+    replayAnalysisEngine = new AnalysisEngine();
+  }
+
+  const totalPositions = gameRecord.moves.length + 1;
+  replayProgressEl.classList.remove('hidden');
+  replayProgressFillEl.style.width = '0%';
+
+  try {
+    const result = await replayAnalysisEngine.analyze(
+      gameRecord.moves,
+      gameRecord.startingFen,
+      {
+        depth: 18,
+        serverId: serverId,
+        onProgress: ({ current, total }) => {
+          const pct = total > 0 ? (current / total * 100) : 0;
+          replayProgressFillEl.style.width = `${pct}%`;
+        }
+      }
+    );
+    setMainBoardAnalysis(result);
+  } catch (err) {
+    if (err !== 'stopped') {
+      console.warn('Analysis failed:', err);
+    }
+    replayProgressEl.classList.add('hidden');
+    replayProgressFillEl.style.width = '0%';
+  }
+}
+
+function setMainBoardAnalysis(result) {
+  replayAnalysisData = result;
+
+  // Hide progress bar
+  replayProgressEl.classList.add('hidden');
+  replayProgressFillEl.style.width = '0%';
+
+  // Add classification icons to move list
+  addClassificationIcons();
+
+  // Render accuracy summary
+  renderAccuracy();
+
+  // Update critical moment nav
+  updateCriticalNav();
+
+  // Show detail for current move
+  updateAnalysisDetail();
+}
+
+function addClassificationIcons() {
+  if (!replayAnalysisData) return;
+
+  const moveEls = replayMoveListEl.querySelectorAll('.strip-move[data-ply]');
+  const criticalSet = new Set(replayAnalysisData.criticalMoments);
+
+  moveEls.forEach(el => {
+    const ply = parseInt(el.dataset.ply, 10);
+    const posIdx = ply + 1; // positions[0] = starting, positions[ply+1] = after move
+    if (posIdx >= replayAnalysisData.positions.length) return;
+
+    const pos = replayAnalysisData.positions[posIdx];
+    if (!pos || !pos.classification) return;
+
+    const iconDef = CLASSIFICATION_ICONS[pos.classification];
+    if (!iconDef) return;
+
+    // Remove any existing icon
+    const existing = el.querySelector('.analysis-icon');
+    if (existing) existing.remove();
+
+    const icon = document.createElement('span');
+    icon.className = `analysis-icon ${iconDef.cls}`;
+    icon.textContent = iconDef.text;
+    el.prepend(icon);
+
+    // Mark critical moments
+    if (criticalSet.has(posIdx)) {
+      el.classList.add('analysis-critical');
+    }
+  });
+}
+
+function renderAccuracy() {
+  if (!replayAnalysisData || !replayAccuracyEl) return;
+
+  const summary = replayAnalysisData.summary;
+  replayAccuracyEl.innerHTML = '';
+  replayAccuracyEl.classList.remove('hidden');
+
+  for (const side of ['white', 'black']) {
+    const s = summary[side];
+    const div = document.createElement('div');
+    div.className = 'accuracy-side';
+
+    const header = document.createElement('div');
+    header.className = 'accuracy-header';
+
+    const label = document.createElement('span');
+    label.className = 'accuracy-label';
+    label.textContent = side === 'white' ? 'White' : 'Black';
+    header.appendChild(label);
+
+    const value = document.createElement('span');
+    value.className = 'accuracy-value';
+    value.textContent = `${s.accuracy}%`;
+    header.appendChild(value);
+
+    div.appendChild(header);
+
+    const barOuter = document.createElement('div');
+    barOuter.className = 'accuracy-bar';
+    const barFill = document.createElement('div');
+    barFill.className = 'accuracy-fill';
+    barFill.style.width = `${s.accuracy}%`;
+    barOuter.appendChild(barFill);
+    div.appendChild(barOuter);
+
+    const breakdown = document.createElement('div');
+    breakdown.className = 'accuracy-breakdown';
+    breakdown.textContent = `B:${s.best} G:${s.good} I:${s.inaccuracy} M:${s.mistake} BL:${s.blunder}`;
+    div.appendChild(breakdown);
+
+    replayAccuracyEl.appendChild(div);
+  }
+}
+
+function updateAnalysisDetail() {
+  if (!replayAnalysisData || !replayDetailEl) {
+    if (replayDetailEl) replayDetailEl.classList.add('hidden');
+    return;
+  }
+
+  const posIdx = replayPly + 1;
+  if (posIdx < 0 || posIdx >= replayAnalysisData.positions.length) {
+    replayDetailEl.classList.add('hidden');
+    return;
+  }
+
+  const pos = replayAnalysisData.positions[posIdx];
+  replayDetailEl.classList.remove('hidden');
+
+  // Classification + cpLoss
+  if (pos.classification) {
+    const iconDef = CLASSIFICATION_ICONS[pos.classification] || {};
+    replayClassEl.innerHTML = '';
+    const icon = document.createElement('span');
+    icon.className = `analysis-icon ${iconDef.cls || ''}`;
+    icon.textContent = iconDef.text || '';
+    replayClassEl.appendChild(icon);
+    const label = document.createElement('span');
+    const classLabel = pos.classification.charAt(0).toUpperCase() + pos.classification.slice(1);
+    label.textContent = ` ${classLabel}${pos.cpLoss > 0 ? ` (${pos.cpLoss}cp)` : ''}`;
+    replayClassEl.appendChild(label);
+  } else {
+    replayClassEl.textContent = 'Starting position';
+  }
+
+  // Eval
+  const evalPawns = pos.eval / 100;
+  const evalSign = evalPawns >= 0 ? '+' : '';
+  const evalDisplay = Math.abs(pos.eval) >= 9900
+    ? (pos.eval > 0 ? '+M' : '-M')
+    : `${evalSign}${evalPawns.toFixed(2)}`;
+  replayEvalEl.textContent = `Eval: ${evalDisplay}`;
+
+  // Best move
+  if (pos.bestMoveUci) {
+    replayBestEl.textContent = `Best: ${pos.bestMoveUci}`;
+  } else {
+    replayBestEl.textContent = '';
+  }
+
+  // PV line (first 5 moves)
+  if (pos.bestLineUci && pos.bestLineUci.length > 0) {
+    const line = pos.bestLineUci.slice(0, 5).join(' ');
+    replayLineEl.textContent = `Line: ${line}`;
+  } else {
+    replayLineEl.textContent = '';
+  }
+}
+
+function updateCriticalNav() {
+  if (!replayAnalysisData || !replayAnalysisData.criticalMoments.length) {
+    if (replayCritPrevBtn) replayCritPrevBtn.classList.add('hidden');
+    if (replayCritNextBtn) replayCritNextBtn.classList.add('hidden');
+    return;
+  }
+
+  replayCritPrevBtn.classList.remove('hidden');
+  replayCritNextBtn.classList.remove('hidden');
+
+  const moments = replayAnalysisData.criticalMoments;
+  const curPos = replayPly + 1;
+
+  const prevCrit = moments.filter(m => m < curPos);
+  const nextCrit = moments.filter(m => m > curPos);
+
+  replayCritPrevBtn.disabled = prevCrit.length === 0;
+  replayCritNextBtn.disabled = nextCrit.length === 0;
+}
+
+function goToPrevCritical() {
+  if (!replayAnalysisData) return;
+  const moments = replayAnalysisData.criticalMoments;
+  const curPos = replayPly + 1;
+  const prev = moments.filter(m => m < curPos);
+  if (prev.length > 0) {
+    const targetPos = prev[prev.length - 1];
+    stopReplayPlayback();
+    replayGoToMove(targetPos - 1);
+  }
+}
+
+function goToNextCritical() {
+  if (!replayAnalysisData) return;
+  const moments = replayAnalysisData.criticalMoments;
+  const curPos = replayPly + 1;
+  const next = moments.filter(m => m > curPos);
+  if (next.length > 0) {
+    const targetPos = next[0];
+    stopReplayPlayback();
+    replayGoToMove(targetPos - 1);
+  }
+}
+
+function resetMainBoardAnalysis() {
+  replayAnalysisData = null;
+
+  // Hide progress
+  if (replayProgressEl) {
+    replayProgressEl.classList.add('hidden');
+    replayProgressFillEl.style.width = '0%';
+  }
+  // Hide detail panel
+  if (replayDetailEl) {
+    replayDetailEl.classList.add('hidden');
+  }
+  // Hide accuracy panel
+  if (replayAccuracyEl) {
+    replayAccuracyEl.classList.add('hidden');
+    replayAccuracyEl.innerHTML = '';
+  }
+  // Hide critical nav
+  if (replayCritPrevBtn) replayCritPrevBtn.classList.add('hidden');
+  if (replayCritNextBtn) replayCritNextBtn.classList.add('hidden');
+  // Remove classification icons and critical markers
+  replayMoveListEl.querySelectorAll('.analysis-icon').forEach(el => el.remove());
+  replayMoveListEl.querySelectorAll('.analysis-critical').forEach(el => {
+    el.classList.remove('analysis-critical');
+  });
+}
+
 // --- Replay Keyboard Handler ---
 
 function replayKeyHandler(e) {
@@ -1389,6 +1721,24 @@ replayPrevBtn.addEventListener('click', replayPrev);
 replayPlayBtn.addEventListener('click', toggleReplayPlayback);
 replayNextBtn.addEventListener('click', replayNext);
 replayEndBtn.addEventListener('click', replayGoToEnd);
+
+// Wire up analysis toggle and critical nav buttons
+if (replayAnalyzeCheckbox) {
+  replayAnalyzeCheckbox.addEventListener('change', () => {
+    const enabled = replayAnalyzeCheckbox.checked;
+    localStorage.setItem('chess-auto-analyze', enabled ? 'true' : 'false');
+    if (enabled) {
+      if (isReplayMode && replayGame && !replayAnalysisData) {
+        runMainBoardAnalysis(replayGame);
+      }
+    } else {
+      if (replayAnalysisEngine) replayAnalysisEngine.stop();
+      resetMainBoardAnalysis();
+    }
+  });
+}
+if (replayCritPrevBtn) replayCritPrevBtn.addEventListener('click', goToPrevCritical);
+if (replayCritNextBtn) replayCritNextBtn.addEventListener('click', goToNextCritical);
 
 // Dev indicator management
 const devIndicator = document.getElementById('dev-indicator');
