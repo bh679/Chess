@@ -892,13 +892,13 @@ class ReplayViewer {
     header.appendChild(gameInfo);
 
     // Auto-Analyze toggle (before close button)
-    const toggleWrapper = document.createElement('div');
+    const toggleWrapper = document.createElement('label');
     toggleWrapper.className = 'auto-analyze-toggle';
 
-    const toggleLabel = document.createElement('label');
-    toggleLabel.textContent = 'Analyze';
+    const toggleText = document.createElement('span');
+    toggleText.textContent = 'Analyze';
 
-    const switchEl = document.createElement('div');
+    const switchEl = document.createElement('span');
     switchEl.className = 'auto-analyze-switch';
 
     this._autoAnalyzeCheckbox = document.createElement('input');
@@ -921,12 +921,8 @@ class ReplayViewer {
 
     switchEl.appendChild(this._autoAnalyzeCheckbox);
     switchEl.appendChild(slider);
-    toggleLabel.addEventListener('click', () => {
-      this._autoAnalyzeCheckbox.checked = !this._autoAnalyzeCheckbox.checked;
-      this._autoAnalyzeCheckbox.dispatchEvent(new Event('change'));
-    });
 
-    toggleWrapper.appendChild(toggleLabel);
+    toggleWrapper.appendChild(toggleText);
     toggleWrapper.appendChild(switchEl);
     header.appendChild(toggleWrapper);
 
