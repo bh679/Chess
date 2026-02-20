@@ -650,7 +650,16 @@ if (evalBarToggle) {
     const enabled = evalBarToggle.checked;
     localStorage.setItem('chess-eval-bar', enabled ? 'true' : 'false');
 
-    if (isReplayMode) return; // replay manages its own eval bar visibility
+    if (isReplayMode) {
+      // In replay mode, show/hide based on toggle + analysis data
+      if (enabled && replayAnalysisData) {
+        mainEvalBar.show();
+        updateMainEvalBar();
+      } else {
+        mainEvalBar.hide();
+      }
+      return;
+    }
 
     if (enabled) {
       mainEvalBar.show();
@@ -1560,8 +1569,10 @@ function setMainBoardAnalysis(result) {
   // Show detail for current move
   updateAnalysisDetail();
 
-  // Show and update eval bar
-  mainEvalBar.show();
+  // Show and update eval bar (only if toggle is on)
+  if (evalBarToggle && evalBarToggle.checked) {
+    mainEvalBar.show();
+  }
   updateMainEvalBar();
 }
 

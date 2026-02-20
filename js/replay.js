@@ -173,8 +173,8 @@ class ReplayViewer {
     // Show detail panel for current move
     this._updateDetailPanel();
 
-    // Show and update eval bar
-    if (this._evalBar) {
+    // Show and update eval bar (only if setting is enabled)
+    if (this._evalBar && localStorage.getItem('chess-eval-bar') === 'true') {
       this._evalBar.show();
       this._updateEvalBar();
     }
