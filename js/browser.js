@@ -169,12 +169,12 @@ class GameBrowser {
     this._filterEls.playerType.value = this._filters.playerType;
     this._filterEls.timeControl.value = this._filters.timeControl;
     this._filterEls.gameType.value = this._filters.gameType;
-    this._filterEls.me.checked = this._filters.me;
-    this._filterEls.inProgress.checked = this._filters.inProgress;
     this._filterEls.eloMin.value = this._filters.eloMin;
     this._filterEls.eloMax.value = this._filters.eloMax;
     this._filterEls.playerSearch.value = this._filters.playerSearch;
     this._advancedPanelEl.classList.toggle('hidden', !this._advancedVisible);
+    this._updateToggleBtn(this._filterEls.me, this._filters.me, 'My Games', 'Public');
+    this._updateToggleBtn(this._filterEls.inProgress, this._filters.inProgress, 'Live', 'History');
     this._updateAdvancedToggle();
   }
 
@@ -183,18 +183,21 @@ class GameBrowser {
     this._filters.playerType = this._filterEls.playerType.value;
     this._filters.timeControl = this._filterEls.timeControl.value;
     this._filters.gameType = this._filterEls.gameType.value;
-    this._filters.me = this._filterEls.me.checked;
-    this._filters.inProgress = this._filterEls.inProgress.checked;
+    // me and inProgress are managed by toggle buttons, not DOM read
     this._filters.eloMin = this._filterEls.eloMin.value;
     this._filters.eloMax = this._filterEls.eloMax.value;
     this._filters.playerSearch = this._filterEls.playerSearch.value;
+  }
+
+  _updateToggleBtn(btn, active, onText, offText) {
+    btn.textContent = active ? onText : offText;
+    btn.classList.toggle('browser-filter-toggle-on', active);
   }
 
   _advancedFilterCount() {
     let count = 0;
     if (this._filters.result !== 'all') count++;
     if (this._filters.playerType !== 'all') count++;
-    if (this._filters.timeControl !== 'all') count++;
     if (this._filters.gameType !== 'all') count++;
     if (this._filters.eloMin !== '') count++;
     if (this._filters.eloMax !== '') count++;
@@ -577,27 +580,37 @@ class GameBrowser {
     const quickRow = document.createElement('div');
     quickRow.className = 'browser-filter-quick';
 
-    // My games only checkbox
-    const meLabel = document.createElement('label');
-    meLabel.className = 'browser-filter-quick-label';
-    this._filterEls.me = document.createElement('input');
-    this._filterEls.me.type = 'checkbox';
-    this._filterEls.me.className = 'browser-filter-checkbox';
-    this._filterEls.me.addEventListener('change', () => this._onFilterChange());
-    meLabel.appendChild(this._filterEls.me);
-    meLabel.appendChild(document.createTextNode(' Mine'));
-    quickRow.appendChild(meLabel);
+    // My games toggle button
+    this._filterEls.me = document.createElement('button');
+    this._filterEls.me.className = 'browser-filter-pill';
+    this._filterEls.me.textContent = 'Public';
+    this._filterEls.me.addEventListener('click', () => {
+      this._filters.me = !this._filters.me;
+      this._updateToggleBtn(this._filterEls.me, this._filters.me, 'My Games', 'Public');
+      this._onFilterChange();
+    });
+    quickRow.appendChild(this._filterEls.me);
 
-    // In Progress checkbox
-    const ipLabel = document.createElement('label');
-    ipLabel.className = 'browser-filter-quick-label';
-    this._filterEls.inProgress = document.createElement('input');
-    this._filterEls.inProgress.type = 'checkbox';
-    this._filterEls.inProgress.className = 'browser-filter-checkbox';
-    this._filterEls.inProgress.addEventListener('change', () => this._onFilterChange());
-    ipLabel.appendChild(this._filterEls.inProgress);
-    ipLabel.appendChild(document.createTextNode(' Live'));
-    quickRow.appendChild(ipLabel);
+    // Live / History toggle button
+    this._filterEls.inProgress = document.createElement('button');
+    this._filterEls.inProgress.className = 'browser-filter-pill';
+    this._filterEls.inProgress.textContent = 'History';
+    this._filterEls.inProgress.addEventListener('click', () => {
+      this._filters.inProgress = !this._filters.inProgress;
+      this._updateToggleBtn(this._filterEls.inProgress, this._filters.inProgress, 'Live', 'History');
+      this._onFilterChange();
+    });
+    quickRow.appendChild(this._filterEls.inProgress);
+
+    // Time Control dropdown (quick access)
+    this._filterEls.timeControl = document.createElement('select');
+    this._filterEls.timeControl.className = 'browser-filter-select browser-filter-quick-tc';
+    const tcAll = document.createElement('option');
+    tcAll.value = 'all';
+    tcAll.textContent = 'All TC';
+    this._filterEls.timeControl.appendChild(tcAll);
+    this._filterEls.timeControl.addEventListener('change', () => this._onFilterChange());
+    quickRow.appendChild(this._filterEls.timeControl);
 
     // Player search (combo box)
     this._playerDatalistEl = document.createElement('datalist');
@@ -675,10 +688,6 @@ class GameBrowser {
       ['avai', 'AI vs AI']
     ]);
     grid.appendChild(makeGroup('Player Type', this._filterEls.playerType));
-
-    // Time Control
-    this._filterEls.timeControl = makeSelect([['all', 'All']]);
-    grid.appendChild(makeGroup('Time Control', this._filterEls.timeControl));
 
     // Game Type
     this._filterEls.gameType = makeSelect([

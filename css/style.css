@@ -1966,31 +1966,49 @@ body {
 .browser-filter-quick {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 6px 0;
 }
 
-.browser-filter-quick-label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #ccc;
-  font-size: 0.78rem;
+.browser-filter-pill {
+  padding: 4px 10px;
+  background: #2a2725;
+  color: #999;
+  border: 1px solid #3d3a37;
+  border-radius: 14px;
   cursor: pointer;
+  font-size: 0.75rem;
+  font-family: inherit;
+  font-weight: 600;
   white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   user-select: none;
 }
 
-.browser-filter-checkbox {
-  accent-color: #4a9e5c;
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
+.browser-filter-pill:hover {
+  color: #ccc;
+  border-color: #555;
+}
+
+.browser-filter-pill.browser-filter-toggle-on {
+  background: #4a9e5c;
+  color: #fff;
+  border-color: #4a9e5c;
+}
+
+.browser-filter-quick-tc {
+  max-width: 100px;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  border-radius: 14px;
 }
 
 .browser-filter-quick-search {
   flex: 1;
   min-width: 0;
+  border-radius: 14px;
+  font-size: 0.75rem;
+  padding: 4px 10px;
 }
 
 .browser-filter-advanced-toggle {
