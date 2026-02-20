@@ -134,9 +134,35 @@ let replayClockSnapshots = [];
 let replayAnalysisData = null;
 let replayAnalysisEngine = null;
 
-// Eval bar for main-board replay
+// Eval bar for main board (used in both live play and replay)
 const mainEvalBar = new EvalBar();
 document.getElementById('main-eval-bar').appendChild(mainEvalBar.el);
+
+// Dedicated analysis engine for live position evaluation (separate from replay/game AI)
+let liveEvalEngine = null;
+
+/**
+ * Evaluate the current board position and update the eval bar.
+ * Uses a dedicated low-depth Stockfish worker that doesn't conflict
+ * with the game AI or the replay analysis engine.
+ */
+async function liveEval() {
+  if (isReplayMode || game.isGameOver()) return;
+
+  if (!liveEvalEngine) {
+    liveEvalEngine = new AnalysisEngine();
+  }
+
+  try {
+    const cp = await liveEvalEngine.quickEval(game.chess.fen());
+    // cp is null if a full analysis is running on this engine
+    if (cp != null && !isReplayMode) {
+      mainEvalBar.update(cp);
+    }
+  } catch {
+    // Worker init failed or was cancelled — ignore
+  }
+}
 
 // Initialise analysis toggle from localStorage
 if (replayAnalyzeCheckbox) {
@@ -387,6 +413,11 @@ function startNewGame() {
     },
   });
 
+  // Show eval bar and run initial evaluation for starting position
+  mainEvalBar.show();
+  mainEvalBar.reset();
+  liveEval();
+
   // If AI plays White, show start button instead of auto-starting
   if (ai.isEnabled() && ai.isAITurn('w')) {
     startGameBtn.classList.remove('hidden');
@@ -428,6 +459,9 @@ board.onMove((result) => {
       timer.switchTo(currentTurn);
     }
   }
+
+  // Update live eval bar after every move
+  liveEval();
 
   if (game.isGameOver()) {
     timer.stop();
@@ -985,6 +1019,11 @@ async function enterReplayMode(gameRecord) {
 
   ai.stop();
   timer.stop();
+
+  // Stop live eval — replay mode uses its own analysis engine
+  if (liveEvalEngine) {
+    liveEvalEngine.stop();
+  }
 
   isReplayMode = true;
   replayGame = gameRecord;
