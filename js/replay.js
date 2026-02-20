@@ -47,7 +47,7 @@ class ReplayViewer {
     // Analysis Review fields
     this._analysisData = null;
     this._analyzeCallback = null;
-    this._analyzeBtn = null;
+    this._autoAnalyzeCheckbox = null;
     this._progressBarEl = null;
     this._progressFillEl = null;
     this._detailPanel = null;
@@ -114,6 +114,11 @@ class ReplayViewer {
     // Keyboard shortcuts
     this._keyHandler = (e) => this._handleKey(e);
     document.addEventListener('keydown', this._keyHandler);
+
+    // Auto-analyze if toggle is enabled
+    if (this.isAutoAnalyzeEnabled() && this._analyzeCallback) {
+      this._analyzeCallback(gameRecord);
+    }
   }
 
   /**
@@ -148,9 +153,8 @@ class ReplayViewer {
   setAnalysis(analysisResult) {
     this._analysisData = analysisResult;
 
-    // Hide progress, hide analyze button
+    // Hide progress bar
     this.hideAnalysisProgress();
-    this._analyzeBtn.classList.add('hidden');
 
     // Add classification icons to move strips
     this._addClassificationIcons();
@@ -177,25 +181,24 @@ class ReplayViewer {
   }
 
   /**
-   * Hide analysis progress bar and re-enable the analyze button.
+   * Hide analysis progress bar.
    */
   hideAnalysisProgress() {
     this._progressBarEl.classList.add('hidden');
     this._progressFillEl.style.width = '0%';
-    if (this._analyzeBtn) {
-      this._analyzeBtn.disabled = false;
-    }
+  }
+
+  /**
+   * Returns true if auto-analyze is enabled.
+   */
+  isAutoAnalyzeEnabled() {
+    return this._autoAnalyzeCheckbox && this._autoAnalyzeCheckbox.checked;
   }
 
   /**
    * Reset all analysis UI elements to their default hidden state.
    */
   _resetAnalysisUI() {
-    // Show analyze button
-    if (this._analyzeBtn) {
-      this._analyzeBtn.classList.remove('hidden');
-      this._analyzeBtn.disabled = false;
-    }
     // Hide progress
     if (this._progressBarEl) {
       this._progressBarEl.classList.add('hidden');
@@ -888,17 +891,44 @@ class ReplayViewer {
 
     header.appendChild(gameInfo);
 
-    // Analyze button (before close button)
-    this._analyzeBtn = document.createElement('button');
-    this._analyzeBtn.className = 'replay-analyze-btn';
-    this._analyzeBtn.textContent = 'Analyze';
-    this._analyzeBtn.addEventListener('click', () => {
-      if (this._analyzeCallback && this._game) {
-        this._analyzeBtn.disabled = true;
+    // Auto-Analyze toggle (before close button)
+    const toggleWrapper = document.createElement('div');
+    toggleWrapper.className = 'auto-analyze-toggle';
+
+    const toggleLabel = document.createElement('label');
+    toggleLabel.textContent = 'Analyze';
+
+    const switchEl = document.createElement('div');
+    switchEl.className = 'auto-analyze-switch';
+
+    this._autoAnalyzeCheckbox = document.createElement('input');
+    this._autoAnalyzeCheckbox.type = 'checkbox';
+    this._autoAnalyzeCheckbox.checked =
+      localStorage.getItem('chess-auto-analyze') !== 'false'; // default on
+
+    const slider = document.createElement('span');
+    slider.className = 'auto-analyze-slider';
+
+    this._autoAnalyzeCheckbox.addEventListener('change', () => {
+      localStorage.setItem('chess-auto-analyze',
+        this._autoAnalyzeCheckbox.checked ? 'true' : 'false');
+      // If toggled on and a game is loaded but not yet analyzed, start analysis
+      if (this._autoAnalyzeCheckbox.checked && this._game &&
+          !this._analysisData && this._analyzeCallback) {
         this._analyzeCallback(this._game);
       }
     });
-    header.appendChild(this._analyzeBtn);
+
+    switchEl.appendChild(this._autoAnalyzeCheckbox);
+    switchEl.appendChild(slider);
+    toggleLabel.addEventListener('click', () => {
+      this._autoAnalyzeCheckbox.checked = !this._autoAnalyzeCheckbox.checked;
+      this._autoAnalyzeCheckbox.dispatchEvent(new Event('change'));
+    });
+
+    toggleWrapper.appendChild(toggleLabel);
+    toggleWrapper.appendChild(switchEl);
+    header.appendChild(toggleWrapper);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'replay-close-btn';
