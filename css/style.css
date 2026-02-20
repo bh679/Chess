@@ -1958,21 +1958,55 @@ body {
 
 /* --- Browser Filters --- */
 
-.browser-filter-toggle {
-  width: 100%;
-  padding: 6px 0;
-  background: none;
-  color: #888;
-  border: 1px solid #3d3a37;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 600;
+.browser-filter-wrapper {
   margin-bottom: 6px;
-  transition: color 0.15s, border-color 0.15s;
 }
 
-.browser-filter-toggle:hover {
+/* Quick filter row — always visible */
+.browser-filter-quick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.browser-filter-quick-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #ccc;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.browser-filter-checkbox {
+  accent-color: #4a9e5c;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.browser-filter-quick-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.browser-filter-advanced-toggle {
+  background: none;
+  border: 1px solid #3d3a37;
+  color: #888;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.browser-filter-advanced-toggle:hover {
   color: #ccc;
   border-color: #555;
 }
@@ -1982,14 +2016,29 @@ body {
   border-color: #4a9e5c;
 }
 
-.browser-filter-bar {
-  margin-bottom: 8px;
+.browser-filter-badge {
+  display: inline-block;
+  background: #4a9e5c;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  margin-right: 2px;
+}
+
+/* Advanced filter panel (expandable) */
+.browser-filter-advanced {
   padding: 10px;
   background: #1a1816;
   border-radius: 6px;
+  margin-top: 4px;
 }
 
-.browser-filter-bar.hidden {
+.browser-filter-advanced.hidden {
   display: none;
 }
 
@@ -2003,6 +2052,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+.browser-filter-group-full {
+  grid-column: 1 / -1;
 }
 
 .browser-filter-label {
@@ -2035,31 +2088,6 @@ body {
 .browser-filter-select option {
   background: #2a2725;
   color: #e0e0e0;
-}
-
-.browser-filter-group-me {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.browser-filter-me-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: #ccc;
-  text-transform: none;
-  letter-spacing: 0;
-  padding-top: 12px;
-}
-
-.browser-filter-checkbox {
-  accent-color: #4a9e5c;
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
 }
 
 .browser-filter-elo-row {

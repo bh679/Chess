@@ -6,7 +6,8 @@
  * Analysis Review integration: auto-runs Board Analysis and displays
  * classification icons, accuracy, and detail panel in the replay viewer.
  *
- * Filters: result, player type, time control, game type, me, elo range, player search.
+ * Filters: quick row (me, player search, in progress) + expandable advanced
+ * (result, player type, time control, game type, elo range).
  */
 
 import { AnalysisEngine } from './analysis.js';
@@ -40,14 +41,15 @@ class GameBrowser {
       timeControl: 'all',
       gameType: 'all',
       me: false,
+      inProgress: false,
       eloMin: '',
       eloMax: '',
       playerSearch: ''
     };
-    this._filterBarVisible = false;
-    this._filterEls = {};       // references to filter DOM controls
-    this._filterToggleBtn = null;
-    this._filterBarEl = null;
+    this._advancedVisible = false;
+    this._filterEls = {};
+    this._advancedToggleBtn = null;
+    this._advancedPanelEl = null;
     this._playerDatalistEl = null;
 
     // Cache of all loaded games for dynamic filter population
@@ -79,12 +81,7 @@ class GameBrowser {
 
   // --- Analysis ---
 
-  /**
-   * Run analysis on a game, checking cache first.
-   * @param {Object} game — full game record
-   */
   async _runAnalysis(game) {
-    // Check cache for existing analysis
     const serverId = game.serverId || null;
     const cached = this._loadCachedAnalysis(serverId);
     if (cached) {
@@ -92,7 +89,6 @@ class GameBrowser {
       return;
     }
 
-    // Lazily create engine
     if (!this._analysisEngine) {
       this._analysisEngine = new AnalysisEngine();
     }
@@ -121,11 +117,6 @@ class GameBrowser {
     }
   }
 
-  /**
-   * Load cached analysis from localStorage.
-   * @param {number|null} serverId
-   * @returns {Object|null}
-   */
   _loadCachedAnalysis(serverId) {
     if (!serverId) return null;
     try {
@@ -163,11 +154,12 @@ class GameBrowser {
       timeControl: 'all',
       gameType: 'all',
       me: false,
+      inProgress: false,
       eloMin: '',
       eloMax: '',
       playerSearch: ''
     };
-    this._filterBarVisible = false;
+    this._advancedVisible = false;
     this._syncFilterDOM();
   }
 
@@ -178,11 +170,12 @@ class GameBrowser {
     this._filterEls.timeControl.value = this._filters.timeControl;
     this._filterEls.gameType.value = this._filters.gameType;
     this._filterEls.me.checked = this._filters.me;
+    this._filterEls.inProgress.checked = this._filters.inProgress;
     this._filterEls.eloMin.value = this._filters.eloMin;
     this._filterEls.eloMax.value = this._filters.eloMax;
     this._filterEls.playerSearch.value = this._filters.playerSearch;
-    this._filterBarEl.classList.toggle('hidden', !this._filterBarVisible);
-    this._updateFilterToggleLabel();
+    this._advancedPanelEl.classList.toggle('hidden', !this._advancedVisible);
+    this._updateAdvancedToggle();
   }
 
   _readFiltersFromDOM() {
@@ -191,33 +184,35 @@ class GameBrowser {
     this._filters.timeControl = this._filterEls.timeControl.value;
     this._filters.gameType = this._filterEls.gameType.value;
     this._filters.me = this._filterEls.me.checked;
+    this._filters.inProgress = this._filterEls.inProgress.checked;
     this._filters.eloMin = this._filterEls.eloMin.value;
     this._filters.eloMax = this._filterEls.eloMax.value;
     this._filters.playerSearch = this._filterEls.playerSearch.value;
   }
 
-  _activeFilterCount() {
+  _advancedFilterCount() {
     let count = 0;
     if (this._filters.result !== 'all') count++;
     if (this._filters.playerType !== 'all') count++;
     if (this._filters.timeControl !== 'all') count++;
     if (this._filters.gameType !== 'all') count++;
-    if (this._filters.me) count++;
     if (this._filters.eloMin !== '') count++;
     if (this._filters.eloMax !== '') count++;
-    if (this._filters.playerSearch !== '') count++;
     return count;
   }
 
-  _updateFilterToggleLabel() {
-    const count = this._activeFilterCount();
-    this._filterToggleBtn.textContent = count > 0 ? `Filters (${count})` : 'Filters';
-    this._filterToggleBtn.classList.toggle('browser-filter-toggle-active', count > 0);
+  _updateAdvancedToggle() {
+    const count = this._advancedFilterCount();
+    const chevron = this._advancedVisible ? '\u25B2' : '\u25BC';
+    this._advancedToggleBtn.innerHTML = count > 0
+      ? `<span class="browser-filter-badge">${count}</span> ${chevron}`
+      : chevron;
+    this._advancedToggleBtn.classList.toggle('browser-filter-toggle-active', count > 0);
   }
 
   _onFilterChange() {
     this._readFiltersFromDOM();
-    this._updateFilterToggleLabel();
+    this._updateAdvancedToggle();
     this._currentPage = 0;
     this._loadPage(0);
   }
@@ -225,7 +220,12 @@ class GameBrowser {
   _applyFilters(games) {
     const f = this._filters;
     return games.filter(g => {
-      // Result
+      // In Progress quick filter
+      if (f.inProgress) {
+        if (g.result !== null && g.result !== undefined) return false;
+      }
+
+      // Result (advanced)
       if (f.result !== 'all') {
         if (f.result === 'in_progress') {
           if (g.result !== null && g.result !== undefined) return false;
@@ -289,6 +289,14 @@ class GameBrowser {
     });
   }
 
+  _hasActiveFilters() {
+    const f = this._filters;
+    return f.me || f.inProgress || f.playerSearch !== '' ||
+      f.result !== 'all' || f.playerType !== 'all' ||
+      f.timeControl !== 'all' || f.gameType !== 'all' ||
+      f.eloMin !== '' || f.eloMax !== '';
+  }
+
   _populateDynamicFilters(games) {
     // Time controls
     const tcSet = new Set();
@@ -333,11 +341,9 @@ class GameBrowser {
         allGames = await this._db.listAllGames({ limit: 9999, offset: 0 });
       }
 
-      // Cache for dynamic filter population
       this._allLoadedGames = allGames;
       this._populateDynamicFilters(allGames);
 
-      // Apply min-moves filter then user filters
       const afterMinMoves = allGames.filter(g => g.moveCount >= MIN_DISPLAY_MOVES);
       const filtered = this._applyFilters(afterMinMoves);
       this._totalGames = filtered.length;
@@ -361,7 +367,7 @@ class GameBrowser {
     if (games.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'browser-empty';
-      if (this._activeFilterCount() > 0) {
+      if (this._hasActiveFilters()) {
         empty.textContent = 'No games match the current filters.';
       } else {
         empty.textContent = this._activeTab === 'mine'
@@ -427,7 +433,6 @@ class GameBrowser {
 
       row.appendChild(meta);
 
-      // Click to review on main board (preferred) or open replay modal (fallback)
       row.addEventListener('click', async () => {
         try {
           const fullGame = await this._db.getGame(game.id);
@@ -453,8 +458,6 @@ class GameBrowser {
     this._pageInfoEl.textContent = `Page ${this._currentPage + 1} of ${totalPages}`;
     this._prevPageBtn.disabled = this._currentPage === 0;
     this._nextPageBtn.disabled = this._currentPage >= totalPages - 1;
-
-    // Hide pagination if only one page
     this._paginationEl.style.display = totalPages <= 1 ? 'none' : '';
   }
 
@@ -464,12 +467,10 @@ class GameBrowser {
     const d = new Date(timestamp);
     const now = new Date();
 
-    // If today, show time only
     if (d.toDateString() === now.toDateString()) {
       return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
 
-    // If this year, omit year
     if (d.getFullYear() === now.getFullYear()) {
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
@@ -523,7 +524,7 @@ class GameBrowser {
 
     content.appendChild(tabs);
 
-    // Filter toggle + filter bar
+    // Quick filter row + advanced panel
     this._buildFilterBar(content);
 
     // Game list
@@ -559,7 +560,6 @@ class GameBrowser {
 
     this._overlay.appendChild(content);
 
-    // Close on backdrop click
     this._overlay.addEventListener('click', (e) => {
       if (e.target === this._overlay) {
         this.close();
@@ -570,24 +570,68 @@ class GameBrowser {
   }
 
   _buildFilterBar(parent) {
-    // Toggle button
-    this._filterToggleBtn = document.createElement('button');
-    this._filterToggleBtn.className = 'browser-filter-toggle';
-    this._filterToggleBtn.textContent = 'Filters';
-    this._filterToggleBtn.addEventListener('click', () => {
-      this._filterBarVisible = !this._filterBarVisible;
-      this._filterBarEl.classList.toggle('hidden', !this._filterBarVisible);
-    });
-    parent.appendChild(this._filterToggleBtn);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'browser-filter-wrapper';
 
-    // Filter bar (collapsible)
-    this._filterBarEl = document.createElement('div');
-    this._filterBarEl.className = 'browser-filter-bar hidden';
+    // --- Quick filter row (always visible) ---
+    const quickRow = document.createElement('div');
+    quickRow.className = 'browser-filter-quick';
+
+    // My games only checkbox
+    const meLabel = document.createElement('label');
+    meLabel.className = 'browser-filter-quick-label';
+    this._filterEls.me = document.createElement('input');
+    this._filterEls.me.type = 'checkbox';
+    this._filterEls.me.className = 'browser-filter-checkbox';
+    this._filterEls.me.addEventListener('change', () => this._onFilterChange());
+    meLabel.appendChild(this._filterEls.me);
+    meLabel.appendChild(document.createTextNode(' Mine'));
+    quickRow.appendChild(meLabel);
+
+    // In Progress checkbox
+    const ipLabel = document.createElement('label');
+    ipLabel.className = 'browser-filter-quick-label';
+    this._filterEls.inProgress = document.createElement('input');
+    this._filterEls.inProgress.type = 'checkbox';
+    this._filterEls.inProgress.className = 'browser-filter-checkbox';
+    this._filterEls.inProgress.addEventListener('change', () => this._onFilterChange());
+    ipLabel.appendChild(this._filterEls.inProgress);
+    ipLabel.appendChild(document.createTextNode(' Live'));
+    quickRow.appendChild(ipLabel);
+
+    // Player search (combo box)
+    this._playerDatalistEl = document.createElement('datalist');
+    this._playerDatalistEl.id = 'browser-player-names';
+    this._filterEls.playerSearch = document.createElement('input');
+    this._filterEls.playerSearch.type = 'text';
+    this._filterEls.playerSearch.className = 'browser-filter-input browser-filter-quick-search';
+    this._filterEls.playerSearch.placeholder = 'Player...';
+    this._filterEls.playerSearch.setAttribute('list', 'browser-player-names');
+    this._filterEls.playerSearch.addEventListener('input', () => this._onFilterChange());
+    quickRow.appendChild(this._filterEls.playerSearch);
+    quickRow.appendChild(this._playerDatalistEl);
+
+    // Advanced toggle button (chevron + badge)
+    this._advancedToggleBtn = document.createElement('button');
+    this._advancedToggleBtn.className = 'browser-filter-advanced-toggle';
+    this._advancedToggleBtn.innerHTML = '\u25BC';
+    this._advancedToggleBtn.title = 'More filters';
+    this._advancedToggleBtn.addEventListener('click', () => {
+      this._advancedVisible = !this._advancedVisible;
+      this._advancedPanelEl.classList.toggle('hidden', !this._advancedVisible);
+      this._updateAdvancedToggle();
+    });
+    quickRow.appendChild(this._advancedToggleBtn);
+
+    wrapper.appendChild(quickRow);
+
+    // --- Advanced filter panel (expandable) ---
+    this._advancedPanelEl = document.createElement('div');
+    this._advancedPanelEl.className = 'browser-filter-advanced hidden';
 
     const grid = document.createElement('div');
     grid.className = 'browser-filter-grid';
 
-    // Helper to create a filter group
     const makeGroup = (label, controlEl) => {
       const group = document.createElement('div');
       group.className = 'browser-filter-group';
@@ -599,7 +643,6 @@ class GameBrowser {
       return group;
     };
 
-    // Helper to create a select
     const makeSelect = (options) => {
       const sel = document.createElement('select');
       sel.className = 'browser-filter-select';
@@ -633,7 +676,7 @@ class GameBrowser {
     ]);
     grid.appendChild(makeGroup('Player Type', this._filterEls.playerType));
 
-    // Time Control (dynamic options added later)
+    // Time Control
     this._filterEls.timeControl = makeSelect([['all', 'All']]);
     grid.appendChild(makeGroup('Time Control', this._filterEls.timeControl));
 
@@ -645,23 +688,9 @@ class GameBrowser {
     ]);
     grid.appendChild(makeGroup('Game Type', this._filterEls.gameType));
 
-    // Me (checkbox)
-    const meWrapper = document.createElement('div');
-    meWrapper.className = 'browser-filter-group browser-filter-group-me';
-    const meLabel = document.createElement('label');
-    meLabel.className = 'browser-filter-label browser-filter-me-label';
-    this._filterEls.me = document.createElement('input');
-    this._filterEls.me.type = 'checkbox';
-    this._filterEls.me.className = 'browser-filter-checkbox';
-    this._filterEls.me.addEventListener('change', () => this._onFilterChange());
-    meLabel.appendChild(this._filterEls.me);
-    meLabel.appendChild(document.createTextNode(' My games only'));
-    meWrapper.appendChild(meLabel);
-    grid.appendChild(meWrapper);
-
     // Elo range
     const eloGroup = document.createElement('div');
-    eloGroup.className = 'browser-filter-group';
+    eloGroup.className = 'browser-filter-group browser-filter-group-full';
     const eloLabel = document.createElement('label');
     eloLabel.className = 'browser-filter-label';
     eloLabel.textContent = 'Elo Range';
@@ -676,7 +705,7 @@ class GameBrowser {
     eloRow.appendChild(this._filterEls.eloMin);
     const eloDash = document.createElement('span');
     eloDash.className = 'browser-filter-elo-dash';
-    eloDash.textContent = '–';
+    eloDash.textContent = '\u2013';
     eloRow.appendChild(eloDash);
     this._filterEls.eloMax = document.createElement('input');
     this._filterEls.eloMax.type = 'number';
@@ -687,22 +716,9 @@ class GameBrowser {
     eloGroup.appendChild(eloRow);
     grid.appendChild(eloGroup);
 
-    // Player search (combo box with datalist)
-    this._playerDatalistEl = document.createElement('datalist');
-    this._playerDatalistEl.id = 'browser-player-names';
-    this._filterEls.playerSearch = document.createElement('input');
-    this._filterEls.playerSearch.type = 'text';
-    this._filterEls.playerSearch.className = 'browser-filter-input';
-    this._filterEls.playerSearch.placeholder = 'Search player...';
-    this._filterEls.playerSearch.setAttribute('list', 'browser-player-names');
-    this._filterEls.playerSearch.addEventListener('input', () => this._onFilterChange());
-    const playerGroup = makeGroup('Player', this._filterEls.playerSearch);
-    playerGroup.appendChild(this._playerDatalistEl);
-    grid.appendChild(playerGroup);
+    this._advancedPanelEl.appendChild(grid);
 
-    this._filterBarEl.appendChild(grid);
-
-    // Clear all link
+    // Clear all
     const clearBtn = document.createElement('button');
     clearBtn.className = 'browser-filter-clear';
     clearBtn.textContent = 'Clear all';
@@ -713,6 +729,7 @@ class GameBrowser {
         timeControl: 'all',
         gameType: 'all',
         me: false,
+        inProgress: false,
         eloMin: '',
         eloMax: '',
         playerSearch: ''
@@ -720,9 +737,10 @@ class GameBrowser {
       this._syncFilterDOM();
       this._onFilterChange();
     });
-    this._filterBarEl.appendChild(clearBtn);
+    this._advancedPanelEl.appendChild(clearBtn);
 
-    parent.appendChild(this._filterBarEl);
+    wrapper.appendChild(this._advancedPanelEl);
+    parent.appendChild(wrapper);
   }
 }
 
