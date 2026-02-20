@@ -1521,6 +1521,188 @@ body {
 }
 
 /* =========================================
+   Analysis Review
+   ========================================= */
+
+/* Analyze button in header */
+.replay-analyze-btn {
+  background: #3d3a37;
+  border: none;
+  color: #ccc;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.15s, color 0.15s;
+  margin-right: 8px;
+}
+
+.replay-analyze-btn:hover {
+  background: #4a9e5c;
+  color: #fff;
+}
+
+.replay-analyze-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Progress bar */
+.analysis-progress {
+  height: 3px;
+  background: #3d3a37;
+  width: 100%;
+  overflow: hidden;
+}
+
+.analysis-progress.hidden {
+  display: none;
+}
+
+.analysis-progress-fill {
+  height: 100%;
+  background: #4a9e5c;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* Classification icons in move strips */
+.analysis-icon {
+  font-size: 0.6rem;
+  margin-right: 1px;
+  font-weight: bold;
+  font-style: normal;
+  vertical-align: middle;
+}
+
+.analysis-best { color: #4a9e5c; }
+.analysis-good { color: #7ec894; }
+.analysis-inaccuracy { color: #ffd700; }
+.analysis-mistake { color: #ff9800; }
+.analysis-blunder { color: #ff6b6b; }
+
+/* Critical moment marker on move strip items */
+.analysis-critical {
+  border-left: 2px solid #ff6b6b !important;
+  padding-left: 5px !important;
+}
+
+/* Move detail panel */
+.analysis-detail {
+  padding: 6px 12px;
+  background: #272522;
+  border-top: 1px solid #3d3a37;
+  font-size: 0.78rem;
+  color: #ccc;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.analysis-detail.hidden {
+  display: none;
+}
+
+.analysis-detail-classification {
+  font-weight: 600;
+}
+
+.analysis-detail-eval {
+  font-family: 'Courier New', Courier, monospace;
+  color: #e0e0e0;
+}
+
+.analysis-detail-best,
+.analysis-detail-line {
+  color: #999;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Accuracy summary panel */
+.analysis-accuracy {
+  padding: 8px 16px;
+  border-top: 1px solid #3d3a37;
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.analysis-accuracy.hidden {
+  display: none;
+}
+
+.accuracy-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.accuracy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.78rem;
+}
+
+.accuracy-label {
+  color: #999;
+}
+
+.accuracy-value {
+  font-weight: 600;
+  color: #e0e0e0;
+  font-size: 0.85rem;
+}
+
+.accuracy-bar {
+  height: 4px;
+  background: #3d3a37;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.accuracy-fill {
+  height: 100%;
+  background: #4a9e5c;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.accuracy-breakdown {
+  font-size: 0.65rem;
+  color: #666;
+  letter-spacing: 0.3px;
+}
+
+/* Critical moment navigation buttons */
+.replay-btn-crit {
+  background: #3d3a37;
+  border: none;
+  color: #999;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.replay-btn-crit:hover {
+  background: #4a4744;
+  color: #ff6b6b;
+}
+
+.replay-btn-crit:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.replay-btn-crit.hidden {
+  display: none;
+}
+
+/* =========================================
    Game Browser
    ========================================= */
 

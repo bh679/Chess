@@ -2,10 +2,16 @@
  * GameBrowser — Modal overlay listing past games with pagination.
  * Two tabs: "My Games" (filtered by localStorage IDs) and "Public" (all server games).
  * Click a game to open it in the ReplayViewer.
+ *
+ * Analysis Review integration: after opening a game in the replay viewer,
+ * wires up the Analyze button to run Board Analysis and display results.
  */
+
+import { AnalysisEngine } from './analysis.js';
 
 const PAGE_SIZE = 15;
 const MIN_DISPLAY_MOVES = 4; // at least 2 moves per player
+const CACHE_KEY = 'chess-analysis-cache';
 
 class GameBrowser {
   constructor(database, replayViewer) {
@@ -22,7 +28,11 @@ class GameBrowser {
     this._currentPage = 0;
     this._totalGames = 0;
     this._activeTab = 'mine'; // 'mine' | 'public'
+    this._analysisEngine = null; // lazy-created on first analyze
     this._buildDOM();
+
+    // Wire up the analyze callback on the replay viewer
+    this._replay.setAnalyzeCallback((game) => this._runAnalysis(game));
   }
 
   /**
@@ -40,6 +50,68 @@ class GameBrowser {
    */
   close() {
     this._overlay.classList.add('hidden');
+  }
+
+  // --- Analysis ---
+
+  /**
+   * Run analysis on a game, checking cache first.
+   * @param {Object} game — full game record
+   */
+  async _runAnalysis(game) {
+    // Check cache for existing analysis
+    const serverId = game.serverId || null;
+    const cached = this._loadCachedAnalysis(serverId);
+    if (cached) {
+      this._replay.setAnalysis(cached);
+      return;
+    }
+
+    // Lazily create engine
+    if (!this._analysisEngine) {
+      this._analysisEngine = new AnalysisEngine();
+    }
+
+    const totalPositions = game.moves.length + 1;
+    this._replay.showAnalysisProgress(0, totalPositions);
+
+    try {
+      const result = await this._analysisEngine.analyze(
+        game.moves,
+        game.startingFen,
+        {
+          depth: 18,
+          serverId: serverId,
+          onProgress: ({ current, total }) => {
+            this._replay.showAnalysisProgress(current, total);
+          }
+        }
+      );
+      this._replay.setAnalysis(result);
+    } catch (err) {
+      if (err !== 'stopped') {
+        console.warn('Analysis failed:', err);
+      }
+      this._replay.hideAnalysisProgress();
+    }
+  }
+
+  /**
+   * Load cached analysis from localStorage.
+   * @param {number|null} serverId
+   * @returns {Object|null}
+   */
+  _loadCachedAnalysis(serverId) {
+    if (!serverId) return null;
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const cache = JSON.parse(raw);
+      const entry = cache.entries[serverId];
+      return entry ? entry.result : null;
+    } catch {
+      return null;
+    }
   }
 
   // --- Tab Switching ---
@@ -221,7 +293,7 @@ class GameBrowser {
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'browser-close-btn';
-    closeBtn.textContent = '×';
+    closeBtn.textContent = '\u00D7';
     closeBtn.addEventListener('click', () => this.close());
     header.appendChild(closeBtn);
 

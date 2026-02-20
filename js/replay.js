@@ -2,12 +2,24 @@
  * ReplayViewer — Full-screen overlay for replaying saved chess games.
  * Uses a lightweight static board renderer (FEN → DOM), horizontal
  * per-color move strips, reconstructed clocks, and playback controls.
+ *
+ * Analysis Review integration: after Board Analysis completes, call
+ * setAnalysis(result) to enrich the replay with move classifications,
+ * accuracy bars, a detail panel, and critical moment navigation.
  */
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const PIECE_MAP = {
   K: 'wK', Q: 'wQ', R: 'wR', B: 'wB', N: 'wN', P: 'wP',
   k: 'bK', q: 'bQ', r: 'bR', b: 'bB', n: 'bN', p: 'bP',
+};
+
+const CLASSIFICATION_ICONS = {
+  best:       { text: '\u2713', cls: 'analysis-best' },       // checkmark
+  good:       { text: '\u25CF', cls: 'analysis-good' },       // dot
+  inaccuracy: { text: '?!',    cls: 'analysis-inaccuracy' },
+  mistake:    { text: '?',     cls: 'analysis-mistake' },
+  blunder:    { text: '??',    cls: 'analysis-blunder' },
 };
 
 class ReplayViewer {
@@ -31,6 +43,22 @@ class ReplayViewer {
     this._titleEl = null;
     this._subtitleEl = null;
     this._keyHandler = null;
+
+    // Analysis Review fields
+    this._analysisData = null;
+    this._analyzeCallback = null;
+    this._analyzeBtn = null;
+    this._progressBarEl = null;
+    this._progressFillEl = null;
+    this._detailPanel = null;
+    this._detailClassEl = null;
+    this._detailEvalEl = null;
+    this._detailBestEl = null;
+    this._detailLineEl = null;
+    this._accuracyPanel = null;
+    this._critPrevBtn = null;
+    this._critNextBtn = null;
+
     this._buildDOM();
   }
 
@@ -42,18 +70,22 @@ class ReplayViewer {
     this._currentPly = -1;
     this._isPlaying = false;
 
+    // Reset analysis state
+    this._analysisData = null;
+    this._resetAnalysisUI();
+
     // Render title
     const date = new Date(gameRecord.startTime);
     const dateStr = date.toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', year: 'numeric',
     });
     this._titleEl.textContent =
-      `${gameRecord.white.name} vs ${gameRecord.black.name} — ${dateStr}`;
+      `${gameRecord.white.name} vs ${gameRecord.black.name} \u2014 ${dateStr}`;
 
     // Render subtitle (game mode + time control)
     const gameType = gameRecord.gameType === 'chess960' ? 'Chess960' : 'Standard';
     const timeControl = gameRecord.timeControl || 'No Timer';
-    this._subtitleEl.textContent = `${gameType} • ${timeControl}`;
+    this._subtitleEl.textContent = `${gameType} \u2022 ${timeControl}`;
 
     // Render result
     if (gameRecord.result) {
@@ -91,9 +123,285 @@ class ReplayViewer {
     this._stopPlayback();
     this._overlay.classList.add('hidden');
     this._game = null;
+    this._analysisData = null;
     if (this._keyHandler) {
       document.removeEventListener('keydown', this._keyHandler);
       this._keyHandler = null;
+    }
+  }
+
+  // --- Analysis Review Integration ---
+
+  /**
+   * Set a callback that runs analysis when the Analyze button is clicked.
+   * Called by GameBrowser after opening a game.
+   * @param {Function} callback — receives (gameRecord)
+   */
+  setAnalyzeCallback(callback) {
+    this._analyzeCallback = callback;
+  }
+
+  /**
+   * Accept analysis results and enrich the replay UI.
+   * @param {Object} analysisResult — from AnalysisEngine.analyze()
+   */
+  setAnalysis(analysisResult) {
+    this._analysisData = analysisResult;
+
+    // Hide progress, hide analyze button
+    this.hideAnalysisProgress();
+    this._analyzeBtn.classList.add('hidden');
+
+    // Add classification icons to move strips
+    this._addClassificationIcons();
+
+    // Render accuracy summary
+    this._renderAccuracySummary();
+
+    // Show critical moment nav buttons
+    this._updateCriticalNav();
+
+    // Show detail panel for current move
+    this._updateDetailPanel();
+  }
+
+  /**
+   * Show analysis progress bar.
+   * @param {number} current
+   * @param {number} total
+   */
+  showAnalysisProgress(current, total) {
+    this._progressBarEl.classList.remove('hidden');
+    const pct = total > 0 ? (current / total * 100) : 0;
+    this._progressFillEl.style.width = `${pct}%`;
+  }
+
+  /**
+   * Hide analysis progress bar and re-enable the analyze button.
+   */
+  hideAnalysisProgress() {
+    this._progressBarEl.classList.add('hidden');
+    this._progressFillEl.style.width = '0%';
+    if (this._analyzeBtn) {
+      this._analyzeBtn.disabled = false;
+    }
+  }
+
+  /**
+   * Reset all analysis UI elements to their default hidden state.
+   */
+  _resetAnalysisUI() {
+    // Show analyze button
+    if (this._analyzeBtn) {
+      this._analyzeBtn.classList.remove('hidden');
+      this._analyzeBtn.disabled = false;
+    }
+    // Hide progress
+    if (this._progressBarEl) {
+      this._progressBarEl.classList.add('hidden');
+      this._progressFillEl.style.width = '0%';
+    }
+    // Hide detail panel
+    if (this._detailPanel) {
+      this._detailPanel.classList.add('hidden');
+    }
+    // Hide accuracy panel
+    if (this._accuracyPanel) {
+      this._accuracyPanel.classList.add('hidden');
+      this._accuracyPanel.innerHTML = '';
+    }
+    // Hide critical nav
+    if (this._critPrevBtn) this._critPrevBtn.classList.add('hidden');
+    if (this._critNextBtn) this._critNextBtn.classList.add('hidden');
+  }
+
+  /**
+   * Add classification icons to move strip elements.
+   */
+  _addClassificationIcons() {
+    if (!this._analysisData) return;
+
+    const moveEls = this._overlay.querySelectorAll('.strip-move[data-ply]');
+    const criticalSet = new Set(this._analysisData.criticalMoments);
+
+    moveEls.forEach(el => {
+      const ply = parseInt(el.dataset.ply, 10);
+      // analysis positions[0] = starting pos, positions[ply+1] = after move at ply index
+      const posIdx = ply + 1;
+      if (posIdx >= this._analysisData.positions.length) return;
+
+      const pos = this._analysisData.positions[posIdx];
+      if (!pos || !pos.classification) return;
+
+      const iconDef = CLASSIFICATION_ICONS[pos.classification];
+      if (!iconDef) return;
+
+      // Remove any existing icon
+      const existing = el.querySelector('.analysis-icon');
+      if (existing) existing.remove();
+
+      const icon = document.createElement('span');
+      icon.className = `analysis-icon ${iconDef.cls}`;
+      icon.textContent = iconDef.text;
+      el.prepend(icon);
+
+      // Mark critical moments
+      if (criticalSet.has(posIdx)) {
+        el.classList.add('analysis-critical');
+      }
+    });
+  }
+
+  /**
+   * Render accuracy summary below controls.
+   */
+  _renderAccuracySummary() {
+    if (!this._analysisData || !this._accuracyPanel) return;
+
+    const summary = this._analysisData.summary;
+    this._accuracyPanel.innerHTML = '';
+    this._accuracyPanel.classList.remove('hidden');
+
+    for (const side of ['white', 'black']) {
+      const s = summary[side];
+      const div = document.createElement('div');
+      div.className = 'accuracy-side';
+
+      const header = document.createElement('div');
+      header.className = 'accuracy-header';
+
+      const label = document.createElement('span');
+      label.className = 'accuracy-label';
+      label.textContent = side === 'white' ? 'White' : 'Black';
+      header.appendChild(label);
+
+      const value = document.createElement('span');
+      value.className = 'accuracy-value';
+      value.textContent = `${s.accuracy}%`;
+      header.appendChild(value);
+
+      div.appendChild(header);
+
+      const barOuter = document.createElement('div');
+      barOuter.className = 'accuracy-bar';
+      const barFill = document.createElement('div');
+      barFill.className = 'accuracy-fill';
+      barFill.style.width = `${s.accuracy}%`;
+      barOuter.appendChild(barFill);
+      div.appendChild(barOuter);
+
+      const breakdown = document.createElement('div');
+      breakdown.className = 'accuracy-breakdown';
+      breakdown.textContent = `B:${s.best} G:${s.good} I:${s.inaccuracy} M:${s.mistake} BL:${s.blunder}`;
+      div.appendChild(breakdown);
+
+      this._accuracyPanel.appendChild(div);
+    }
+  }
+
+  /**
+   * Update the detail panel for the current move.
+   */
+  _updateDetailPanel() {
+    if (!this._analysisData || !this._detailPanel) {
+      if (this._detailPanel) this._detailPanel.classList.add('hidden');
+      return;
+    }
+
+    // positions[0] = starting, positions[ply+1] = after move ply
+    const posIdx = this._currentPly + 1;
+    if (posIdx < 0 || posIdx >= this._analysisData.positions.length) {
+      this._detailPanel.classList.add('hidden');
+      return;
+    }
+
+    const pos = this._analysisData.positions[posIdx];
+    this._detailPanel.classList.remove('hidden');
+
+    // Classification + cpLoss
+    if (pos.classification) {
+      const iconDef = CLASSIFICATION_ICONS[pos.classification] || {};
+      this._detailClassEl.innerHTML = '';
+      const icon = document.createElement('span');
+      icon.className = `analysis-icon ${iconDef.cls || ''}`;
+      icon.textContent = iconDef.text || '';
+      this._detailClassEl.appendChild(icon);
+      const label = document.createElement('span');
+      const classLabel = pos.classification.charAt(0).toUpperCase() + pos.classification.slice(1);
+      label.textContent = ` ${classLabel}${pos.cpLoss > 0 ? ` (${pos.cpLoss}cp)` : ''}`;
+      this._detailClassEl.appendChild(label);
+    } else {
+      this._detailClassEl.textContent = 'Starting position';
+    }
+
+    // Eval
+    const evalPawns = pos.eval / 100;
+    const evalSign = evalPawns >= 0 ? '+' : '';
+    const evalDisplay = Math.abs(pos.eval) >= 9900
+      ? (pos.eval > 0 ? '+M' : '-M')
+      : `${evalSign}${evalPawns.toFixed(2)}`;
+    this._detailEvalEl.textContent = `Eval: ${evalDisplay}`;
+
+    // Best move
+    if (pos.bestMoveUci) {
+      this._detailBestEl.textContent = `Best: ${pos.bestMoveUci}`;
+    } else {
+      this._detailBestEl.textContent = '';
+    }
+
+    // PV line (first 5 moves)
+    if (pos.bestLineUci && pos.bestLineUci.length > 0) {
+      const line = pos.bestLineUci.slice(0, 5).join(' ');
+      this._detailLineEl.textContent = `Line: ${line}`;
+    } else {
+      this._detailLineEl.textContent = '';
+    }
+  }
+
+  /**
+   * Update critical moment navigation button states.
+   */
+  _updateCriticalNav() {
+    if (!this._analysisData || !this._analysisData.criticalMoments.length) {
+      if (this._critPrevBtn) this._critPrevBtn.classList.add('hidden');
+      if (this._critNextBtn) this._critNextBtn.classList.add('hidden');
+      return;
+    }
+
+    this._critPrevBtn.classList.remove('hidden');
+    this._critNextBtn.classList.remove('hidden');
+
+    const moments = this._analysisData.criticalMoments;
+    const curPos = this._currentPly + 1; // current analysis position index
+
+    const prevCrit = moments.filter(m => m < curPos);
+    const nextCrit = moments.filter(m => m > curPos);
+
+    this._critPrevBtn.disabled = prevCrit.length === 0;
+    this._critNextBtn.disabled = nextCrit.length === 0;
+  }
+
+  _goToPrevCritical() {
+    if (!this._analysisData) return;
+    const moments = this._analysisData.criticalMoments;
+    const curPos = this._currentPly + 1;
+    const prev = moments.filter(m => m < curPos);
+    if (prev.length > 0) {
+      const targetPos = prev[prev.length - 1];
+      this._stopPlayback();
+      this._goToMove(targetPos - 1); // convert analysis position to ply
+    }
+  }
+
+  _goToNextCritical() {
+    if (!this._analysisData) return;
+    const moments = this._analysisData.criticalMoments;
+    const curPos = this._currentPly + 1;
+    const next = moments.filter(m => m > curPos);
+    if (next.length > 0) {
+      const targetPos = next[0];
+      this._stopPlayback();
+      this._goToMove(targetPos - 1); // convert analysis position to ply
     }
   }
 
@@ -263,6 +571,12 @@ class ReplayViewer {
     this._highlightCurrentMove();
     this._updateButtons();
     this._updateTimers();
+
+    // Update analysis detail panel if analysis exists
+    if (this._analysisData) {
+      this._updateDetailPanel();
+      this._updateCriticalNav();
+    }
   }
 
   _next() {
@@ -306,7 +620,7 @@ class ReplayViewer {
       this._goToMove(-1);
     }
     this._isPlaying = true;
-    this._playBtn.textContent = '⏸';
+    this._playBtn.textContent = '\u23F8';
     this._playBtn.classList.add('playing');
     this._scheduleNext();
   }
@@ -319,7 +633,7 @@ class ReplayViewer {
       this._playbackTimer = null;
     }
     if (this._playBtn) {
-      this._playBtn.textContent = '▶';
+      this._playBtn.textContent = '\u25B6';
       this._playBtn.classList.remove('playing');
     }
   }
@@ -541,7 +855,7 @@ class ReplayViewer {
     const reason = reasons[game.resultReason] || '';
 
     if (game.result === 'draw') {
-      return reason ? `Draw — ${reason}` : 'Draw';
+      return reason ? `Draw \u2014 ${reason}` : 'Draw';
     }
 
     const winner = game.result === 'white' ? 'White' : 'Black';
@@ -574,13 +888,33 @@ class ReplayViewer {
 
     header.appendChild(gameInfo);
 
+    // Analyze button (before close button)
+    this._analyzeBtn = document.createElement('button');
+    this._analyzeBtn.className = 'replay-analyze-btn';
+    this._analyzeBtn.textContent = 'Analyze';
+    this._analyzeBtn.addEventListener('click', () => {
+      if (this._analyzeCallback && this._game) {
+        this._analyzeBtn.disabled = true;
+        this._analyzeCallback(this._game);
+      }
+    });
+    header.appendChild(this._analyzeBtn);
+
     const closeBtn = document.createElement('button');
     closeBtn.className = 'replay-close-btn';
-    closeBtn.textContent = '×';
+    closeBtn.textContent = '\u00D7';
     closeBtn.addEventListener('click', () => this.close());
     header.appendChild(closeBtn);
 
     container.appendChild(header);
+
+    // Progress bar (below header)
+    this._progressBarEl = document.createElement('div');
+    this._progressBarEl.className = 'analysis-progress hidden';
+    this._progressFillEl = document.createElement('div');
+    this._progressFillEl.className = 'analysis-progress-fill';
+    this._progressBarEl.appendChild(this._progressFillEl);
+    container.appendChild(this._progressBarEl);
 
     // Body
     const body = document.createElement('div');
@@ -628,22 +962,62 @@ class ReplayViewer {
     const controls = document.createElement('div');
     controls.className = 'replay-controls';
 
-    const btnStart = this._createBtn('replay-start', '|◀', () => this._goToStart());
-    const btnPrev = this._createBtn('replay-prev', '◀', () => this._prev());
-    this._playBtn = this._createBtn('replay-play', '▶', () => this._togglePlay());
+    this._critPrevBtn = document.createElement('button');
+    this._critPrevBtn.className = 'replay-btn-crit hidden';
+    this._critPrevBtn.textContent = '\u25C0 Crit';
+    this._critPrevBtn.addEventListener('click', () => this._goToPrevCritical());
+    controls.appendChild(this._critPrevBtn);
+
+    const btnStart = this._createBtn('replay-start', '|\u25C0', () => this._goToStart());
+    const btnPrev = this._createBtn('replay-prev', '\u25C0', () => this._prev());
+    this._playBtn = this._createBtn('replay-play', '\u25B6', () => this._togglePlay());
     this._playBtn.classList.add('replay-btn-play');
-    const btnNext = this._createBtn('replay-next', '▶', () => this._next());
-    const btnEnd = this._createBtn('replay-end', '▶|', () => this._goToEnd());
+    const btnNext = this._createBtn('replay-next', '\u25B6', () => this._next());
+    const btnEnd = this._createBtn('replay-end', '\u25B6|', () => this._goToEnd());
 
     controls.appendChild(btnStart);
     controls.appendChild(btnPrev);
     controls.appendChild(this._playBtn);
     controls.appendChild(btnNext);
     controls.appendChild(btnEnd);
+
+    this._critNextBtn = document.createElement('button');
+    this._critNextBtn.className = 'replay-btn-crit hidden';
+    this._critNextBtn.textContent = 'Crit \u25B6';
+    this._critNextBtn.addEventListener('click', () => this._goToNextCritical());
+    controls.appendChild(this._critNextBtn);
+
     boardArea.appendChild(controls);
+
+    // Analysis detail panel (below controls, inside board area)
+    this._detailPanel = document.createElement('div');
+    this._detailPanel.className = 'analysis-detail hidden';
+
+    this._detailClassEl = document.createElement('div');
+    this._detailClassEl.className = 'analysis-detail-classification';
+    this._detailPanel.appendChild(this._detailClassEl);
+
+    this._detailEvalEl = document.createElement('div');
+    this._detailEvalEl.className = 'analysis-detail-eval';
+    this._detailPanel.appendChild(this._detailEvalEl);
+
+    this._detailBestEl = document.createElement('div');
+    this._detailBestEl.className = 'analysis-detail-best';
+    this._detailPanel.appendChild(this._detailBestEl);
+
+    this._detailLineEl = document.createElement('div');
+    this._detailLineEl.className = 'analysis-detail-line';
+    this._detailPanel.appendChild(this._detailLineEl);
+
+    boardArea.appendChild(this._detailPanel);
 
     body.appendChild(boardArea);
     container.appendChild(body);
+
+    // Accuracy summary panel (below body)
+    this._accuracyPanel = document.createElement('div');
+    this._accuracyPanel.className = 'analysis-accuracy hidden';
+    container.appendChild(this._accuracyPanel);
 
     // Result
     this._resultEl = document.createElement('div');
@@ -660,7 +1034,7 @@ class ReplayViewer {
 
     const leftBtn = document.createElement('button');
     leftBtn.className = 'strip-scroll-btn strip-scroll-btn-left';
-    leftBtn.textContent = '◀';
+    leftBtn.textContent = '\u25C0';
     strip.appendChild(leftBtn);
 
     const moves = document.createElement('div');
@@ -669,7 +1043,7 @@ class ReplayViewer {
 
     const rightBtn = document.createElement('button');
     rightBtn.className = 'strip-scroll-btn strip-scroll-btn-right';
-    rightBtn.textContent = '▶';
+    rightBtn.textContent = '\u25B6';
     strip.appendChild(rightBtn);
 
     // Setup scroll buttons after strip is added to DOM
