@@ -285,8 +285,8 @@ function startNewGame() {
   playerIconBlack.textContent = bIsAI ? '🤖' : '👤';
   const wEloVal = parseInt(aiWhiteEloSlider.value, 10);
   const bEloVal = parseInt(aiBlackEloSlider.value, 10);
-  const wName = wIsAI ? 'Stockfish' : (customWhiteName || 'Human');
-  const bName = bIsAI ? 'Stockfish' : (customBlackName || 'Human');
+  const wName = wIsAI ? ai.getEngineName() : (customWhiteName || 'Human');
+  const bName = bIsAI ? ai.getEngineName() : (customBlackName || 'Human');
   playerNameWhite.textContent = wName;
   playerNameBlack.textContent = bName;
   playerEloWhite.textContent = wIsAI ? wEloVal : '';
@@ -306,12 +306,12 @@ function startNewGame() {
     timeControl: getTimeControlLabel(),
     startingFen: game.chess.fen(),
     white: {
-      name: wIsAI ? `Stockfish ${wEloVal}` : wName,
+      name: wIsAI ? `${ai.getEngineName()} ${wEloVal}` : wName,
       isAI: wIsAI,
       elo: wIsAI ? wEloVal : null,
     },
     black: {
-      name: bIsAI ? `Stockfish ${bEloVal}` : bName,
+      name: bIsAI ? `${ai.getEngineName()} ${bEloVal}` : bName,
       isAI: bIsAI,
       elo: bIsAI ? bEloVal : null,
     },
