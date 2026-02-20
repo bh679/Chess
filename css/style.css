@@ -551,6 +551,24 @@ body {
   outline: none;
 }
 
+.engine-switch-select {
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 4px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.engine-switch-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
 .player-elo {
   color: var(--text-secondary);
   font-size: 0.7rem;
@@ -855,25 +873,27 @@ body {
 
 .ai-side-control {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
 .engine-select {
-  width: 100%;
-  max-width: 160px;
-  padding: 4px 6px;
-  font-size: 0.7rem;
-  background: #1a1816;
-  color: #e0e0e0;
-  border: 1px solid #4a4744;
-  border-radius: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-family: inherit;
   transition: max-height 0.3s ease, opacity 0.2s ease;
   overflow: hidden;
-  max-height: 30px;
+  max-height: 36px;
   opacity: 1;
+  appearance: auto;
 }
 
 .engine-select.hidden {
@@ -886,15 +906,16 @@ body {
 
 .engine-select:focus {
   outline: none;
-  border-color: #4a9e5c;
+  border-color: var(--accent);
 }
 
 .engine-select option {
-  background: #272522;
-  color: #e0e0e0;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .ai-elo-wrapper {
+  flex: 0 0 100%;
   display: flex;
   align-items: center;
   gap: 6px;

@@ -688,14 +688,68 @@ function startNameEdit(nameEl, side) {
   });
 }
 
+function startEngineSwitch(nameEl, side) {
+  if (isReplayMode) return;
+  if (nameEl.querySelector('.engine-switch-select')) return;
+
+  const isWhite = side === 'white';
+  const settingsSelect = isWhite ? aiWhiteEngineSelect : aiBlackEngineSelect;
+  const currentEngineId = settingsSelect.value;
+  const currentName = nameEl.textContent;
+
+  const select = document.createElement('select');
+  select.className = 'engine-switch-select';
+  const engines = getAllEngines();
+  for (const eng of engines) {
+    const opt = document.createElement('option');
+    opt.value = eng.id;
+    opt.textContent = `${eng.icon} ${eng.name}`;
+    if (eng.id === currentEngineId) opt.selected = true;
+    select.appendChild(opt);
+  }
+
+  nameEl.textContent = '';
+  nameEl.appendChild(select);
+  select.focus();
+
+  function commit() {
+    const newId = select.value;
+    if (nameEl.contains(select)) {
+      nameEl.removeChild(select);
+    }
+    if (newId !== currentEngineId) {
+      settingsSelect.value = newId;
+      settingsSelect.dispatchEvent(new Event('change'));
+      startNewGame();
+    } else {
+      nameEl.textContent = currentName;
+    }
+  }
+
+  select.addEventListener('change', commit);
+  select.addEventListener('blur', () => {
+    if (nameEl.contains(select)) {
+      nameEl.textContent = currentName;
+    }
+  });
+}
+
 playerNameWhite.addEventListener('click', (e) => {
   e.stopPropagation();
-  startNameEdit(playerNameWhite, 'white');
+  if (aiWhiteToggle.checked) {
+    startEngineSwitch(playerNameWhite, 'white');
+  } else {
+    startNameEdit(playerNameWhite, 'white');
+  }
 });
 
 playerNameBlack.addEventListener('click', (e) => {
   e.stopPropagation();
-  startNameEdit(playerNameBlack, 'black');
+  if (aiBlackToggle.checked) {
+    startEngineSwitch(playerNameBlack, 'black');
+  } else {
+    startNameEdit(playerNameBlack, 'black');
+  }
 });
 
 // Game history button
