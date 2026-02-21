@@ -10,7 +10,7 @@
  */
 
 const CACHE_KEY = 'chess-analysis-cache';
-const CACHE_VERSION = 2;  // Bump when classification format changes
+const CACHE_VERSION = 3;  // Bump when classification format changes
 const MAX_CACHE_ENTRIES = 20;
 const MATE_CP = 10000;
 
@@ -333,10 +333,27 @@ class AnalysisEngine {
       const isStarting = i === 0;
       const move = isStarting ? null : moves[i - 1];
 
+      let posEval = result.eval;
+
+      // Fix terminal positions: when the engine returns no bestmove and no
+      // info (eval defaults to 0), the position is checkmate or stalemate.
+      // Assign the correct eval so cpLoss calculations aren't distorted.
+      if (!isStarting && result.bestMoveUci == null && result.eval === 0) {
+        const isLast = i === total - 1;
+        if (isLast) {
+          // Terminal position — side to move has no legal moves.
+          // If it's checkmate, the side to move lost.
+          const sideToMove = fen.split(' ')[1] || 'w';
+          // Assume checkmate (not stalemate) — stalemate eval=0 is correct.
+          // For checkmate: mated side is losing, so eval is worst for them.
+          posEval = sideToMove === 'w' ? -MATE_CP : MATE_CP;
+        }
+      }
+
       positions.push({
         ply: i,
         fen,
-        eval: result.eval,
+        eval: posEval,
         bestMoveUci: result.bestMoveUci,
         bestLineUci: result.bestLineUci,
         played: isStarting ? null : move.san,
@@ -355,6 +372,14 @@ class AnalysisEngine {
       const prev = positions[i - 1];
       const curr = positions[i];
       const side = curr.playedSide;
+
+      // Delivering checkmate is always the best move — skip cpLoss calculation
+      const isTerminal = i === positions.length - 1 && curr.bestMoveUci == null;
+      if (isTerminal && Math.abs(curr.eval) >= MATE_CP) {
+        curr.cpLoss = 0;
+        curr.classification = 'best';
+        continue;
+      }
 
       let cpLoss;
       if (side === 'w') {
@@ -531,7 +556,7 @@ class AnalysisEngine {
    */
   _calculateAccuracy(positions) {
     const template = {
-      totalCpLoss: 0, moveCount: 0,
+      totalAccuracy: 0, moveCount: 0,
       brilliant: 0, great: 0, best: 0, excellent: 0, good: 0,
       book: 0, inaccuracy: 0, mistake: 0, miss: 0, blunder: 0
     };
@@ -545,18 +570,33 @@ class AnalysisEngine {
       if (pos.classification == null) continue;
 
       const side = pos.playedSide === 'w' ? 'white' : 'black';
-      stats[side].totalCpLoss += pos.cpLoss;
       stats[side].moveCount++;
       if (stats[side][pos.classification] != null) {
         stats[side][pos.classification]++;
       }
+
+      // Win-probability-based per-move accuracy.
+      // Compares win probability before and after the move from the
+      // moving side's perspective. A perfect move loses 0 expected points;
+      // a terrible move can lose up to 1.0 expected points.
+      const prev = positions[i - 1];
+      const prevWP = this._winProbability(prev.eval);
+      const currWP = this._winProbability(pos.eval);
+      const prevSideWP = pos.playedSide === 'w' ? prevWP : 1 - prevWP;
+      const currSideWP = pos.playedSide === 'w' ? currWP : 1 - currWP;
+      const epLost = Math.max(0, prevSideWP - currSideWP);
+      // Map expected points lost to a 0-100 accuracy score per move.
+      // Scale factor of 2 means losing 0.5 expected points ≈ 0% accuracy.
+      const moveAcc = Math.max(0, Math.min(100, 100 * (1 - epLost * 2)));
+      stats[side].totalAccuracy += moveAcc;
     }
 
     for (const side of ['white', 'black']) {
       const s = stats[side];
-      const avgCpLoss = s.moveCount > 0 ? s.totalCpLoss / s.moveCount : 0;
-      s.accuracy = Math.round(Math.max(0, 100 - avgCpLoss * 0.5) * 10) / 10;
-      delete s.totalCpLoss;
+      s.accuracy = s.moveCount > 0
+        ? Math.round(s.totalAccuracy / s.moveCount * 10) / 10
+        : 0;
+      delete s.totalAccuracy;
       delete s.moveCount;
     }
 
