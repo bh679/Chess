@@ -149,3 +149,7 @@ archive/
 *.db
 *.sqlite
 *.sqlite3
+
+# Test screenshots
+screenshots/
+test-results/
