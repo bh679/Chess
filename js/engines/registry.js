@@ -18,32 +18,16 @@ const ENGINE_REGISTRY = {
     load: () => import('./stockfish-engine.js').then(m => m.StockfishEngine),
   },
 
-  // Leela Chess Zero and Fairy-Stockfish require complex Emscripten
-  // integration (multi-threaded WASM, TensorFlow.js). The engine
-  // classes exist but the WASM binaries are not yet bundled.
-  // Uncomment when the integration is ready:
-  //
-  // lc0: {
-  //   id: 'lc0',
-  //   name: 'Leela Chess Zero',
-  //   description: 'Neural network engine. Human-like play.',
-  //   icon: '\uD83E\uDDE0',
-  //   eloRange: { min: 1200, max: 2400, step: 100, default: 1800 },
-  //   supportsChess960: false,
-  //   estimatedLoadSize: '15 MB',
-  //   load: () => import('./lc0-engine.js').then(m => m.Lc0Engine),
-  // },
-  //
-  // 'fairy-stockfish': {
-  //   id: 'fairy-stockfish',
-  //   name: 'Fairy-Stockfish',
-  //   description: 'Variant engine. Supports chess variants.',
-  //   icon: '\uD83E\uDDDA',
-  //   eloRange: { min: 100, max: 3200, step: 50, default: 1500 },
-  //   supportsChess960: true,
-  //   estimatedLoadSize: '8 MB',
-  //   load: () => import('./fairy-stockfish-engine.js').then(m => m.FairyStockfishEngine),
-  // },
+  'fairy-stockfish': {
+    id: 'fairy-stockfish',
+    name: 'Fairy-Stockfish',
+    description: 'Variant engine with NNUE. Supports chess960 and variants.',
+    icon: '\uD83E\uDDDA',
+    eloRange: { min: 500, max: 2850, step: 50, default: 1500 },
+    supportsChess960: true,
+    estimatedLoadSize: '1.7 MB',
+    load: () => import('./fairy-stockfish-engine.js').then(m => m.FairyStockfishEngine),
+  },
 
   lozza: {
     id: 'lozza',
@@ -70,7 +54,7 @@ const ENGINE_REGISTRY = {
 
 /** Ordered list of engine IDs for UI display. */
 function getEngineIds() {
-  return ['stockfish', 'lozza', 'random'];
+  return ['stockfish', 'fairy-stockfish', 'lozza', 'random'];
 }
 
 /** Get metadata for a specific engine. */
