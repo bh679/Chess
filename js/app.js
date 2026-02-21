@@ -712,10 +712,15 @@ function startEngineSwitch(nameEl, side) {
   nameEl.appendChild(select);
   select.focus();
 
+  let committed = false;
+
   function commit() {
+    if (committed) return;
+    committed = true;
     const newId = select.value;
-    if (nameEl.contains(select)) {
-      nameEl.removeChild(select);
+    // Remove select safely
+    if (select.parentNode) {
+      select.parentNode.removeChild(select);
     }
     if (newId !== currentEngineId) {
       settingsSelect.value = newId;
@@ -728,7 +733,8 @@ function startEngineSwitch(nameEl, side) {
 
   select.addEventListener('change', commit);
   select.addEventListener('blur', () => {
-    if (nameEl.contains(select)) {
+    if (!committed && select.parentNode) {
+      select.parentNode.removeChild(select);
       nameEl.textContent = currentName;
     }
   });
@@ -906,15 +912,29 @@ aiBlackToggle.addEventListener('change', () => {
   updateEloSliderRange('b');
 });
 
-// Engine selector change — update ELO slider range
+// Engine selector change — update ELO slider range and player bar
 aiWhiteEngineSelect.addEventListener('change', () => {
   updateEloSliderRange('w');
   saveEngineSelection();
+  if (aiWhiteToggle.checked) {
+    const info = getEngineInfo(aiWhiteEngineSelect.value);
+    if (info) {
+      playerNameWhite.textContent = info.name;
+      playerIconWhite.textContent = info.icon || '\uD83E\uDD16';
+    }
+  }
 });
 
 aiBlackEngineSelect.addEventListener('change', () => {
   updateEloSliderRange('b');
   saveEngineSelection();
+  if (aiBlackToggle.checked) {
+    const info = getEngineInfo(aiBlackEngineSelect.value);
+    if (info) {
+      playerNameBlack.textContent = info.name;
+      playerIconBlack.textContent = info.icon || '\uD83E\uDD16';
+    }
+  }
 });
 
 /**
@@ -1166,14 +1186,17 @@ function showEloPopup(eloEl, side) {
   const slider = isWhite ? aiWhiteEloSlider : aiBlackEloSlider;
   const settingsValue = isWhite ? aiWhiteEloValue : aiBlackEloValue;
 
+  // Don't show popup for engines with no ELO range (e.g. Random)
+  if (slider.min === slider.max) return;
+
   const popup = document.createElement('div');
   popup.className = 'elo-popup';
 
   const rangeInput = document.createElement('input');
   rangeInput.type = 'range';
-  rangeInput.min = '100';
-  rangeInput.max = '3200';
-  rangeInput.step = '50';
+  rangeInput.min = slider.min;
+  rangeInput.max = slider.max;
+  rangeInput.step = slider.step;
   rangeInput.value = slider.value;
   rangeInput.className = 'elo-slider';
 
