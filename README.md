@@ -62,6 +62,7 @@ A chess game built to practice working with Claude. Runs in the browser with a c
   - Reconstructed clock display from move timestamps
   - Playback controls (play/pause, step forward/back, jump to start/end)
   - Keyboard navigation (arrow keys, space for play/pause)
+- [**URL routing**](https://github.com/bh679/Chess/wiki/Feature:-URL-Routing) — shareable hash-based URLs for game views (`/#/replay?gameid=42`, `/#/games`, `/#/history`, `/#/live`); URL updates live as you navigate with no page refresh; path-based URLs redirect to hash equivalents
 
 ### [Analysis](https://github.com/bh679/Chess/wiki/Feature:-Board-Analysis)
 - [**Post-game summary**](https://github.com/bh679/Chess/wiki/Feature:-Post-Game-Summary) — chess.com-style summary screen with per-player accuracy and 10 move classification types (Brilliant, Great, Best, Excellent, Good, Book, Inaccuracy, Mistake, Miss, Blunder); auto-triggers after every game, also available via "Game Summary" button in replay mode
