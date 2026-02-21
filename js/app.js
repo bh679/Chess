@@ -921,6 +921,7 @@ aiWhiteEngineSelect.addEventListener('change', () => {
     if (info) {
       playerNameWhite.textContent = info.name;
       playerIconWhite.textContent = info.icon || '\uD83E\uDD16';
+      playerEloWhite.textContent = aiWhiteEloSlider.value;
     }
   }
 });
@@ -933,6 +934,7 @@ aiBlackEngineSelect.addEventListener('change', () => {
     if (info) {
       playerNameBlack.textContent = info.name;
       playerIconBlack.textContent = info.icon || '\uD83E\uDD16';
+      playerEloBlack.textContent = aiBlackEloSlider.value;
     }
   }
 });
@@ -960,6 +962,10 @@ function updateEloSliderRange(side) {
   const { min, max, step, default: defaultElo } = info.eloRange;
 
   if (min === max) {
+    slider.min = min;
+    slider.max = max;
+    slider.value = defaultElo;
+    valueEl.textContent = defaultElo;
     wrapper.classList.add('hidden');
     return;
   }
