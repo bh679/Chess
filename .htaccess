@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Don't rewrite if it's an actual file or directory
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Don't rewrite API requests (handled by proxy)
+RewriteCond %{REQUEST_URI} !^/chess/api/
+
+# Rewrite everything else to index.html
+RewriteRule ^ index.html [L]
