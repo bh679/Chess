@@ -724,6 +724,9 @@ function startEngineSwitch(nameEl, side) {
   nameEl.textContent = '';
   nameEl.appendChild(select);
   select.focus();
+  // Open the dropdown immediately so the user doesn't have to click twice
+  try { select.showPicker(); } catch { /* older browsers */ }
+
 
   let committed = false;
 
