@@ -45,7 +45,7 @@ const ENGINE_REGISTRY = {
     name: 'Random Mover',
     description: 'Picks a random legal move. For fun.',
     icon: '\uD83C\uDFB2',
-    eloRange: { min: 0, max: 0, step: 1, default: 0 },
+    eloRange: { min: 100, max: 100, step: 1, default: 100 },
     supportsChess960: true,
     estimatedLoadSize: '0 KB',
     load: () => import('./random-engine.js').then(m => m.RandomEngine),

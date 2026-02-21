@@ -7,7 +7,7 @@ import { Chess } from '../chess.js';
 
 class RandomEngine extends Engine {
   static get engineId() { return 'random'; }
-  static getEloRange() { return { min: 0, max: 0, step: 1, default: 0 }; }
+  static getEloRange() { return { min: 100, max: 100, step: 1, default: 100 }; }
 
   constructor() {
     super();
