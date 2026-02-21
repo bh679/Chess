@@ -1979,6 +1979,212 @@ body {
   font-size: 0.95rem;
 }
 
+/* --- Browser Filters --- */
+
+.browser-filter-wrapper {
+  margin-bottom: 6px;
+}
+
+/* Quick filter row — always visible */
+.browser-filter-quick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+/* Shared quick-row control base — matches #new-game style, smaller */
+.browser-filter-pill,
+.browser-filter-quick-tc,
+.browser-filter-quick-search,
+.browser-filter-advanced-toggle {
+  padding: 4px 10px;
+  background: #272522;
+  color: #999;
+  border: 1px solid #4a4744;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: inherit;
+  line-height: 1.3;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.browser-filter-pill:hover,
+.browser-filter-quick-tc:hover,
+.browser-filter-quick-search:hover,
+.browser-filter-advanced-toggle:hover {
+  border-color: #6a6764;
+  color: #e0e0e0;
+  background: #2d2a27;
+}
+
+.browser-filter-pill:focus,
+.browser-filter-quick-tc:focus,
+.browser-filter-quick-search:focus,
+.browser-filter-advanced-toggle:focus {
+  border-color: #4a9e5c;
+  outline: none;
+}
+
+/* Toggle buttons */
+.browser-filter-pill {
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.browser-filter-pill.browser-filter-toggle-on {
+  background: #4a9e5c;
+  color: #fff;
+  border-color: #4a9e5c;
+}
+
+.browser-filter-pill.browser-filter-toggle-on:hover {
+  background: #3d8a4e;
+  border-color: #3d8a4e;
+}
+
+/* Time control dropdown */
+.browser-filter-quick-tc {
+  max-width: 110px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 22px;
+}
+
+.browser-filter-quick-tc option {
+  background: #272522;
+  color: #e0e0e0;
+}
+
+/* Player search */
+.browser-filter-quick-search {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Advanced toggle (chevron + badge) */
+.browser-filter-advanced-toggle {
+  white-space: nowrap;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+}
+
+.browser-filter-toggle-active {
+  color: #4a9e5c;
+  border-color: #4a9e5c;
+}
+
+.browser-filter-badge {
+  display: inline-block;
+  background: #4a9e5c;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  margin-right: 2px;
+}
+
+/* Advanced filter panel (expandable) */
+.browser-filter-advanced {
+  padding: 10px;
+  background: #1a1816;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.browser-filter-advanced.hidden {
+  display: none;
+}
+
+.browser-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.browser-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.browser-filter-group-full {
+  grid-column: 1 / -1;
+}
+
+.browser-filter-label {
+  color: #888;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.browser-filter-select,
+.browser-filter-input {
+  padding: 5px 8px;
+  background: #2a2725;
+  color: #e0e0e0;
+  border: 1px solid #3d3a37;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.browser-filter-select:focus,
+.browser-filter-input:focus {
+  border-color: #4a9e5c;
+  outline: none;
+}
+
+.browser-filter-select option {
+  background: #2a2725;
+  color: #e0e0e0;
+}
+
+.browser-filter-elo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.browser-filter-elo {
+  width: 70px;
+  flex: 1;
+}
+
+.browser-filter-elo-dash {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.browser-filter-clear {
+  display: block;
+  margin: 8px auto 0;
+  padding: 4px 12px;
+  background: none;
+  color: #888;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-decoration: underline;
+}
+
+.browser-filter-clear:hover {
+  color: #e0e0e0;
+}
+
 /* =========================================
    Replay on Main Board
    ========================================= */

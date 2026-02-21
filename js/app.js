@@ -10,6 +10,7 @@ import { ReplayViewer } from './replay.js';
 import { AnalysisEngine } from './analysis.js';
 import { EvalBar } from './eval-bar.js';
 import { PostGameSummary } from './post-game-summary.js';
+import { Router } from './router.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -132,6 +133,15 @@ const db = new GameDatabase();
 const replayViewer = new ReplayViewer();
 const postGameSummary = new PostGameSummary();
 const gameBrowser = new GameBrowser(db, replayViewer, enterReplayMode);
+const router = new Router();
+
+// Wire browser close callback to update URL
+gameBrowser.setOnClose(() => {
+  const { path } = router.current();
+  if (path === '/games' || path === '/history' || path === '/live') {
+    router.silentUpdate('/');
+  }
+});
 
 let moveCount = 0;
 let gameId = 0;
@@ -531,6 +541,9 @@ async function startNewGame() {
   } else {
     startGameBtn.classList.add('hidden');
   }
+
+  // Update URL to home
+  router.silentUpdate('/');
 }
 
 board.onMove((result) => {
@@ -761,6 +774,7 @@ playerNameBlack.addEventListener('click', (e) => {
 // Game history button
 gameHistoryBtn.addEventListener('click', () => {
   gameBrowser.open();
+  router.silentUpdate('/games');
 });
 
 // Time control select
@@ -1409,6 +1423,11 @@ async function enterReplayMode(gameRecord) {
   resetMainBoardAnalysis();
   if (replayAnalyzeCheckbox && replayAnalyzeCheckbox.checked) {
     runMainBoardAnalysis(gameRecord);
+  }
+
+  // Update URL to reflect replay mode
+  if (gameRecord.id) {
+    router.silentUpdate('/replay', { gameid: gameRecord.id });
   }
 }
 
@@ -2275,7 +2294,59 @@ loadEngineSelection();
 updateEloSliderRange('w');
 updateEloSliderRange('b');
 
-// Initialize DB, then start game (engines load lazily in startNewGame)
-db.open().catch(e => { console.warn('Database unavailable:', e); }).then(() => {
-  startNewGame();
+// --- Route handlers ---
+
+// Helper: fetch a game by server ID and enter replay mode
+async function loadGameById(gameId) {
+  const id = parseInt(gameId, 10);
+  if (isNaN(id)) {
+    router.navigate('/');
+    return;
+  }
+  const rec = await db.getGame(id);
+  if (rec && rec.moves && rec.moves.length > 0) {
+    enterReplayMode(rec);
+  } else {
+    console.warn(`Game ${id} not found or has no moves`);
+    router.navigate('/');
+  }
+}
+
+router.on('/', ({ params }) => {
+  const gameId = params.get('gameid');
+  if (gameId) { loadGameById(gameId); return; }
+  gameBrowser.close();
+  if (isReplayMode) exitReplayMode(true);
+  else if (moveCount === 0) startNewGame();
+});
+
+router.on('/replay', ({ params }) => {
+  const gameId = params.get('gameid');
+  if (gameId) { loadGameById(gameId); return; }
+  router.navigate('/');
+});
+
+router.on('/games', ({ params }) => {
+  const gameId = params.get('gameid');
+  if (gameId) { loadGameById(gameId); return; }
+  gameBrowser.open();
+});
+
+router.on('/history', ({ params }) => {
+  const gameId = params.get('gameid');
+  if (gameId) { loadGameById(gameId); return; }
+  gameBrowser.open({ showLive: false });
+});
+
+router.on('/live', ({ params }) => {
+  const gameId = params.get('gameid');
+  if (gameId) { loadGameById(gameId); return; }
+  gameBrowser.open({ showLive: true });
+});
+
+// Initialize DB, then start routing (engines load lazily in startNewGame)
+Promise.all([
+  db.open().catch(e => { console.warn('Database unavailable:', e); }),
+]).then(() => {
+  router.start();
 });
