@@ -2,7 +2,8 @@ import { Chess } from './chess.js';
 import { Game } from './game.js';
 import { Board } from './board.js';
 import { Timer } from './timer.js?v=2';
-import { AI } from './ai.js?v=2';
+import { AI } from './ai.js?v=3';
+import { getAllEngines, getEngineInfo } from './engines/registry.js';
 import { GameDatabase } from './database.js?v=6';
 import { GameBrowser } from './browser.js?v=3';
 import { ReplayViewer } from './replay.js';
@@ -72,10 +73,12 @@ const settingsPanel = document.getElementById('settings-panel');
 const settingsBackdrop = document.getElementById('settings-backdrop');
 const artStylePicker = document.getElementById('art-style-picker');
 const aiWhiteToggle = document.getElementById('ai-white-toggle');
+const aiWhiteEngineSelect = document.getElementById('ai-white-engine');
 const aiWhiteEloSlider = document.getElementById('ai-white-elo');
 const aiWhiteEloValue = document.getElementById('ai-white-elo-value');
 const aiWhiteEloWrapper = document.getElementById('ai-white-elo-wrapper');
 const aiBlackToggle = document.getElementById('ai-black-toggle');
+const aiBlackEngineSelect = document.getElementById('ai-black-engine');
 const aiBlackEloSlider = document.getElementById('ai-black-elo');
 const aiBlackEloValue = document.getElementById('ai-black-elo-value');
 const aiBlackEloWrapper = document.getElementById('ai-black-elo-wrapper');
@@ -397,7 +400,7 @@ function triggerPostGameSummary() {
 
 // --- Game Flow ---
 
-function startNewGame() {
+async function startNewGame() {
   // Close post-game summary if open
   if (postGameSummary.isOpen()) {
     postGameSummary.close();
@@ -406,6 +409,7 @@ function startNewGame() {
   if (postGameAnalysisEngine) {
     postGameAnalysisEngine.stop();
   }
+
 
   // Exit replay mode if active
   if (isReplayMode) {
@@ -428,12 +432,22 @@ function startNewGame() {
   board.render();
   moveCount = 0;
 
-  // Configure AI (per-side)
-  ai.configure({
-    whiteEnabled: aiWhiteToggle.checked,
+  const wIsAI = aiWhiteToggle.checked;
+  const bIsAI = aiBlackToggle.checked;
+
+  // Show loading status while engines initialise
+  if (wIsAI || bIsAI) {
+    updateStatus('Loading engine...', true);
+  }
+
+  // Configure AI (per-side) — async: loads engine WASM on first use
+  await ai.configure({
+    whiteEnabled: wIsAI,
     whiteElo: parseInt(aiWhiteEloSlider.value, 10),
-    blackEnabled: aiBlackToggle.checked,
+    whiteEngineId: aiWhiteEngineSelect.value,
+    blackEnabled: bIsAI,
     blackElo: parseInt(aiBlackEloSlider.value, 10),
+    blackEngineId: aiBlackEngineSelect.value,
   });
   board.setAI(ai);
   ai.newGame();
@@ -454,29 +468,31 @@ function startNewGame() {
   gameTypeLabel.textContent = chess960 ? 'Chess960' : 'Standard';
 
   // Show matchup info in status briefly
-  const wIsAI = aiWhiteToggle.checked;
-  const bIsAI = aiBlackToggle.checked;
   let matchup;
   if (wIsAI && bIsAI) {
     const wElo = aiWhiteEloSlider.value;
     const bElo = aiBlackEloSlider.value;
-    matchup = wElo === bElo ? `AI vs AI (${wElo})` : `AI (${wElo}) vs AI (${bElo})`;
+    const wEng = ai.getEngineName('w');
+    const bEng = ai.getEngineName('b');
+    matchup = `${wEng} (${wElo}) vs ${bEng} (${bElo})`;
   } else if (wIsAI) {
-    matchup = `AI (${aiWhiteEloSlider.value}) vs Human`;
+    matchup = `${ai.getEngineName('w')} (${aiWhiteEloSlider.value}) vs Human`;
   } else if (bIsAI) {
-    matchup = `Human vs AI (${aiBlackEloSlider.value})`;
+    matchup = `Human vs ${ai.getEngineName('b')} (${aiBlackEloSlider.value})`;
   } else {
     matchup = 'Human vs Human';
   }
   updateStatus(matchup, true);
 
-  // Update player type icons and info
-  playerIconWhite.textContent = wIsAI ? '🤖' : '👤';
-  playerIconBlack.textContent = bIsAI ? '🤖' : '👤';
+  // Update player type icons and info — use engine-specific icons
+  const wInfo = getEngineInfo(aiWhiteEngineSelect.value);
+  const bInfo = getEngineInfo(aiBlackEngineSelect.value);
+  playerIconWhite.textContent = wIsAI ? (wInfo?.icon || '\uD83E\uDD16') : '\uD83D\uDC64';
+  playerIconBlack.textContent = bIsAI ? (bInfo?.icon || '\uD83E\uDD16') : '\uD83D\uDC64';
   const wEloVal = parseInt(aiWhiteEloSlider.value, 10);
   const bEloVal = parseInt(aiBlackEloSlider.value, 10);
-  const wName = wIsAI ? ai.getEngineName() : (customWhiteName || 'Human');
-  const bName = bIsAI ? ai.getEngineName() : (customBlackName || 'Human');
+  const wName = wIsAI ? ai.getEngineName('w') : (customWhiteName || 'Human');
+  const bName = bIsAI ? ai.getEngineName('b') : (customBlackName || 'Human');
   playerNameWhite.textContent = wName;
   playerNameBlack.textContent = bName;
   playerEloWhite.textContent = wIsAI ? wEloVal : '';
@@ -496,14 +512,16 @@ function startNewGame() {
     timeControl: getTimeControlLabel(),
     startingFen: game.chess.fen(),
     white: {
-      name: wIsAI ? `${ai.getEngineName()} ${wEloVal}` : wName,
+      name: wIsAI ? `${ai.getEngineName('w')} ${wEloVal}` : wName,
       isAI: wIsAI,
       elo: wIsAI ? wEloVal : null,
+      engineId: wIsAI ? aiWhiteEngineSelect.value : null,
     },
     black: {
-      name: bIsAI ? `${ai.getEngineName()} ${bEloVal}` : bName,
+      name: bIsAI ? `${ai.getEngineName('b')} ${bEloVal}` : bName,
       isAI: bIsAI,
       elo: bIsAI ? bEloVal : null,
+      engineId: bIsAI ? aiBlackEngineSelect.value : null,
     },
   });
 
@@ -683,14 +701,74 @@ function startNameEdit(nameEl, side) {
   });
 }
 
+function startEngineSwitch(nameEl, side) {
+  if (isReplayMode) return;
+  if (nameEl.querySelector('.engine-switch-select')) return;
+
+  const isWhite = side === 'white';
+  const settingsSelect = isWhite ? aiWhiteEngineSelect : aiBlackEngineSelect;
+  const currentEngineId = settingsSelect.value;
+  const currentName = nameEl.textContent;
+
+  const select = document.createElement('select');
+  select.className = 'engine-switch-select';
+  const engines = getAllEngines();
+  for (const eng of engines) {
+    const opt = document.createElement('option');
+    opt.value = eng.id;
+    opt.textContent = `${eng.icon} ${eng.name}`;
+    if (eng.id === currentEngineId) opt.selected = true;
+    select.appendChild(opt);
+  }
+
+  nameEl.textContent = '';
+  nameEl.appendChild(select);
+  select.focus();
+
+  let committed = false;
+
+  function commit() {
+    if (committed) return;
+    committed = true;
+    const newId = select.value;
+    // Remove select safely
+    if (select.parentNode) {
+      select.parentNode.removeChild(select);
+    }
+    if (newId !== currentEngineId) {
+      settingsSelect.value = newId;
+      settingsSelect.dispatchEvent(new Event('change'));
+      startNewGame();
+    } else {
+      nameEl.textContent = currentName;
+    }
+  }
+
+  select.addEventListener('change', commit);
+  select.addEventListener('blur', () => {
+    if (!committed && select.parentNode) {
+      select.parentNode.removeChild(select);
+      nameEl.textContent = currentName;
+    }
+  });
+}
+
 playerNameWhite.addEventListener('click', (e) => {
   e.stopPropagation();
-  startNameEdit(playerNameWhite, 'white');
+  if (aiWhiteToggle.checked) {
+    startEngineSwitch(playerNameWhite, 'white');
+  } else {
+    startNameEdit(playerNameWhite, 'white');
+  }
 });
 
 playerNameBlack.addEventListener('click', (e) => {
   e.stopPropagation();
-  startNameEdit(playerNameBlack, 'black');
+  if (aiBlackToggle.checked) {
+    startEngineSwitch(playerNameBlack, 'black');
+  } else {
+    startNameEdit(playerNameBlack, 'black');
+  }
 });
 
 // Game history button
@@ -835,14 +913,87 @@ artStylePicker.addEventListener('click', (e) => {
   renderCaptured();
 });
 
-// AI per-side toggles - show/hide ELO sliders
+// AI per-side toggles - show/hide engine select + ELO sliders
 aiWhiteToggle.addEventListener('change', () => {
-  aiWhiteEloWrapper.classList.toggle('hidden', !aiWhiteToggle.checked);
+  const on = aiWhiteToggle.checked;
+  aiWhiteEngineSelect.classList.toggle('hidden', !on);
+  updateEloSliderRange('w');
 });
 
 aiBlackToggle.addEventListener('change', () => {
-  aiBlackEloWrapper.classList.toggle('hidden', !aiBlackToggle.checked);
+  const on = aiBlackToggle.checked;
+  aiBlackEngineSelect.classList.toggle('hidden', !on);
+  updateEloSliderRange('b');
 });
+
+// Engine selector change — update ELO slider range and player bar
+aiWhiteEngineSelect.addEventListener('change', () => {
+  updateEloSliderRange('w');
+  saveEngineSelection();
+  if (aiWhiteToggle.checked) {
+    const info = getEngineInfo(aiWhiteEngineSelect.value);
+    if (info) {
+      playerNameWhite.textContent = info.name;
+      playerIconWhite.textContent = info.icon || '\uD83E\uDD16';
+      playerEloWhite.textContent = aiWhiteEloSlider.value;
+    }
+  }
+});
+
+aiBlackEngineSelect.addEventListener('change', () => {
+  updateEloSliderRange('b');
+  saveEngineSelection();
+  if (aiBlackToggle.checked) {
+    const info = getEngineInfo(aiBlackEngineSelect.value);
+    if (info) {
+      playerNameBlack.textContent = info.name;
+      playerIconBlack.textContent = info.icon || '\uD83E\uDD16';
+      playerEloBlack.textContent = aiBlackEloSlider.value;
+    }
+  }
+});
+
+/**
+ * Update ELO slider min/max/step based on selected engine.
+ * Hides slider entirely for engines with no ELO range (e.g. Random).
+ */
+function updateEloSliderRange(side) {
+  const isWhite = side === 'w';
+  const toggle = isWhite ? aiWhiteToggle : aiBlackToggle;
+  const select = isWhite ? aiWhiteEngineSelect : aiBlackEngineSelect;
+  const slider = isWhite ? aiWhiteEloSlider : aiBlackEloSlider;
+  const valueEl = isWhite ? aiWhiteEloValue : aiBlackEloValue;
+  const wrapper = isWhite ? aiWhiteEloWrapper : aiBlackEloWrapper;
+
+  if (!toggle.checked) {
+    wrapper.classList.add('hidden');
+    return;
+  }
+
+  const info = getEngineInfo(select.value);
+  if (!info) return;
+
+  const { min, max, step, default: defaultElo } = info.eloRange;
+
+  if (min === max) {
+    slider.min = min;
+    slider.max = max;
+    slider.value = defaultElo;
+    valueEl.textContent = defaultElo;
+    wrapper.classList.add('hidden');
+    return;
+  }
+
+  slider.min = min;
+  slider.max = max;
+  slider.step = step;
+  const current = parseInt(slider.value, 10);
+  if (current < min || current > max) {
+    slider.value = defaultElo;
+  }
+  valueEl.textContent = slider.value;
+  wrapper.classList.remove('hidden');
+}
 
 // ELO slider live value display
 aiWhiteEloSlider.addEventListener('input', () => {
@@ -1055,14 +1206,17 @@ function showEloPopup(eloEl, side) {
   const slider = isWhite ? aiWhiteEloSlider : aiBlackEloSlider;
   const settingsValue = isWhite ? aiWhiteEloValue : aiBlackEloValue;
 
+  // Don't show popup for engines with no ELO range (e.g. Random)
+  if (slider.min === slider.max) return;
+
   const popup = document.createElement('div');
   popup.className = 'elo-popup';
 
   const rangeInput = document.createElement('input');
   rangeInput.type = 'range';
-  rangeInput.min = '100';
-  rangeInput.max = '3200';
-  rangeInput.step = '50';
+  rangeInput.min = slider.min;
+  rangeInput.max = slider.max;
+  rangeInput.step = slider.step;
   rangeInput.value = slider.value;
   rangeInput.className = 'elo-slider';
 
@@ -1537,8 +1691,10 @@ function updatePlayerBarsForReplay(gameRecord) {
 
   playerNameWhite.textContent = w.name || 'White';
   playerNameBlack.textContent = b.name || 'Black';
-  playerIconWhite.textContent = w.isAI ? '\uD83E\uDD16' : '\uD83D\uDC64';
-  playerIconBlack.textContent = b.isAI ? '\uD83E\uDD16' : '\uD83D\uDC64';
+  const wEngInfo = w.engineId ? getEngineInfo(w.engineId) : null;
+  const bEngInfo = b.engineId ? getEngineInfo(b.engineId) : null;
+  playerIconWhite.textContent = w.isAI ? (wEngInfo?.icon || '\uD83E\uDD16') : '\uD83D\uDC64';
+  playerIconBlack.textContent = b.isAI ? (bEngInfo?.icon || '\uD83E\uDD16') : '\uD83D\uDC64';
 
   if (w.elo) {
     playerEloWhite.textContent = w.elo;
@@ -2096,6 +2252,48 @@ checkDevMode();
 // Poll for changes every 500ms
 setInterval(checkDevMode, 500);
 
+// --- Engine Selection Persistence ---
+
+const LS_ENGINE_KEY = 'chess-engine-selection';
+
+/** Populate engine dropdowns from the registry. */
+function populateEngineDropdowns() {
+  const engines = getAllEngines();
+  for (const select of [aiWhiteEngineSelect, aiBlackEngineSelect]) {
+    select.innerHTML = '';
+    for (const eng of engines) {
+      const opt = document.createElement('option');
+      opt.value = eng.id;
+      opt.textContent = `${eng.icon} ${eng.name}`;
+      select.appendChild(opt);
+    }
+  }
+}
+
+function saveEngineSelection() {
+  localStorage.setItem(LS_ENGINE_KEY, JSON.stringify({
+    white: aiWhiteEngineSelect.value,
+    black: aiBlackEngineSelect.value,
+  }));
+}
+
+function loadEngineSelection() {
+  try {
+    const raw = localStorage.getItem(LS_ENGINE_KEY);
+    if (raw) {
+      const { white, black } = JSON.parse(raw);
+      if (white && getEngineInfo(white)) aiWhiteEngineSelect.value = white;
+      if (black && getEngineInfo(black)) aiBlackEngineSelect.value = black;
+    }
+  } catch { /* ignore */ }
+}
+
+// Populate dropdowns, restore saved selection, sync ELO ranges
+populateEngineDropdowns();
+loadEngineSelection();
+updateEloSliderRange('w');
+updateEloSliderRange('b');
+
 // --- Route handlers ---
 
 // Helper: fetch a game by server ID and enter replay mode
@@ -2146,10 +2344,9 @@ router.on('/live', ({ params }) => {
   gameBrowser.open({ showLive: true });
 });
 
-// Initialize DB and AI engine, then start routing
+// Initialize DB, then start routing (engines load lazily in startNewGame)
 Promise.all([
   db.open().catch(e => { console.warn('Database unavailable:', e); }),
-  ai.init().catch(e => { console.warn('AI engine failed to load, continuing without AI:', e); }),
 ]).then(() => {
   router.start();
 });

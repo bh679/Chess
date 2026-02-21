@@ -124,6 +124,7 @@
             <input type="checkbox" id="ai-white-toggle">
             <span>AI White</span>
           </label>
+          <select id="ai-white-engine" class="engine-select hidden"></select>
           <div id="ai-white-elo-wrapper" class="ai-elo-wrapper hidden">
             <input type="range" id="ai-white-elo" class="elo-slider" min="100" max="3200" value="1500" step="50">
             <span id="ai-white-elo-value" class="elo-value">1500</span>
@@ -134,6 +135,7 @@
             <input type="checkbox" id="ai-black-toggle" checked>
             <span>AI Black</span>
           </label>
+          <select id="ai-black-engine" class="engine-select"></select>
           <div id="ai-black-elo-wrapper" class="ai-elo-wrapper">
             <input type="range" id="ai-black-elo" class="elo-slider" min="100" max="3200" value="500" step="50">
             <span id="ai-black-elo-value" class="elo-value">500</span>
@@ -194,7 +196,7 @@
         <button id="archive-toggle" class="archive-btn">Archive</button>
         <div id="archive-menu" class="archive-menu hidden"></div>
       </div>
-      <span class="version">v1.02.0000</span>
+      <span class="version">v1.04.0002</span>
     </div>
   </div>
 
@@ -231,6 +233,6 @@
   </div>
 
   <span id="dev-indicator" class="dev-indicator hidden">CODE EDITING</span>
-  <script type="module" src="js/app.js?v=13"></script>
+  <script type="module" src="js/app.js?v=14"></script>
 </body>
 </html>
