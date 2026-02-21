@@ -21,6 +21,8 @@ class GameBrowser {
     this._db = database;
     this._replay = replayViewer;
     this._onReviewOnBoard = onReviewOnBoard || null;
+    this._onClose = null;
+    this._suppressCloseCallback = false;
     this._overlay = null;
     this._listEl = null;
     this._paginationEl = null;
@@ -60,10 +62,14 @@ class GameBrowser {
 
   /**
    * Open the browser modal and load the first page.
+   * @param {Object} [options] — filter overrides: { showLive, me }
    */
-  async open() {
+  async open(options = {}) {
     this._currentPage = 0;
     this._resetFilters();
+    if (options.showLive !== undefined) this._filters.showLive = options.showLive;
+    if (options.me !== undefined) this._filters.me = options.me;
+    this._syncFilterDOM();
     this._overlay.classList.remove('hidden');
     await this._loadPage(0);
   }
@@ -73,6 +79,22 @@ class GameBrowser {
    */
   close() {
     this._overlay.classList.add('hidden');
+    if (this._onClose && !this._suppressCloseCallback) this._onClose();
+    this._suppressCloseCallback = false;
+  }
+
+  /**
+   * Set a callback invoked when the browser is closed (unless suppressed).
+   */
+  setOnClose(callback) {
+    this._onClose = callback;
+  }
+
+  /**
+   * Whether the browser overlay is currently visible.
+   */
+  isOpen() {
+    return this._overlay && !this._overlay.classList.contains('hidden');
   }
 
   // --- Analysis ---
@@ -414,6 +436,7 @@ class GameBrowser {
         try {
           const fullGame = await this._db.getGame(game.id);
           if (fullGame && fullGame.moves.length > 0) {
+            this._suppressCloseCallback = true;
             this.close();
             if (this._onReviewOnBoard) {
               this._onReviewOnBoard(fullGame);
