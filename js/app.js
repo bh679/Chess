@@ -13,6 +13,7 @@ import { PostGameSummary } from './post-game-summary.js';
 import { Router } from './router.js';
 import { MultiplayerClient } from './multiplayer.js';
 import { MultiplayerUI } from './multiplayer-ui.js';
+import { NewGameMenu } from './new-game-menu.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -148,7 +149,9 @@ gameBrowser.setOnClose(() => {
 // Multiplayer
 const mp = new MultiplayerClient();
 const mpUI = new MultiplayerUI(mp);
-const playOnlineBtn = document.getElementById('play-online-btn');
+
+// New Game Wizard
+const newGameMenu = new NewGameMenu();
 
 let moveCount = 0;
 let gameId = 0;
@@ -791,7 +794,24 @@ timer.onTimeout((loser) => {
   triggerPostGameSummary();
 });
 
-newGameBtn.addEventListener('click', startNewGame);
+newGameBtn.addEventListener('click', async () => {
+  // If multiplayer game active, don't interfere
+  if (multiplayerActive) return;
+
+  // If a game is in progress, confirm abandonment first
+  if (moveCount > 0 && !game.isGameOver()) {
+    const confirmed = await showConfirmation(
+      'You have a game in progress. Abandon it and start a new one?',
+      'Abandon Game?'
+    );
+    if (!confirmed) return;
+    if (currentDbGameId) {
+      db.endGame(currentDbGameId, 'abandoned', 'abandoned');
+    }
+  }
+
+  newGameMenu.open();
+});
 
 // Start button — deferred AI start
 startGameBtn.addEventListener('click', () => {
@@ -975,13 +995,20 @@ customTimeOk.addEventListener('click', () => {
   const label = wMin === bMin
     ? `Custom ${wMin}+${increment}`
     : `Custom W${wMin} / B${bMin} +${increment}`;
-  opt.value = `${wMin * 60}|${increment}|${bMin * 60}`;
+  const tcValue = `${wMin * 60}|${increment}|${bMin * 60}`;
+  opt.value = tcValue;
   opt.textContent = label;
   opt.dataset.custom = 'true';
   opt.selected = true;
   timeControlSelect.insertBefore(opt, timeControlSelect.querySelector('[value="custom"]'));
   customTimeModal.classList.add('hidden');
-  startNewGame();
+
+  // If the new game wizard triggered this, resume at settings step
+  if (newGameMenu.hasPendingCustomTime()) {
+    newGameMenu.resumeAtSettings(tcValue);
+  } else {
+    startNewGame();
+  }
 });
 
 customTimeCancel.addEventListener('click', () => {
@@ -2464,18 +2491,6 @@ updateEloSliderRange('b');
 
 // --- Multiplayer wiring ---
 
-playOnlineBtn.addEventListener('click', async () => {
-  if (!mp.ws || mp.ws.readyState !== WebSocket.OPEN) {
-    try {
-      await mp.connect();
-    } catch (e) {
-      alert('Could not connect to the multiplayer server. Please try again.');
-      return;
-    }
-  }
-  mpUI.open();
-});
-
 // When the server says a game has started
 mp.onGameStart = (payload) => {
   startMultiplayerGame(payload.color, payload.fen, payload.timeControl, payload.opponentName);
@@ -2690,6 +2705,118 @@ function checkRoomCodeInUrl() {
     });
   }
 }
+
+// --- New Game Wizard wiring ---
+
+newGameMenu.onStart((config) => {
+  // Apply wizard config to existing settings controls
+  chess960Toggle.checked = config.chess960;
+  evalBarToggle.checked = config.evalBar;
+  localStorage.setItem('chess-eval-bar', config.evalBar ? 'true' : 'false');
+
+  // Time control
+  if (config.timeControl === '0') {
+    timeControlSelect.value = '0';
+  } else {
+    // Try to find a matching option in the select
+    const opts = timeControlSelect.querySelectorAll('option');
+    let found = false;
+    for (const opt of opts) {
+      if (opt.value === config.timeControl) {
+        timeControlSelect.value = config.timeControl;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      // Create a custom option for this time control
+      const existingCustom = timeControlSelect.querySelector('[data-custom]');
+      if (existingCustom) existingCustom.remove();
+      const parts = config.timeControl.split('|').map(Number);
+      const mins = Math.round(parts[0] / 60);
+      const inc = parts[1] || 0;
+      const opt = document.createElement('option');
+      opt.value = config.timeControl;
+      opt.textContent = `Custom ${mins}+${inc}`;
+      opt.dataset.custom = 'true';
+      opt.selected = true;
+      timeControlSelect.insertBefore(opt, timeControlSelect.querySelector('[value="custom"]'));
+    }
+  }
+
+  // Player configuration
+  if (config.mode === 'bot') {
+    const userPlaysWhite = config.botSide === 'black';
+    aiWhiteToggle.checked = !userPlaysWhite;
+    aiBlackToggle.checked = userPlaysWhite;
+
+    // Set engine and ELO on the bot's side
+    if (config.botSide === 'black') {
+      aiBlackEngineSelect.value = config.engineId;
+      aiBlackEloSlider.value = config.elo;
+      aiBlackEloValue.textContent = config.elo;
+    } else {
+      aiWhiteEngineSelect.value = config.engineId;
+      aiWhiteEloSlider.value = config.elo;
+      aiWhiteEloValue.textContent = config.elo;
+    }
+
+    // Sync the engine/elo visibility in settings panel
+    updateEloSliderRange('w');
+    updateEloSliderRange('b');
+  } else {
+    // Shared device: both human
+    aiWhiteToggle.checked = false;
+    aiBlackToggle.checked = false;
+  }
+
+  // Show/hide engine selects based on AI toggle state
+  aiWhiteEngineSelect.classList.toggle('hidden', !aiWhiteToggle.checked);
+  aiWhiteEloWrapper.classList.toggle('hidden', !aiWhiteToggle.checked);
+  aiBlackEngineSelect.classList.toggle('hidden', !aiBlackToggle.checked);
+  aiBlackEloWrapper.classList.toggle('hidden', !aiBlackToggle.checked);
+
+  startNewGame();
+});
+
+newGameMenu.onOnline(async (tc, name) => {
+  if (!mp.ws || mp.ws.readyState !== WebSocket.OPEN) {
+    try {
+      await mp.connect();
+    } catch (e) {
+      alert('Could not connect to the multiplayer server. Please try again.');
+      return;
+    }
+  }
+  // Auto matchmaking — go straight to searching
+  mp.quickMatch(tc, name);
+  mpUI.showSearching();
+  mpUI.modal.classList.remove('hidden');
+  mpUI.backdrop.classList.remove('hidden');
+});
+
+newGameMenu.onFriend(async (action, tc, name, code) => {
+  if (!mp.ws || mp.ws.readyState !== WebSocket.OPEN) {
+    try {
+      await mp.connect();
+    } catch (e) {
+      alert('Could not connect to the multiplayer server. Please try again.');
+      return;
+    }
+  }
+  if (action === 'create') {
+    mp.createRoom(tc, name);
+    // mpUI will show waiting view via the room-created event
+    mpUI.modal.classList.remove('hidden');
+    mpUI.backdrop.classList.remove('hidden');
+  } else if (action === 'join') {
+    mp.joinRoom(code, name);
+  }
+});
+
+newGameMenu.onCustomTime(() => {
+  customTimeModal.classList.remove('hidden');
+});
 
 // --- Route handlers ---
 

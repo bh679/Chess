@@ -25,7 +25,6 @@
         <button id="game-history-btn" class="header-icon-btn history-btn" aria-label="Game History">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1a9 9 0 1 0 0 18A9 9 0 0 0 10 1zm0 16.5a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM10.75 5h-1.5v5.25l4.5 2.67.75-1.23-3.75-2.22V5z"/></svg>
         </button>
-        <button id="play-online-btn" class="play-online-btn">Play Online</button>
         <button id="new-game">New Game</button>
         <button id="start-game-btn" class="start-game-btn hidden">Start</button>
       </div>
@@ -170,6 +169,190 @@
           <p>Finding an opponent...</p>
         </div>
         <button id="mp-cancel-search" class="mp-btn mp-btn-danger mp-btn-block">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Game Wizard -->
+  <div id="ng-backdrop" class="ng-backdrop hidden"></div>
+  <div id="ng-modal" class="ng-modal hidden">
+    <div class="ng-modal-content">
+      <!-- Header with back/close -->
+      <div class="ng-header">
+        <button id="ng-back" class="ng-back-btn hidden" aria-label="Back">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M12.7 4.3a1 1 0 0 1 0 1.4L8.4 10l4.3 4.3a1 1 0 0 1-1.4 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0z"/></svg>
+        </button>
+        <h3 id="ng-title">New Game</h3>
+        <button id="ng-close" class="ng-close-btn" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 4.9a1 1 0 0 0-1.4 1.4L8.6 10l-3.7 3.7a1 1 0 1 0 1.4 1.4L10 11.4l3.7 3.7a1 1 0 0 0 1.4-1.4L11.4 10l3.7-3.7a1 1 0 0 0-1.4-1.4L10 8.6 6.3 4.9z"/></svg>
+        </button>
+      </div>
+
+      <!-- Step 1: Choose Opponent -->
+      <div id="ng-step-opponent" class="ng-view">
+        <div class="ng-opponent-list">
+          <button class="ng-opponent-btn ng-opponent-btn-green" data-mode="online">
+            <span class="ng-opponent-icon">🌐</span>
+            <div class="ng-opponent-text">
+              <span class="ng-opponent-label">Online</span>
+              <span class="ng-opponent-desc">Find an opponent online</span>
+            </div>
+          </button>
+          <button class="ng-opponent-btn ng-opponent-btn-blue" data-mode="friend">
+            <span class="ng-opponent-icon">🔗</span>
+            <div class="ng-opponent-text">
+              <span class="ng-opponent-label">Vs Friend</span>
+              <span class="ng-opponent-desc">Play with a room code</span>
+            </div>
+          </button>
+          <button class="ng-opponent-btn" data-mode="bot">
+            <span class="ng-opponent-icon">🤖</span>
+            <div class="ng-opponent-text">
+              <span class="ng-opponent-label">Vs Bot</span>
+              <span class="ng-opponent-desc">Play against the computer offline</span>
+            </div>
+          </button>
+          <button class="ng-opponent-btn" data-mode="local">
+            <span class="ng-opponent-icon">👥</span>
+            <div class="ng-opponent-text">
+              <span class="ng-opponent-label">Shared Device</span>
+              <span class="ng-opponent-desc">Pass and play on one device (offline)</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step: Online (auto matchmaking) -->
+      <div id="ng-step-online" class="ng-view hidden">
+        <div class="ng-field">
+          <label>Your Name</label>
+          <input type="text" id="ng-online-name" class="ng-input" placeholder="Anonymous" maxlength="20">
+        </div>
+        <div class="ng-field">
+          <label>Time Control</label>
+          <select id="ng-online-tc" class="ng-select">
+            <option value="any">Any</option>
+            <option value="1+0">Bullet 1+0</option>
+            <option value="3+2">Blitz 3+2</option>
+            <option value="5+0" selected>Rapid 5+0</option>
+            <option value="10+0">Rapid 10+0</option>
+            <option value="15+10">Classical 15+10</option>
+            <option value="30+0">Classical 30+0</option>
+            <option value="none">No Timer</option>
+          </select>
+        </div>
+        <button id="ng-find-opponent" class="ng-btn ng-btn-primary ng-btn-block">Find Opponent</button>
+      </div>
+
+      <!-- Step: Friend (room join/create) -->
+      <div id="ng-step-friend" class="ng-view hidden">
+        <div class="ng-field">
+          <label>Your Name</label>
+          <input type="text" id="ng-friend-name" class="ng-input" placeholder="Anonymous" maxlength="20">
+        </div>
+        <div class="ng-field">
+          <label>Time Control</label>
+          <select id="ng-friend-tc" class="ng-select">
+            <option value="any">Any</option>
+            <option value="1+0">Bullet 1+0</option>
+            <option value="3+2">Blitz 3+2</option>
+            <option value="5+0" selected>Rapid 5+0</option>
+            <option value="10+0">Rapid 10+0</option>
+            <option value="15+10">Classical 15+10</option>
+            <option value="30+0">Classical 30+0</option>
+            <option value="none">No Timer</option>
+          </select>
+        </div>
+        <button id="ng-create-room" class="ng-btn ng-btn-primary ng-btn-block">Create Room</button>
+        <div class="ng-divider"><span>or</span></div>
+        <div class="ng-join-row">
+          <input type="text" id="ng-join-code" class="ng-input ng-code-input" placeholder="Room code" maxlength="6">
+          <button id="ng-join-room" class="ng-btn">Join</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Time Control (collapsible categories) -->
+      <div id="ng-step-time" class="ng-view hidden">
+        <div class="ng-tc-categories">
+          <button class="ng-tc-cat" data-cat="bullet">
+            <span class="ng-tc-cat-icon">⚡</span>
+            <span class="ng-tc-cat-label">Bullet</span>
+          </button>
+          <button class="ng-tc-cat" data-cat="blitz">
+            <span class="ng-tc-cat-icon">🔥</span>
+            <span class="ng-tc-cat-label">Blitz</span>
+          </button>
+          <button class="ng-tc-cat" data-cat="rapid">
+            <span class="ng-tc-cat-icon">⏱️</span>
+            <span class="ng-tc-cat-label">Rapid</span>
+          </button>
+          <button class="ng-tc-cat" data-cat="classical">
+            <span class="ng-tc-cat-icon">🏛️</span>
+            <span class="ng-tc-cat-label">Classical</span>
+          </button>
+        </div>
+        <div class="ng-tc-options" id="ng-tc-options">
+          <div class="ng-tc-option-group" data-cat="bullet">
+            <button class="ng-tc-btn selected" data-tc="60|0">1+0</button>
+            <button class="ng-tc-btn" data-tc="120|1">2+1</button>
+          </div>
+          <div class="ng-tc-option-group hidden" data-cat="blitz">
+            <button class="ng-tc-btn selected" data-tc="180|0">3+0</button>
+            <button class="ng-tc-btn" data-tc="180|2">3+2</button>
+            <button class="ng-tc-btn" data-tc="300|0">5+0</button>
+            <button class="ng-tc-btn" data-tc="300|3">5+3</button>
+          </div>
+          <div class="ng-tc-option-group hidden" data-cat="rapid">
+            <button class="ng-tc-btn selected" data-tc="600|0">10+0</button>
+            <button class="ng-tc-btn" data-tc="900|10">15+10</button>
+          </div>
+          <div class="ng-tc-option-group hidden" data-cat="classical">
+            <button class="ng-tc-btn selected" data-tc="1800|0">30+0</button>
+            <button class="ng-tc-btn" data-tc="2700|0">45+0</button>
+          </div>
+        </div>
+        <div class="ng-tc-row ng-tc-special-row">
+          <button class="ng-tc-btn ng-tc-none" data-tc="0">No Timer</button>
+          <button class="ng-tc-btn ng-tc-custom" data-tc="custom">Custom...</button>
+        </div>
+        <button id="ng-tc-next" class="ng-btn ng-btn-primary ng-btn-block">Next</button>
+      </div>
+
+      <!-- Step 3: Game Settings -->
+      <div id="ng-step-settings" class="ng-view hidden">
+        <div class="ng-settings-group">
+          <label class="ng-toggle">
+            <input type="checkbox" id="ng-chess960">
+            <span>Chess960</span>
+          </label>
+          <label class="ng-toggle">
+            <input type="checkbox" id="ng-eval-bar">
+            <span>Eval Bar</span>
+          </label>
+        </div>
+
+        <!-- Bot settings (only for "bot" mode) -->
+        <div id="ng-bot-settings" class="ng-bot-settings hidden">
+          <div class="ng-settings-divider">Bot Settings</div>
+          <div class="ng-bot-side">
+            <span class="ng-bot-side-label">Play as</span>
+            <div class="ng-color-picker">
+              <button class="ng-color-btn selected" data-color="white">White</button>
+              <button class="ng-color-btn" data-color="black">Black</button>
+              <button class="ng-color-btn" data-color="random">Random</button>
+            </div>
+          </div>
+          <div class="ng-field">
+            <label>Engine</label>
+            <select id="ng-engine-select"></select>
+          </div>
+          <div id="ng-elo-wrapper" class="ng-field">
+            <label>ELO: <span id="ng-elo-value">1500</span></label>
+            <input type="range" id="ng-elo-slider" class="elo-slider" min="100" max="3200" value="1500" step="50">
+          </div>
+        </div>
+
+        <button id="ng-start" class="ng-btn ng-btn-primary ng-btn-block">Play</button>
       </div>
     </div>
   </div>
