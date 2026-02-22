@@ -2403,49 +2403,6 @@ body {
   color: #f59e0b;
 }
 
-.live-btn-resume {
-  background: #065f46 !important;
-  color: #10b981 !important;
-  font-weight: bold;
-  gap: 4px;
-  display: inline-flex;
-  align-items: center;
-}
-
-.live-btn-resume:disabled {
-  background: var(--bg-elevated) !important;
-  color: var(--text-primary) !important;
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-.live-btn-resume:hover {
-  background: #047857 !important;
-}
-
-.live-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: #10b981;
-  border-radius: 50%;
-  animation: live-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
-  50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
-}
-
-.live-resume-badge {
-  background: #ef4444;
-  color: #fff;
-  font-size: 0.7em;
-  padding: 1px 5px;
-  border-radius: 8px;
-  margin-left: 4px;
-}
-
 /* =========================================
    Evaluation Bar
    ========================================= */

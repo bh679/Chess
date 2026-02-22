@@ -136,7 +136,6 @@ const liveStartBtn = document.getElementById('live-start-btn');
 const livePrevBtn = document.getElementById('live-prev-btn');
 const liveNextBtn = document.getElementById('live-next-btn');
 const liveEndBtn = document.getElementById('live-end-btn');
-const liveResumeBtn = document.getElementById('live-resume-btn');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
@@ -183,7 +182,6 @@ let liveReviewPly = -1;
 let liveReviewStartingFen = null;
 let liveReviewSavedPgn = null;
 let liveReviewPendingMoves = [];    // buffered opponent moves during review
-let liveReviewNewMovesCount = 0;
 
 // Analysis state for main-board replay
 let replayAnalysisData = null;
@@ -2384,14 +2382,12 @@ function updateLiveMoveBarButtons() {
     livePrevBtn.disabled = atStart;
     liveNextBtn.disabled = atEnd;
     liveEndBtn.disabled = false;
-    liveResumeBtn.disabled = false;
   } else {
-    // Not reviewing — back buttons enabled if moves exist, forward/LIVE disabled
+    // Not reviewing — back buttons enabled if moves exist, forward disabled
     liveStartBtn.disabled = moveCount === 0;
     livePrevBtn.disabled = moveCount === 0;
     liveNextBtn.disabled = true;
     liveEndBtn.disabled = true;
-    liveResumeBtn.disabled = true;
   }
 }
 
@@ -2418,7 +2414,6 @@ function enterLiveReview(targetPly) {
   if (isLiveReview || isReplayMode || moveCount === 0 || game.isGameOver()) return;
 
   isLiveReview = true;
-  liveReviewNewMovesCount = 0;
   liveReviewPendingMoves = [];
 
   // Save the starting FEN (before any moves)
@@ -2482,7 +2477,6 @@ function exitLiveReview() {
   liveReviewPly = -1;
   liveReviewStartingFen = null;
   liveReviewSavedPgn = null;
-  liveReviewNewMovesCount = 0;
 
   // Re-enable board
   board.setInteractive(true);
@@ -2558,7 +2552,7 @@ function liveReviewGoToMove(plyIndex) {
   if (evalBarToggle && evalBarToggle.checked) liveEval();
 
   // Auto-exit when at the latest move and no pending moves
-  if (liveReviewPly === maxPly && liveReviewNewMovesCount === 0) {
+  if (liveReviewPly === maxPly && liveReviewPendingMoves.length === 0) {
     exitLiveReview();
   }
 }
@@ -2582,15 +2576,6 @@ function liveReviewGoToEnd() {
   if (!isLiveReview) return;
   // Go to end = exit review (return to live position)
   exitLiveReview();
-}
-
-function updateLiveResumeButton() {
-  if (!liveResumeBtn) return;
-  if (liveReviewNewMovesCount > 0) {
-    liveResumeBtn.innerHTML = '<span class="live-dot"></span> LIVE <span class="live-resume-badge">' + liveReviewNewMovesCount + '</span>';
-  } else {
-    liveResumeBtn.innerHTML = '<span class="live-dot"></span> LIVE';
-  }
 }
 
 function liveReviewKeyHandler(e) {
@@ -2680,7 +2665,6 @@ if (liveNextBtn) liveNextBtn.addEventListener('click', () => {
 if (liveEndBtn) liveEndBtn.addEventListener('click', () => {
   if (isLiveReview) exitLiveReview();
 });
-if (liveResumeBtn) liveResumeBtn.addEventListener('click', exitLiveReview);
 
 // Wire up analysis toggle and critical nav buttons
 if (replayAnalyzeCheckbox) {
@@ -2874,8 +2858,6 @@ mp.onOpponentMove = (payload) => {
       // Append to the live move bar UI
       const idx = liveReviewMoves.length - 1;
       appendLiveMove(san, result.color, idx);
-      liveReviewNewMovesCount++;
-      updateLiveResumeButton();
       updateLiveMoveBarButtons();
     }
 
