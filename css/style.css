@@ -3075,6 +3075,22 @@ button.replay-summary-btn {
   border-color: var(--border-hover);
   background: var(--bg-hover);
 }
+.ng-opponent-btn-green {
+  background: rgba(76, 153, 76, 0.15);
+  border-color: rgba(76, 153, 76, 0.4);
+}
+.ng-opponent-btn-green:hover {
+  background: rgba(76, 153, 76, 0.25);
+  border-color: rgba(76, 153, 76, 0.6);
+}
+.ng-opponent-btn-blue {
+  background: rgba(66, 133, 200, 0.15);
+  border-color: rgba(66, 133, 200, 0.4);
+}
+.ng-opponent-btn-blue:hover {
+  background: rgba(66, 133, 200, 0.25);
+  border-color: rgba(66, 133, 200, 0.6);
+}
 .ng-opponent-icon {
   font-size: 1.5rem;
   flex-shrink: 0;

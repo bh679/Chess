@@ -25,7 +25,6 @@
         <button id="game-history-btn" class="header-icon-btn history-btn" aria-label="Game History">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1a9 9 0 1 0 0 18A9 9 0 0 0 10 1zm0 16.5a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM10.75 5h-1.5v5.25l4.5 2.67.75-1.23-3.75-2.22V5z"/></svg>
         </button>
-        <button id="play-online-btn" class="play-online-btn">Play Online</button>
         <button id="new-game">New Game</button>
         <button id="start-game-btn" class="start-game-btn hidden">Start</button>
       </div>
@@ -192,6 +191,20 @@
       <!-- Step 1: Choose Opponent -->
       <div id="ng-step-opponent" class="ng-view">
         <div class="ng-opponent-list">
+          <button class="ng-opponent-btn ng-opponent-btn-green" data-mode="online">
+            <span class="ng-opponent-icon">🌐</span>
+            <div class="ng-opponent-text">
+              <span class="ng-opponent-label">Online</span>
+              <span class="ng-opponent-desc">Find an opponent online</span>
+            </div>
+          </button>
+          <button class="ng-opponent-btn ng-opponent-btn-blue" data-mode="friend">
+            <span class="ng-opponent-icon">🔗</span>
+            <div class="ng-opponent-text">
+              <span class="ng-opponent-label">Vs Friend</span>
+              <span class="ng-opponent-desc">Play with a room code</span>
+            </div>
+          </button>
           <button class="ng-opponent-btn" data-mode="bot">
             <span class="ng-opponent-icon">🤖</span>
             <div class="ng-opponent-text">
@@ -204,20 +217,6 @@
             <div class="ng-opponent-text">
               <span class="ng-opponent-label">Shared Device</span>
               <span class="ng-opponent-desc">Pass and play on one device</span>
-            </div>
-          </button>
-          <button class="ng-opponent-btn" data-mode="online">
-            <span class="ng-opponent-icon">🌐</span>
-            <div class="ng-opponent-text">
-              <span class="ng-opponent-label">Online</span>
-              <span class="ng-opponent-desc">Find an opponent online</span>
-            </div>
-          </button>
-          <button class="ng-opponent-btn" data-mode="friend">
-            <span class="ng-opponent-icon">🔗</span>
-            <div class="ng-opponent-text">
-              <span class="ng-opponent-label">Vs Friend</span>
-              <span class="ng-opponent-desc">Play with a room code</span>
             </div>
           </button>
         </div>

@@ -149,7 +149,6 @@ gameBrowser.setOnClose(() => {
 // Multiplayer
 const mp = new MultiplayerClient();
 const mpUI = new MultiplayerUI(mp);
-const playOnlineBtn = document.getElementById('play-online-btn');
 
 // New Game Wizard
 const newGameMenu = new NewGameMenu();
@@ -2491,18 +2490,6 @@ updateEloSliderRange('w');
 updateEloSliderRange('b');
 
 // --- Multiplayer wiring ---
-
-playOnlineBtn.addEventListener('click', async () => {
-  if (!mp.ws || mp.ws.readyState !== WebSocket.OPEN) {
-    try {
-      await mp.connect();
-    } catch (e) {
-      alert('Could not connect to the multiplayer server. Please try again.');
-      return;
-    }
-  }
-  mpUI.open();
-});
 
 // When the server says a game has started
 mp.onGameStart = (payload) => {
