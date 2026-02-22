@@ -1001,20 +1001,16 @@ body {
 }
 
 .settings-footer .version {
-  color: var(--text-dim);
+  color: var(--text-muted);
   font-size: 0.7rem;
   font-family: var(--font-mono);
-  opacity: 0.7;
-  transition: opacity 0.15s ease;
-}
-
-.settings-footer .version:hover {
-  opacity: 1;
 }
 
 /* Archive menu (now in settings) */
 .archive-wrapper {
   position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
 .archive-btn {
