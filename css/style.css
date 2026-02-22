@@ -2338,8 +2338,9 @@ body {
   padding: 4px 0;
 }
 
-.live-move-bar.hidden {
-  display: none;
+.live-move-bar.faded {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .live-move-list {
@@ -2388,6 +2389,7 @@ body {
 .live-move-btn:disabled {
   opacity: 0.3;
   cursor: default;
+  pointer-events: none;
 }
 
 /* --- Live Review Mode (amber border when reviewing past moves) --- */

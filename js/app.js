@@ -492,7 +492,7 @@ async function startNewGame() {
   ai.stop();
   board.clearPremove();
   newGameBtn.classList.remove('game-ended');
-  hideLiveMoveBar();
+  resetLiveMoveBar();
 
   const chess960 = chess960Toggle.checked;
   game.newGame(chess960);
@@ -717,7 +717,7 @@ board.onMove((result) => {
   // Update the persistent live move bar
   const moveSide = game.getTurn() === 'w' ? 'b' : 'w'; // side that just moved
   appendLiveMove(result.san, moveSide, moveCount - 1);
-  if (moveCount === 1) showLiveMoveBar();
+  if (moveCount === 1) activateLiveMoveBar();
   updateLiveMoveBarButtons();
 
   // Multiplayer: send move to server, disable board until opponent moves
@@ -742,7 +742,7 @@ board.onMove((result) => {
     // Check for game over (checkmate/stalemate detected client-side, server will confirm)
     if (game.isGameOver()) {
       board.clearPremove();
-      hideLiveMoveBar();
+      fadeLiveMoveBar();
       newGameBtn.classList.add('game-ended');
       updateStatus();
     }
@@ -777,7 +777,7 @@ board.onMove((result) => {
   if (game.isGameOver()) {
     timer.stop();
     board.clearPremove();
-    hideLiveMoveBar();
+    fadeLiveMoveBar();
     newGameBtn.classList.add('game-ended');
     updateStatus();
 
@@ -809,7 +809,7 @@ board.onMove((result) => {
 
 timer.onTimeout((loser) => {
   if (isLiveReview) exitLiveReview();
-  hideLiveMoveBar();
+  fadeLiveMoveBar();
   ai.stop();
   game.setTimedOut();
   newGameBtn.classList.add('game-ended');
@@ -1549,7 +1549,7 @@ async function enterReplayMode(gameRecord) {
 
   if (isReplayMode) exitReplayMode(false);
   if (isLiveReview) exitLiveReview();
-  hideLiveMoveBar();
+  fadeLiveMoveBar();
 
   ai.stop();
   timer.stop();
@@ -2328,13 +2328,18 @@ function updateMainEvalBar() {
 
 // --- Live Move Bar (persistent move list during live games) ---
 
-function showLiveMoveBar() {
-  if (liveMoveBarEl) liveMoveBarEl.classList.remove('hidden');
+function activateLiveMoveBar() {
+  if (liveMoveBarEl) liveMoveBarEl.classList.remove('faded');
 }
 
-function hideLiveMoveBar() {
-  if (liveMoveBarEl) liveMoveBarEl.classList.add('hidden');
+function fadeLiveMoveBar() {
+  if (liveMoveBarEl) liveMoveBarEl.classList.add('faded');
+}
+
+function resetLiveMoveBar() {
+  if (liveMoveBarEl) liveMoveBarEl.classList.add('faded');
   if (liveMoveListEl) liveMoveListEl.innerHTML = '';
+  updateLiveMoveBarButtons();
 }
 
 /** Append a move to the persistent live move list */
@@ -2891,7 +2896,7 @@ mp.onOpponentMove = (payload) => {
   // Update the persistent live move bar
   const opponentSide = game.getTurn() === 'w' ? 'b' : 'w';
   appendLiveMove(san, opponentSide, moveCount - 1);
-  if (moveCount === 1) showLiveMoveBar();
+  if (moveCount === 1) activateLiveMoveBar();
   updateLiveMoveBarButtons();
 
   // Disable pre-game state
@@ -2918,7 +2923,7 @@ mp.onOpponentMove = (payload) => {
   // Check for game over
   if (game.isGameOver()) {
     board.clearPremove();
-    hideLiveMoveBar();
+    fadeLiveMoveBar();
     newGameBtn.classList.add('game-ended');
     board.setInteractive(false);
     updateStatus();
@@ -2946,7 +2951,7 @@ mp.onMoveAck = (payload) => {
 // Game ended (from server — timeout, resignation, draw, checkmate)
 mp.onGameEnd = (payload) => {
   if (isLiveReview) exitLiveReview();
-  hideLiveMoveBar();
+  fadeLiveMoveBar();
   multiplayerActive = false;
   timer.stop();
   board.clearPremove();
