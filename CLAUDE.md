@@ -102,9 +102,9 @@ Piece images are in `img/pieces-<style>/` directories. Each contains SVGs for al
   - `target=server` — pulls server code, runs `npm install`, restarts via pm2, then pulls client
   - `target=both` — same as server (server first, then client)
 - **Deploy token:** stored at `/home/bitnami/server/.deploy-token` on the production server
-- **After pushing to main:** Offer to trigger the production deploy. Present as a plan-mode prompt:
-  1. Show what changed (commit summary)
-  2. Ask: "Deploy client update to production?"
-  3. If approved: `curl -s "https://brennan.games/chess/deploy.php?token=TOKEN&target=client"`
-  4. Verify the response shows `"status":"ok"`
-- **If client needs a server update:** The deploy endpoint will return a 409 with a message. In that case, deploy the server first (`target=server`), which will also pull the client
+- **After pushing to main:** Automatically trigger the production deploy (no confirmation needed):
+  1. Read the deploy token from `/home/bitnami/server/.deploy-token`
+  2. Run: `curl -s "https://brennan.games/chess/deploy.php?token=$(cat /home/bitnami/server/.deploy-token)&target=client"`
+  3. Verify the response shows `"status":"ok"`
+  4. If deploy fails or returns a non-ok status, report the error to the user
+- **If client needs a server update:** The deploy endpoint will return a 409 with a message. In that case, inform the user and offer to deploy the server first (`target=server`), which will also pull the client
