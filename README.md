@@ -68,6 +68,9 @@ A chess game built to practice working with Claude. Runs in the browser with a c
 - [**Post-game summary**](https://github.com/bh679/Chess/wiki/Feature:-Post-Game-Summary) — chess.com-style summary screen with win-probability-based per-player accuracy and 10 move classification types (Brilliant, Great, Best, Excellent, Good, Book, Inaccuracy, Mistake, Miss, Blunder); auto-triggers after every game, also available via "Game Summary" button in replay mode
 - [**Board analysis**](https://github.com/bh679/Chess/wiki/Feature:-Board-Analysis) — Stockfish-powered position evaluation with move classification arrows and accuracy percentages
 
+### [Automation](https://github.com/bh679/Chess/wiki/Blogging-Agent)
+- [**Weekly blog**](https://github.com/bh679/Chess/wiki/Blogging-Agent) — automated weekly development blog posts generated via GitHub Actions and the Anthropic API; publishes to `blog/` directory every Monday
+
 ### UI
 - [**Captured pieces display**](https://github.com/bh679/Chess/wiki/Feature:-Captured-Pieces) — shows captured pieces with material advantage indicators
 - [**Responsive layout**](https://github.com/bh679/Chess/wiki/Feature:-Responsive-Design) — works on desktop and mobile
@@ -88,7 +91,7 @@ The client uses a local-first architecture: all game data is written to localSto
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
-| chess-api server | >= 1.0.0 | Game storage REST API (SQLite) |
+| chess-api server | >= 1.10.0000 | Game storage REST API (SQLite) |
 | Apache mod_proxy | any | Proxies `/api/*` to the Node.js server |
 
 ### Client-side (bundled, no install needed)
@@ -129,6 +132,7 @@ js/post-game-summary.js Post-game summary modal (accuracy, classification grid)
 js/replay.js            Replay viewer with board, move strip, and clock reconstruction
 js/chess.js             chess.js engine (full rule enforcement)
 js/lib/stockfish.js     Stockfish WASM engine (Web Worker)
+blog/                   Weekly development blog (auto-generated)
 img/pieces/             Classic SVG chess pieces
 img/pieces-pixel/       Pixel art chess pieces
 img/pieces-neo/         Neo bold chess pieces

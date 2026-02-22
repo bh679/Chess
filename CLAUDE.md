@@ -76,6 +76,7 @@ Piece images are in `img/pieces-<style>/` directories. Each contains SVGs for al
   - Use `!` for breaking changes: `feat!: redesign API response format`
 - First line under 72 chars, imperative mood, no generic messages.
 - Reference the GitHub Issue: `Closes #<issue-number>` (not wiki links — they don't resolve in commit views)
+- **API version dependency:** When a client change depends on new server endpoints or features, bump `requiredApiVersion` in `package.json` to match the required server major.minor version (e.g., `"1.04"`). The auto-deploy system will hold client deployment until the server is updated to satisfy this requirement.
 - **On major bump (feature merge):**
   - Update README.md — add feature to Features section, update Project Structure and Dependencies if changed
   - Create a git tag: `git tag v<version>` (e.g., `git tag v1.02.0000`) and push it: `git push origin --tags`
@@ -93,3 +94,17 @@ Piece images are in `img/pieces-<style>/` directories. Each contains SVGs for al
 - **No new dependencies** without explicit approval in the issue — this is a zero-dependency static site (chess.js and Stockfish are bundled)
 - **Match existing code style** — vanilla JS, no classes (except where already used), DOM manipulation via `document.querySelector`
 - **Keep it simple** — no build tools, no frameworks, no package managers for client code
+
+## Deployment
+
+- **Auto-deploy endpoint:** `https://brennan.games/chess/deploy.php?token=TOKEN&target=client|server|both`
+  - `target=client` — pulls latest client code (checks `requiredApiVersion` first)
+  - `target=server` — pulls server code, runs `npm install`, restarts via pm2, then pulls client
+  - `target=both` — same as server (server first, then client)
+- **Deploy token:** stored at `/home/bitnami/server/.deploy-token` on the production server
+- **After pushing to main:** Automatically trigger the production deploy (no confirmation needed):
+  1. Read the deploy token from `/home/bitnami/server/.deploy-token`
+  2. Run: `curl -s "https://brennan.games/chess/deploy.php?token=$(cat /home/bitnami/server/.deploy-token)&target=client"`
+  3. Verify the response shows `"status":"ok"`
+  4. If deploy fails or returns a non-ok status, report the error to the user
+- **If client needs a server update:** The deploy endpoint will return a 409 with a message. In that case, inform the user and offer to deploy the server first (`target=server`), which will also pull the client

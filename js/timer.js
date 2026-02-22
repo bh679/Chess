@@ -10,6 +10,7 @@ class Timer {
     this._lastTick = null;
     this._onTimeout = null;
     this._enabled = false;
+    this._serverAuthoritative = false;
   }
 
   configure(whiteSeconds, increment, blackSeconds) {
@@ -84,6 +85,11 @@ class Timer {
 
     if (this._time[this._activeSide] <= 0) {
       this._time[this._activeSide] = 0;
+      if (this._serverAuthoritative) {
+        // In server-authoritative mode, don't fire local timeout — server decides
+        this._render();
+        return;
+      }
       this.stop();
       this._render();
       if (this._onTimeout) {
@@ -125,6 +131,23 @@ class Timer {
    */
   getIncrement() {
     return this._increment || 0;
+  }
+
+  /**
+   * Set remaining time for a side from server-authoritative value.
+   * Updates display immediately.
+   */
+  setTime(side, ms) {
+    this._time[side] = Math.max(0, ms);
+    this._render();
+  }
+
+  /**
+   * Enable/disable server-authoritative mode.
+   * When enabled, local timeout events are suppressed (server decides timeouts).
+   */
+  setServerAuthoritative(enabled) {
+    this._serverAuthoritative = !!enabled;
   }
 
   _formatTime(ms) {

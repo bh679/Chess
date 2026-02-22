@@ -1,0 +1,73 @@
+name: Weekly Chess Blog
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Every Monday at 9:00 AM UTC
+  workflow_dispatch: # Manual trigger for testing
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  generate-blog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch project data
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+        run: bash .github/scripts/fetch-chess-data.sh
+
+      - name: Save data for Claude
+        run: cp /tmp/chess-blog-data.json ./blog/data-current.json
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the Chess project blog writer. Your task: generate a weekly blog post
+            and update the blog index and state.
+
+            ## Steps
+
+            1. Read `blog/data-current.json` — this contains:
+               - Project board items with statuses, priorities, categories (covers both chess-client and chess-api)
+               - Recent commits from both chess-client and chess-api
+               - Merged PRs from both repos
+               - Closed issues
+               - Previous week's state for comparison
+
+            2. Read existing blog posts in `blog/posts/` for style reference (if any exist).
+
+            3. Create a new file `blog/posts/YYYY-MM-DD.md` using today's date (run `date -u +%Y-%m-%d`).
+               The post should have:
+               - YAML frontmatter: title, date, summary
+               - Sections: Completed This Week, Progress, Coming Up, Stats
+               - 300-600 words, conversational, technical
+               - Compare current data to `previous_state` to identify what changed
+
+            4. Update `blog/README.md` — add a new table row for the post above the
+               `<!-- New posts are added above this line -->` comment.
+               Format: `| [YYYY-MM-DD](posts/YYYY-MM-DD.md) | <title> |`
+
+            5. Update `blog/state.json` — overwrite with current project board snapshot:
+               ```json
+               {
+                 "last_run": "YYYY-MM-DD",
+                 "project_board_snapshot": {
+                   "items": <items array from data-current.json>
+                 }
+               }
+               ```
+
+            6. Delete `blog/data-current.json` (temporary file, not needed in repo).
+
+            7. Commit and push: `git add blog/ && git commit -m "blog: weekly chess update YYYY-MM-DD" && git push`
+
+          claude_args: "--max-turns 25 --allowedTools Edit,Read,Write,Bash(date:*),Bash(git:*),Bash(rm:*)"
