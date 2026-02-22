@@ -70,4 +70,4 @@ jobs:
 
             7. Commit and push: `git add blog/ && git commit -m "blog: weekly chess update YYYY-MM-DD" && git push`
 
-          claude_args: "--max-turns 15 --allowedTools Edit,Read,Write,Bash(date:*),Bash(git:*),Bash(rm:*)"
+          claude_args: "--max-turns 25 --allowedTools Edit,Read,Write,Bash(date:*),Bash(git:*),Bash(rm:*)"
