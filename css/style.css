@@ -2792,6 +2792,7 @@ button.replay-summary-btn {
   min-width: 120px;
   box-shadow: 0 4px 12px rgba(0,0,0,.4);
 }
+.auth-dropdown.hidden { display: none; }
 
 .auth-dropdown-item {
   display: block;
@@ -2816,6 +2817,7 @@ button.replay-summary-btn {
   align-items: center;
   justify-content: center;
 }
+.auth-modal.hidden { display: none; }
 
 .auth-modal-backdrop {
   position: absolute;
@@ -2886,6 +2888,9 @@ button.replay-summary-btn {
   font-size: 0.8rem;
   margin-bottom: 12px;
 }
+.auth-error.hidden { display: none; }
+.auth-sign-in-btn.hidden { display: none; }
+.auth-user-badge.hidden { display: none; }
 
 .auth-register-link {
   margin-top: 12px;
@@ -2908,6 +2913,7 @@ button.replay-summary-btn {
   align-items: center;
   justify-content: center;
 }
+.profile-modal.hidden { display: none; }
 
 .profile-backdrop {
   position: absolute;
@@ -3076,6 +3082,7 @@ button.replay-summary-btn {
   align-items: center;
   justify-content: center;
 }
+.friends-modal.hidden { display: none; }
 
 .friends-backdrop {
   position: absolute;
@@ -3146,6 +3153,7 @@ button.replay-summary-btn {
   margin-bottom: 8px;
 }
 
+.friends-section.hidden { display: none; }
 .friends-section h4 {
   font-size: 0.8rem;
   color: var(--text-secondary);
