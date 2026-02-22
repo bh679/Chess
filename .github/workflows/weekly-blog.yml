@@ -68,9 +68,6 @@ jobs:
 
             6. Delete `blog/data-current.json` (temporary file, not needed in repo).
 
-            7. Commit all changes with: `git add blog/ && git commit -m "blog: weekly chess update YYYY-MM-DD"`
+            7. Commit and push: `git add blog/ && git commit -m "blog: weekly chess update YYYY-MM-DD" && git push`
 
           claude_args: "--max-turns 15 --allowedTools Read,Write,Bash(date:*),Bash(git:*),Bash(rm:*)"
-
-      - name: Push changes
-        run: git push
