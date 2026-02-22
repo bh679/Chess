@@ -2408,8 +2408,15 @@ body {
   color: #10b981 !important;
   font-weight: bold;
   gap: 4px;
-  display: none;
+  display: inline-flex;
   align-items: center;
+}
+
+.live-btn-resume:disabled {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .live-btn-resume:hover {

@@ -2384,14 +2384,14 @@ function updateLiveMoveBarButtons() {
     livePrevBtn.disabled = atStart;
     liveNextBtn.disabled = atEnd;
     liveEndBtn.disabled = false;
-    liveResumeBtn.style.display = 'inline-flex';
+    liveResumeBtn.disabled = false;
   } else {
-    // Not reviewing — back buttons enabled if moves exist, forward disabled
+    // Not reviewing — back buttons enabled if moves exist, forward/LIVE disabled
     liveStartBtn.disabled = moveCount === 0;
     livePrevBtn.disabled = moveCount === 0;
     liveNextBtn.disabled = true;
     liveEndBtn.disabled = true;
-    liveResumeBtn.style.display = 'none';
+    liveResumeBtn.disabled = true;
   }
 }
 
