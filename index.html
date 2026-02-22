@@ -25,6 +25,7 @@
         <button id="game-history-btn" class="header-icon-btn history-btn" aria-label="Game History">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1a9 9 0 1 0 0 18A9 9 0 0 0 10 1zm0 16.5a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15zM10.75 5h-1.5v5.25l4.5 2.67.75-1.23-3.75-2.22V5z"/></svg>
         </button>
+        <button id="play-online-btn" class="play-online-btn">Play Online</button>
         <button id="new-game">New Game</button>
         <button id="start-game-btn" class="start-game-btn hidden">Start</button>
       </div>
@@ -90,6 +91,87 @@
       <button id="replay-summary-btn" class="replay-summary-btn hidden">Game Summary</button>
     </div>
 
+  </div>
+
+  <!-- Multiplayer in-game controls (resign, draw, connection status) -->
+  <div id="mp-game-controls" class="mp-game-controls hidden">
+    <div id="mp-connection-status" class="mp-connection-status connected">Connected</div>
+    <button id="mp-draw-offer-btn" class="mp-btn">Offer Draw</button>
+    <button id="mp-resign-btn" class="mp-btn mp-btn-danger">Resign</button>
+  </div>
+
+  <!-- Draw offer toast -->
+  <div id="mp-draw-toast" class="mp-draw-toast hidden">
+    <span>Opponent offers a draw</span>
+    <button id="mp-draw-accept" class="mp-btn mp-btn-sm">Accept</button>
+    <button id="mp-draw-decline" class="mp-btn mp-btn-sm mp-btn-danger">Decline</button>
+  </div>
+
+  <!-- Rematch controls (after game end) -->
+  <div id="mp-rematch-controls" class="mp-rematch-controls hidden">
+    <span id="mp-rematch-status"></span>
+    <button id="mp-rematch-offer-btn" class="mp-btn">Rematch</button>
+  </div>
+
+  <!-- Multiplayer modal -->
+  <div id="mp-backdrop" class="mp-backdrop hidden"></div>
+  <div id="mp-modal" class="mp-modal hidden">
+    <div class="mp-modal-content">
+      <h3>Play Online</h3>
+
+      <!-- Menu view -->
+      <div id="mp-menu" class="mp-view">
+        <div class="mp-field">
+          <label>Your Name</label>
+          <input type="text" id="mp-player-name" placeholder="Anonymous" maxlength="20">
+        </div>
+        <div class="mp-field">
+          <label>Time Control</label>
+          <select id="mp-time-control">
+            <option value="any">Any</option>
+            <option value="1+0">Bullet 1+0</option>
+            <option value="3+2">Blitz 3+2</option>
+            <option value="5+0" selected>Rapid 5+0</option>
+            <option value="10+0">Rapid 10+0</option>
+            <option value="15+10">Classical 15+10</option>
+            <option value="30+0">Classical 30+0</option>
+            <option value="none">No Timer</option>
+          </select>
+        </div>
+        <button id="mp-quick-match-btn" class="mp-btn mp-btn-primary mp-btn-block">Find Opponent</button>
+        <div class="mp-divider"><span>or</span></div>
+        <div class="mp-row">
+          <button id="mp-create-room-btn" class="mp-btn mp-btn-block">Create Room</button>
+        </div>
+        <div class="mp-row mp-join-row">
+          <input type="text" id="mp-join-code" placeholder="Room code" maxlength="6" class="mp-code-input">
+          <button id="mp-join-room-btn" class="mp-btn">Join</button>
+        </div>
+      </div>
+
+      <!-- Waiting view (room created) -->
+      <div id="mp-waiting" class="mp-view hidden">
+        <p>Share this code with your opponent:</p>
+        <div class="mp-room-code-display">
+          <span id="mp-room-code" class="mp-code-big">------</span>
+        </div>
+        <div class="mp-share-url">
+          <span id="mp-share-url" class="mp-share-url-text"></span>
+          <button id="mp-copy-code" class="mp-btn mp-btn-sm">Copy Link</button>
+        </div>
+        <p class="mp-waiting-text">Waiting for opponent to join...</p>
+        <button id="mp-cancel-wait" class="mp-btn mp-btn-danger mp-btn-block">Cancel</button>
+      </div>
+
+      <!-- Searching view (in queue) -->
+      <div id="mp-searching" class="mp-view hidden">
+        <div class="mp-searching-anim">
+          <div class="mp-spinner"></div>
+          <p>Finding an opponent...</p>
+        </div>
+        <button id="mp-cancel-search" class="mp-btn mp-btn-danger mp-btn-block">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- Settings bottom sheet (outside .app for overlay positioning) -->

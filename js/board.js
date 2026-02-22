@@ -26,6 +26,7 @@ class Board {
     this._skipNextClick = false;
     this._rightClickStart = null;
     this._rightClickMoved = false;
+    this._flipped = false;
 
     this._buildGrid();
     this._arrowOverlay = new ArrowOverlay(containerEl);
@@ -42,6 +43,13 @@ class Board {
 
   setInteractive(enabled) {
     this._interactive = enabled;
+  }
+
+  setFlipped(flipped) {
+    if (this._flipped === flipped) return;
+    this._flipped = flipped;
+    this._buildGrid();
+    this.render();
   }
 
   setAI(ai) {
@@ -141,24 +149,29 @@ class Board {
 
   _buildGrid() {
     this.container.innerHTML = '';
+    const files = this._flipped ? [...FILES].reverse() : FILES;
+    const ranks = this._flipped ? [...RANKS].reverse() : RANKS;
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
-        const square = FILES[col] + RANKS[row];
+        const square = files[col] + ranks[row];
+        // Color is determined by absolute position, not visual position
+        const fileIdx = FILES.indexOf(files[col]);
+        const rankIdx = RANKS.indexOf(ranks[row]);
         const el = document.createElement('div');
-        el.className = 'square ' + ((row + col) % 2 === 0 ? 'light' : 'dark');
+        el.className = 'square ' + ((rankIdx + fileIdx) % 2 === 0 ? 'light' : 'dark');
         el.dataset.square = square;
 
         // Coordinate labels
         if (col === 0) {
           const rank = document.createElement('span');
           rank.className = 'coord coord-rank';
-          rank.textContent = RANKS[row];
+          rank.textContent = ranks[row];
           el.appendChild(rank);
         }
         if (row === 7) {
           const file = document.createElement('span');
           file.className = 'coord coord-file';
-          file.textContent = FILES[col];
+          file.textContent = files[col];
           el.appendChild(file);
         }
 

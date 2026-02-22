@@ -95,6 +95,30 @@ class Game {
     };
   }
 
+  /** Apply a move given in SAN notation (e.g. "e4", "Nf3", "O-O") */
+  makeMoveSan(san) {
+    const result = this.chess.move(san);
+    if (!result) {
+      return { success: false };
+    }
+
+    this._lastMove = { from: result.from, to: result.to };
+
+    if (result.captured) {
+      this._captured[result.color].push(result.captured);
+    }
+
+    return {
+      success: true,
+      san: result.san,
+      captured: result.captured || null,
+      isCheck: this.chess.isCheck(),
+      isCheckmate: this.chess.isCheckmate(),
+      isStalemate: this.chess.isStalemate(),
+      isDraw: this.chess.isDraw(),
+    };
+  }
+
   getLegalMoves(square) {
     const moves = this.chess.moves({ square, verbose: true });
     return [...new Set(moves.map((m) => m.to))];
