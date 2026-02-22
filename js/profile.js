@@ -267,15 +267,20 @@ export class Profile {
         const date = new Date(g.startTime).toLocaleDateString();
 
         // Format result display and determine CSS class
+        // DB stores 'white'/'black'/'draw'/'abandoned' or legacy '1-0'/'0-1'/'1/2-1/2'
         let resultText = g.result || 'ongoing';
         let resultClass = '';
-        if (g.result === 'white') {
-          resultText = g.white.userId === this._currentUserId ? 'Won' : 'Lost';
-          resultClass = g.white.userId === this._currentUserId ? 'pg-result-win' : 'pg-result-loss';
-        } else if (g.result === 'black') {
-          resultText = g.black.userId === this._currentUserId ? 'Won' : 'Lost';
-          resultClass = g.black.userId === this._currentUserId ? 'pg-result-win' : 'pg-result-loss';
-        } else if (g.result === 'draw') {
+        if (g.result === 'white' || g.result === '1-0') {
+          const isWhiteWin = true;
+          const userIsWhite = g.white.userId === this._currentUserId;
+          resultText = (isWhiteWin === userIsWhite) ? 'Won' : 'Lost';
+          resultClass = (isWhiteWin === userIsWhite) ? 'pg-result-win' : 'pg-result-loss';
+        } else if (g.result === 'black' || g.result === '0-1') {
+          const isBlackWin = true;
+          const userIsBlack = g.black.userId === this._currentUserId;
+          resultText = (isBlackWin === userIsBlack) ? 'Won' : 'Lost';
+          resultClass = (isBlackWin === userIsBlack) ? 'pg-result-win' : 'pg-result-loss';
+        } else if (g.result === 'draw' || g.result === '1/2-1/2') {
           resultText = 'Draw';
           resultClass = 'pg-result-draw';
         } else if (g.result === 'abandoned') {
