@@ -2726,3 +2726,465 @@ button.replay-summary-btn {
     padding: 4px 6px;
   }
 }
+
+/* =========================================
+   Auth UI
+   ========================================= */
+
+.auth-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.auth-sign-in-btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.auth-user-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px 8px 2px 4px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+}
+
+.auth-user-badge:hover { border-color: var(--border-hover); }
+
+.auth-avatar-placeholder {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background-size: cover;
+  background-position: center;
+}
+
+.auth-badge-name {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  z-index: 100;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+
+.auth-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.auth-dropdown-item:hover { background: var(--bg-hover); }
+
+/* Auth Modal */
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+}
+
+.auth-modal-content {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 320px;
+  max-width: 90vw;
+}
+
+.auth-modal-content h3 {
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.auth-modal-content label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.auth-modal-content label span {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.auth-input:focus { border-color: var(--accent); outline: none; }
+
+.auth-submit-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.auth-submit-btn:hover { background: var(--accent-hover); }
+.auth-submit-btn:disabled { opacity: 0.6; cursor: default; }
+
+.auth-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
+
+.auth-register-link {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.auth-register-link a { color: var(--accent-soft); }
+
+/* =========================================
+   Profile Modal
+   ========================================= */
+
+.profile-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+}
+
+.profile-panel {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 480px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.profile-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.profile-header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.profile-avatar-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-avatar-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-info { flex: 1; min-width: 0; }
+
+.profile-display-name {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  margin-bottom: 2px;
+}
+
+.profile-username {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.profile-bio {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
+
+.profile-ratings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.profile-rating-card {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  text-align: center;
+}
+
+.rating-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.rating-card-icon { font-size: 0.9rem; }
+
+.rating-card-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rating-unrated { color: var(--text-muted); }
+
+.rating-card-rd {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+}
+
+.rating-card-stats {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.rating-win { color: var(--accent-soft); }
+.rating-loss { color: var(--danger); }
+.rating-draw { color: var(--text-secondary); }
+
+.profile-games-section h3 {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.profile-game-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.pg-players { flex: 1; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-result { min-width: 50px; text-align: center; }
+.pg-type { min-width: 60px; }
+.pg-date { min-width: 70px; text-align: right; }
+
+.profile-loading, .profile-error {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+}
+
+/* =========================================
+   Friends Modal
+   ========================================= */
+
+.friends-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friends-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+}
+
+.friends-panel {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 380px;
+  max-width: 95vw;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.friends-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.friends-panel h3 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+
+.friends-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.friends-add-input {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+.friends-add-btn {
+  padding: 6px 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.friends-add-btn:hover { background: var(--accent-hover); }
+
+.friends-status {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.friends-section h4 {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 12px 0 6px;
+}
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.friend-name {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+.friend-pending {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.friend-accept-btn, .friend-reject-btn, .friend-remove-btn {
+  padding: 3px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.friend-accept-btn { background: var(--accent); color: #fff; }
+.friend-reject-btn { background: var(--danger-bg); color: var(--danger); }
+.friend-remove-btn { background: var(--bg-elevated); color: var(--text-secondary); }
+
+.friends-empty {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 12px 0;
+}

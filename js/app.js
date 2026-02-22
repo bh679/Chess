@@ -11,6 +11,10 @@ import { AnalysisEngine } from './analysis.js';
 import { EvalBar } from './eval-bar.js';
 import { PostGameSummary } from './post-game-summary.js';
 import { Router } from './router.js';
+import { Auth } from './auth.js';
+import { AuthUI } from './auth-ui.js';
+import { Profile } from './profile.js';
+import { Friends } from './friends.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -129,10 +133,18 @@ const replaySummaryBtn = document.getElementById('replay-summary-btn');
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
 const ai = new AI();
+const auth = new Auth();
 const db = new GameDatabase();
+db.setAuth(auth);
 const replayViewer = new ReplayViewer();
 const postGameSummary = new PostGameSummary();
 const gameBrowser = new GameBrowser(db, replayViewer, enterReplayMode);
+const profile = new Profile(auth);
+const friends = new Friends(auth);
+const authUI = new AuthUI(auth, {
+  onProfileClick: () => profile.show(),
+  onFriendsClick: () => friends.show()
+});
 const router = new Router();
 
 // Wire browser close callback to update URL
@@ -2347,9 +2359,19 @@ router.on('/live', ({ params }) => {
   gameBrowser.open({ showLive: true });
 });
 
-// Initialize DB, then start routing (engines load lazily in startNewGame)
+router.on('/profile', ({ params }) => {
+  const username = params.get('user');
+  profile.show(username || undefined);
+});
+
+router.on('/friends', () => {
+  friends.show();
+});
+
+// Initialize DB and auth, then start routing (engines load lazily in startNewGame)
 Promise.all([
   db.open().catch(e => { console.warn('Database unavailable:', e); }),
+  auth.validateToken().catch(() => {}),
 ]).then(() => {
   router.start();
 });

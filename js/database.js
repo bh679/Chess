@@ -24,6 +24,19 @@ class GameDatabase {
     this._syncTimer = null;
     this._syncing = false;
     this._serverIds = new Set(); // numeric server IDs (for isOwnGame)
+    this._auth = null;
+  }
+
+  /** Set the Auth instance to include JWT headers in API calls. */
+  setAuth(auth) { this._auth = auth; }
+
+  /** Build headers including auth token if available. */
+  _headers() {
+    const h = { 'Content-Type': 'application/json' };
+    if (this._auth && this._auth.token) {
+      h['Authorization'] = `Bearer ${this._auth.token}`;
+    }
+    return h;
   }
 
   /* ------------------------------------------------------------------ */
@@ -174,7 +187,7 @@ class GameDatabase {
       if (ids.length === 0) return [];
       const res = await fetch(`${API_BASE}/games/list`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this._headers(),
         body: JSON.stringify({ ids, limit, offset }),
       });
       if (!res.ok) return [];
@@ -191,7 +204,7 @@ class GameDatabase {
     try {
       const res = await fetch(`${API_BASE}/games/list-all`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this._headers(),
         body: JSON.stringify({ limit, offset }),
       });
       if (!res.ok) return [];
@@ -210,7 +223,7 @@ class GameDatabase {
       if (ids.length === 0) return 0;
       const res = await fetch(`${API_BASE}/games/list`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this._headers(),
         body: JSON.stringify({ ids, limit: 0, offset: 0 }),
       });
       if (!res.ok) return 0;
@@ -268,7 +281,7 @@ class GameDatabase {
       try {
         const res = await fetch(`${API_BASE}/games`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this._headers(),
           body: JSON.stringify(g.metadata),
         });
         if (!res.ok) return; // server down — try next cycle
@@ -288,7 +301,7 @@ class GameDatabase {
       try {
         const res = await fetch(`${API_BASE}/games/${g.serverId}/moves`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this._headers(),
           body: JSON.stringify(move),
         });
         // 204 = new, 409 = duplicate — both count as synced
@@ -307,7 +320,7 @@ class GameDatabase {
       try {
         const res = await fetch(`${API_BASE}/games/${g.serverId}/player`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this._headers(),
           body: JSON.stringify(g.playerNameDirty),
         });
         if (res.ok || res.status === 204) {
@@ -323,7 +336,7 @@ class GameDatabase {
       try {
         const res = await fetch(`${API_BASE}/games/${g.serverId}/end`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this._headers(),
           body: JSON.stringify({ result: g.result, resultReason: g.resultReason }),
         });
         if (res.ok || res.status === 204) {
