@@ -406,6 +406,41 @@ function triggerPostGameSummary() {
   );
 }
 
+/**
+ * Build a game record from the current multiplayer game state.
+ * Used for post-game summary since multiplayer games aren't in the local DB.
+ */
+function buildMultiplayerGameRecord(result, reason) {
+  const sanList = game.chess.history();
+  if (!sanList || sanList.length === 0) return null;
+
+  const startingFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const replay = new Chess();
+  const moves = [];
+
+  for (let i = 0; i < sanList.length; i++) {
+    const side = i % 2 === 0 ? 'w' : 'b';
+    replay.move(sanList[i]);
+    moves.push({
+      san: sanList[i],
+      fen: replay.fen(),
+      ply: i,
+      side,
+    });
+  }
+
+  return {
+    startingFen,
+    moves,
+    result: result || 'unknown',
+    resultReason: reason || 'unknown',
+    white: { name: mp.color === 'w' ? 'You' : 'Opponent', isAI: false },
+    black: { name: mp.color === 'b' ? 'You' : 'Opponent', isAI: false },
+    timeControl: 'Online',
+    gameType: 'online',
+  };
+}
+
 // --- Game Flow ---
 
 async function startNewGame() {
@@ -624,15 +659,11 @@ function startMultiplayerGame(color, fen, timeControl, opponentName) {
   // DB persistence — let the server handle it for multiplayer
   currentDbGameId = null;
 
-  // Eval bar
-  if (evalBarToggle && evalBarToggle.checked) {
-    mainEvalBar.show();
-    mainEvalBar.reset();
-    liveEval();
-  } else {
-    mainEvalBar.hide();
-    mainEvalBar.reset();
-  }
+  // Disable eval bar during multiplayer (no engine assistance in online play)
+  if (evalBarToggle) evalBarToggle.checked = false;
+  mainEvalBar.hide();
+  mainEvalBar.reset();
+  if (liveEvalEngine) liveEvalEngine.stop();
 
   // Set board interactivity based on whose turn it is
   const isMyTurn = mp.isMyTurn(game.getTurn());
@@ -968,6 +999,12 @@ if (evalBarToggle) {
   evalBarToggle.addEventListener('change', () => {
     const enabled = evalBarToggle.checked;
     localStorage.setItem('chess-eval-bar', enabled ? 'true' : 'false');
+
+    // Prevent eval bar during multiplayer games
+    if (multiplayerActive) {
+      evalBarToggle.checked = false;
+      return;
+    }
 
     if (isReplayMode) {
       // In replay mode, show/hide based on toggle + analysis data
@@ -2532,6 +2569,24 @@ mp.onGameEnd = (payload) => {
   updateStatus(statusText);
   mpUI.hideGameControls();
   mpUI.showRematchControls();
+
+  // Trigger post-game summary with analysis
+  const record = buildMultiplayerGameRecord(result, reason);
+  if (record) {
+    if (!postGameAnalysisEngine) {
+      postGameAnalysisEngine = new AnalysisEngine();
+    }
+    postGameSummary.showWithAnalysis(
+      record,
+      postGameAnalysisEngine,
+      null,
+      {
+        onReview: (rec) => enterReplayMode(rec),
+        onNewGame: () => { multiplayerActive = false; startNewGame(); },
+        onClose: () => {},
+      }
+    );
+  }
 };
 
 // Draw offered by opponent
