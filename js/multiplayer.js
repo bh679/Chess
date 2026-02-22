@@ -148,7 +148,7 @@ export class MultiplayerClient {
 
   _buildWsUrl() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${proto}//${location.host}`;
+    return `${proto}//${location.host}/ws`;
   }
 
   _send(type, payload) {
