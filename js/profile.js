@@ -155,6 +155,7 @@ export class Profile {
           <option value="loss">Losses</option>
           <option value="draw">Draws</option>
           <option value="abandoned">Abandoned</option>
+          <option value="ongoing">Ongoing</option>
         </select>
         <select class="profile-filter-select" data-filter="playerType">
           <option value="all">All Players</option>
@@ -286,6 +287,9 @@ export class Profile {
         } else if (g.result === 'abandoned') {
           resultText = 'Abandoned';
           resultClass = 'pg-result-abandoned';
+        } else if (!g.result) {
+          resultText = 'Ongoing';
+          resultClass = 'pg-result-ongoing';
         }
 
         row.innerHTML = `

@@ -3131,6 +3131,7 @@ button.replay-summary-btn {
 .pg-result-loss { color: var(--danger); }
 .pg-result-draw { color: var(--text-secondary); }
 .pg-result-abandoned { color: var(--text-muted); }
+.pg-result-ongoing { color: var(--info); }
 .pg-type { min-width: 60px; }
 .pg-date { min-width: 70px; text-align: right; }
 
