@@ -2327,7 +2327,70 @@ body {
   color: var(--info);
 }
 
-/* --- Live Review Mode --- */
+/* --- Live Move Bar (persistent during live games) --- */
+
+.live-move-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(90vw, 75vh, 800px);
+  margin: 0 auto;
+  padding: 4px 0;
+}
+
+.live-move-bar.hidden {
+  display: none;
+}
+
+.live-move-list {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  padding: 4px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  background: #1e1c1a;
+  border-radius: var(--radius-sm);
+}
+
+.live-move-list::-webkit-scrollbar {
+  display: none;
+}
+
+.live-move-buttons {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.live-move-btn {
+  background: var(--bg-elevated);
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  padding: 5px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.live-move-btn:hover {
+  background: var(--border);
+}
+
+.live-move-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* --- Live Review Mode (amber border when reviewing past moves) --- */
 
 .board.live-review-border {
   border: 3px solid #f59e0b;
@@ -2338,7 +2401,7 @@ body {
   color: #f59e0b;
 }
 
-.live-resume-btn {
+.live-btn-resume {
   background: #065f46 !important;
   color: #10b981 !important;
   font-weight: bold;
@@ -2347,7 +2410,7 @@ body {
   align-items: center;
 }
 
-.live-resume-btn:hover {
+.live-btn-resume:hover {
   background: #047857 !important;
 }
 

@@ -57,6 +57,17 @@
       </div>
     </div>
 
+    <div id="live-move-bar" class="live-move-bar hidden">
+      <div id="live-move-list" class="live-move-list"></div>
+      <div class="live-move-buttons">
+        <button id="live-start-btn" class="live-move-btn" title="Start (Home)">|&#9664;</button>
+        <button id="live-prev-btn" class="live-move-btn" title="Previous (&#8592;)">&#9664;</button>
+        <button id="live-next-btn" class="live-move-btn" title="Next (&#8594;)">&#9654;</button>
+        <button id="live-end-btn" class="live-move-btn" title="Latest (End)">&#9654;|</button>
+        <button id="live-resume-btn" class="live-move-btn live-btn-resume" title="Return to live game (Esc)"><span class="live-dot"></span> LIVE</button>
+      </div>
+    </div>
+
     <div id="replay-controls" class="replay-main-controls hidden">
       <div id="replay-move-list" class="replay-main-move-list"></div>
       <div class="replay-nav-row">
@@ -68,7 +79,6 @@
           <button id="replay-main-next" class="replay-main-btn" title="Next (&#8594;)">&#9654;</button>
           <button id="replay-main-end" class="replay-main-btn" title="End (End)">&#9654;|</button>
           <button id="replay-crit-next" class="replay-main-btn replay-crit-btn hidden" title="Next Critical Moment">Crit &#9654;</button>
-          <button id="live-review-resume" class="replay-main-btn live-resume-btn hidden" title="Return to live game (Esc)"><span class="live-dot"></span> LIVE</button>
         </div>
         <label class="auto-analyze-toggle" id="replay-analyze-toggle">
           <span>Analyze</span>
