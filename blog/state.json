@@ -1,6 +1,376 @@
 {
-  "last_run": null,
+  "last_run": "2026-02-22",
   "project_board_snapshot": {
-    "items": []
+    "items": [
+      {
+        "title": "User Account System",
+        "status": "Ready for Testing",
+        "priority": "High",
+        "categories": null,
+        "score": 34.0,
+        "complexity": "Complex",
+        "time_estimate": "2-3 days"
+      },
+      {
+        "title": "Premoves",
+        "status": "Done",
+        "priority": "Medium",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Hard",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Chess Meets Omegle",
+        "status": "Idea",
+        "priority": "Low",
+        "categories": null,
+        "score": 4.0,
+        "complexity": "Complex",
+        "time_estimate": "1 week+"
+      },
+      {
+        "title": "Evaluation Bar",
+        "status": "Done",
+        "priority": "Medium",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Medium",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Stockfish Version Display",
+        "status": "Done",
+        "priority": "Low",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Easy",
+        "time_estimate": "1-2 hours"
+      },
+      {
+        "title": "Roadmap Agent",
+        "status": "In Development",
+        "priority": "High",
+        "categories": null,
+        "score": 51.0,
+        "complexity": "Complex",
+        "time_estimate": "1 week+"
+      },
+      {
+        "title": "Local-First Game Persistence",
+        "status": "Done",
+        "priority": "High",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Medium",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Dev Agent",
+        "status": "In Development",
+        "priority": "High",
+        "categories": null,
+        "score": 36.0,
+        "complexity": "Hard",
+        "time_estimate": "1 day"
+      },
+      {
+        "title": "Board Analysis",
+        "status": "Done",
+        "priority": "Medium",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Medium",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Analysis Review",
+        "status": "Done",
+        "priority": "Medium",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Medium",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Live Spectating",
+        "status": "Idea",
+        "priority": "High",
+        "categories": null,
+        "score": 14.0,
+        "complexity": "Hard",
+        "time_estimate": "2-3 days"
+      },
+      {
+        "title": "Review on main board",
+        "status": "Done",
+        "priority": "Medium",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Medium",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "End-to-end lifecycle test",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Cross-repo coordination",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Buy Anthropic API credits",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Install Claude GitHub App",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Add ANTHROPIC_API_KEY secret",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Add claude.yml workflow to chess-api",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Verify Dev Agent triggers correctly",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Set up PROJECT_PAT secret",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Approval workflow improvement",
+        "status": "Planned",
+        "priority": "Medium",
+        "categories": null,
+        "score": 15.0,
+        "complexity": "Easy",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Create Dev Agent CLAUDE.md (Chess)",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Create Dev Agent CLAUDE.md (chess-api)",
+        "status": "Done",
+        "priority": null,
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Allowlist Wiki Writes",
+        "status": "Done",
+        "priority": "High",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Trivial",
+        "time_estimate": "1-2 hours"
+      },
+      {
+        "title": "Single Source CLAUDE.md",
+        "status": "Done",
+        "priority": "High",
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Breadcrumb Page Name",
+        "status": "Done",
+        "priority": "Medium",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Trivial",
+        "time_estimate": "1-2 hours"
+      },
+      {
+        "title": "Update READMEs with Wiki Links",
+        "status": "Approved",
+        "priority": "Medium",
+        "categories": null,
+        "score": 17.0,
+        "complexity": "Easy",
+        "time_estimate": "1-2 hours"
+      },
+      {
+        "title": "Async Roadmap Agent",
+        "status": "Idea",
+        "priority": "Low",
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Roadmap Agent Context Retention",
+        "status": "Done",
+        "priority": "High",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Easy",
+        "time_estimate": "1-2 hours"
+      },
+      {
+        "title": "Automated Browser Testing",
+        "status": "Done",
+        "priority": "Low",
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Review CLAUDE.md (Chess)",
+        "status": null,
+        "priority": null,
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Review CLAUDE.md (chess-api)",
+        "status": null,
+        "priority": null,
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Wiki Feature Audit",
+        "status": "Done",
+        "priority": "Medium",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Easy",
+        "time_estimate": "1-2 hours"
+      },
+      {
+        "title": "Add wiki links to Chess client README",
+        "status": null,
+        "priority": null,
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Add wiki links to chess-api README",
+        "status": null,
+        "priority": null,
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Workflow Redesign",
+        "status": "Done",
+        "priority": "High",
+        "categories": null,
+        "score": 0.0,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Move Strip Drag Scroll",
+        "status": "Done",
+        "priority": "Low",
+        "categories": null,
+        "score": 0.0,
+        "complexity": "Easy",
+        "time_estimate": "1-2 hours"
+      },
+      {
+        "title": "Frontend Redesign",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 10.0,
+        "complexity": "Hard",
+        "time_estimate": "2-3 days"
+      },
+      {
+        "title": "URL Routing & Parameters",
+        "status": null,
+        "priority": null,
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Friendly New Game Button",
+        "status": null,
+        "priority": null,
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Password Reset Email",
+        "status": "Idea",
+        "priority": null,
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      }
+    ]
   }
 }
