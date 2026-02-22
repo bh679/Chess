@@ -164,6 +164,11 @@ class GameDatabase {
     return this._games[localId] || null;
   }
 
+  /** Return all local games (for batch operations like claim). */
+  getAllGames() {
+    return { ...this._games };
+  }
+
   /* ------------------------------------------------------------------ */
   /*  Read-only server queries (used by GameBrowser / ReplayViewer)      */
   /* ------------------------------------------------------------------ */
