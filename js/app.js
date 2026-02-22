@@ -200,10 +200,20 @@ auth.onAuthChange(async (user) => {
       } catch (e) { /* silent */ }
     }
 
-    // Update player name to display name if it's the default
+    // Update player name to display name on current board UI
     const displayName = user.displayName || user.username;
     if (playerNameWhite.textContent === 'Human') {
       playerNameWhite.textContent = displayName;
+    }
+
+    // Update local game records so player names sync to server
+    for (const g of Object.values(allGames)) {
+      if (g.metadata?.white && !g.metadata.white.isAI && g.metadata.white.name === 'Human') {
+        db.updatePlayerName(g.localId, 'white', displayName);
+      }
+      if (g.metadata?.black && !g.metadata.black.isAI && g.metadata.black.name === 'Human') {
+        db.updatePlayerName(g.localId, 'black', displayName);
+      }
     }
   }
 });
