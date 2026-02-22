@@ -158,6 +158,7 @@ let customBlackName = null;
 
 // Replay-on-board state
 let isReplayMode = false;
+let multiplayerActive = false;
 let replayGame = null;
 let replayPly = -1;
 let replayPlaying = false;
@@ -408,6 +409,9 @@ function triggerPostGameSummary() {
 // --- Game Flow ---
 
 async function startNewGame() {
+  // Don't override an active multiplayer game
+  if (multiplayerActive) return;
+
   // Close post-game summary if open
   if (postGameSummary.isOpen()) {
     postGameSummary.close();
@@ -555,6 +559,8 @@ async function startNewGame() {
 
 /** Start a multiplayer game (called by multiplayer event handlers) */
 function startMultiplayerGame(color, fen, timeControl, opponentName) {
+  multiplayerActive = true;
+
   // Close any open panels/overlays
   if (postGameSummary.isOpen()) postGameSummary.close();
   if (isReplayMode) exitReplayMode(false);
@@ -2508,6 +2514,7 @@ mp.onMoveAck = (payload) => {
 
 // Game ended (from server — timeout, resignation, draw, checkmate)
 mp.onGameEnd = (payload) => {
+  multiplayerActive = false;
   timer.stop();
   board.clearPremove();
   board.setInteractive(false);
@@ -2618,9 +2625,12 @@ function checkRoomCodeInUrl() {
     window.history.replaceState({}, '', url.pathname + url.hash);
 
     // Connect and join the room
+    multiplayerActive = true;
     mp.connect().then(() => {
-      mp.joinRoom(roomCode);
+      const name = document.getElementById('mp-player-name').value.trim() || null;
+      mp.joinRoom(roomCode, name);
     }).catch(() => {
+      multiplayerActive = false;
       alert('Could not connect to the multiplayer server.');
     });
   }
