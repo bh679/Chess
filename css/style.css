@@ -215,9 +215,9 @@ body {
   padding: 0 10px;
   font-size: 0.8rem;
   font-weight: 600;
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  border: 1.5px solid var(--border);
+  background: rgba(100, 181, 246, 0.1); /* light --info tint */
+  color: var(--info);
+  border: 1.5px solid var(--info);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
@@ -225,9 +225,8 @@ body {
 }
 
 #new-game:hover {
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-  background: var(--bg-hover);
+  background: var(--info);
+  color: #fff;
 }
 
 #new-game.game-ended {
