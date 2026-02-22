@@ -3065,6 +3065,11 @@ mp.onDisconnected = () => {
 
 mp.onError = (msg) => {
   console.warn('Multiplayer error:', msg);
+  // Reset multiplayerActive on join failures so the user can start a local game
+  if (!mp.isActive()) {
+    multiplayerActive = false;
+    alert(msg || 'Multiplayer error. Please try again.');
+  }
 };
 
 // Check URL for room code parameter (joining via shared link)
@@ -3193,6 +3198,7 @@ newGameMenu.onFriend(async (action, tc, name, code) => {
     mpUI.modal.classList.remove('hidden');
     mpUI.backdrop.classList.remove('hidden');
   } else if (action === 'join') {
+    multiplayerActive = true;  // Prevent startNewGame() from overwriting
     mp.joinRoom(code, name);
   }
 });
@@ -3255,6 +3261,9 @@ router.on('/live', ({ params }) => {
 Promise.all([
   db.open().catch(e => { console.warn('Database unavailable:', e); }),
 ]).then(() => {
+  // Set multiplayerActive BEFORE routing so startNewGame() won't overwrite the join
+  const hasRoomCode = new URLSearchParams(window.location.search).has('room');
+  if (hasRoomCode) multiplayerActive = true;
   router.start();
   checkRoomCodeInUrl();
 });
