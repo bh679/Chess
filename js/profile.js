@@ -19,7 +19,7 @@ export class Profile {
     this._modal = null;
     this._currentUsername = null;
     this._currentUserId = null;
-    this._filters = { result: 'all', gameType: 'all' };
+    this._filters = { result: 'all', gameType: 'all', playerType: 'all', timeControl: 'all', eloMin: '', eloMax: '' };
     this._page = 0;
     this._totalGames = 0;
     this._buildDOM();
@@ -32,7 +32,7 @@ export class Profile {
     if (!username) return;
 
     this._currentUsername = username;
-    this._filters = { result: 'all', gameType: 'all' };
+    this._filters = { result: 'all', gameType: 'all', playerType: 'all', timeControl: 'all', eloMin: '', eloMax: '' };
     this._page = 0;
     this._modal.classList.remove('hidden');
     this._modal.querySelector('.profile-body').innerHTML = '<div class="profile-loading">Loading...</div>';
@@ -148,17 +148,48 @@ export class Profile {
 
   _buildFilters(container) {
     container.innerHTML = `
-      <select class="profile-filter-select" data-filter="result">
-        <option value="all">All Results</option>
-        <option value="win">Wins</option>
-        <option value="loss">Losses</option>
-        <option value="draw">Draws</option>
-      </select>
-      <select class="profile-filter-select" data-filter="gameType">
-        <option value="all">All Types</option>
-        <option value="standard">Standard</option>
-        <option value="chess960">Chess960</option>
-      </select>
+      <div class="profile-filters-row">
+        <select class="profile-filter-select" data-filter="result">
+          <option value="all">All Results</option>
+          <option value="win">Wins</option>
+          <option value="loss">Losses</option>
+          <option value="draw">Draws</option>
+          <option value="abandoned">Abandoned</option>
+        </select>
+        <select class="profile-filter-select" data-filter="playerType">
+          <option value="all">All Players</option>
+          <option value="hvai">Human vs AI</option>
+          <option value="hvh">Human vs Human</option>
+          <option value="avai">AI vs AI</option>
+        </select>
+        <select class="profile-filter-select" data-filter="gameType">
+          <option value="all">All Types</option>
+          <option value="standard">Standard</option>
+          <option value="chess960">Chess960</option>
+        </select>
+        <select class="profile-filter-select" data-filter="timeControl">
+          <option value="all">All Time Controls</option>
+          <option value="none">No Clock</option>
+          <option value="Bullet 1+0">Bullet 1+0</option>
+          <option value="Bullet 2+1">Bullet 2+1</option>
+          <option value="Blitz 3+0">Blitz 3+0</option>
+          <option value="Blitz 3+2">Blitz 3+2</option>
+          <option value="Blitz 5+0">Blitz 5+0</option>
+          <option value="Blitz 5+3">Blitz 5+3</option>
+          <option value="Rapid 10+0">Rapid 10+0</option>
+          <option value="Rapid 10+5">Rapid 10+5</option>
+          <option value="Rapid 15+10">Rapid 15+10</option>
+          <option value="Classical 30+0">Classical 30+0</option>
+          <option value="Classical 30+20">Classical 30+20</option>
+        </select>
+      </div>
+      <div class="profile-filters-row">
+        <label class="profile-filter-label">Elo:</label>
+        <input type="number" class="profile-filter-elo" data-filter="eloMin" placeholder="Min" min="0" max="4000">
+        <span class="profile-filter-dash">\u2013</span>
+        <input type="number" class="profile-filter-elo" data-filter="eloMax" placeholder="Max" min="0" max="4000">
+        <button class="profile-filter-clear-btn">Clear</button>
+      </div>
     `;
 
     container.querySelectorAll('.profile-filter-select').forEach(sel => {
@@ -167,6 +198,26 @@ export class Profile {
         this._page = 0;
         this._loadGames();
       });
+    });
+
+    container.querySelectorAll('.profile-filter-elo').forEach(input => {
+      let timer;
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          this._filters[input.dataset.filter] = input.value;
+          this._page = 0;
+          this._loadGames();
+        }, 500);
+      });
+    });
+
+    container.querySelector('.profile-filter-clear-btn').addEventListener('click', () => {
+      this._filters = { result: 'all', gameType: 'all', playerType: 'all', timeControl: 'all', eloMin: '', eloMax: '' };
+      container.querySelectorAll('.profile-filter-select').forEach(s => { s.value = 'all'; });
+      container.querySelectorAll('.profile-filter-elo').forEach(i => { i.value = ''; });
+      this._page = 0;
+      this._loadGames();
     });
   }
 
@@ -185,6 +236,10 @@ export class Profile {
       });
       if (this._filters.result !== 'all') params.set('result', this._filters.result);
       if (this._filters.gameType !== 'all') params.set('gameType', this._filters.gameType);
+      if (this._filters.playerType !== 'all') params.set('playerType', this._filters.playerType);
+      if (this._filters.timeControl !== 'all') params.set('timeControl', this._filters.timeControl);
+      if (this._filters.eloMin) params.set('eloMin', this._filters.eloMin);
+      if (this._filters.eloMax) params.set('eloMax', this._filters.eloMax);
 
       const res = await fetch(
         `${API_BASE}/users/${encodeURIComponent(this._currentUsername)}/games?${params}`,
@@ -210,18 +265,27 @@ export class Profile {
         row.className = 'profile-game-row';
         row.href = `/#/game/${g.id}`;
         const date = new Date(g.startTime).toLocaleDateString();
-        const result = g.result || 'ongoing';
 
-        // Determine result class for the current user
+        // Format result display and determine CSS class
+        let resultText = g.result || 'ongoing';
         let resultClass = '';
-        if (g.result === '1-0' && g.white.userId === this._currentUserId) resultClass = 'pg-result-win';
-        else if (g.result === '0-1' && g.black.userId === this._currentUserId) resultClass = 'pg-result-win';
-        else if (g.result === '1/2-1/2') resultClass = 'pg-result-draw';
-        else if (g.result) resultClass = 'pg-result-loss';
+        if (g.result === 'white') {
+          resultText = g.white.userId === this._currentUserId ? 'Won' : 'Lost';
+          resultClass = g.white.userId === this._currentUserId ? 'pg-result-win' : 'pg-result-loss';
+        } else if (g.result === 'black') {
+          resultText = g.black.userId === this._currentUserId ? 'Won' : 'Lost';
+          resultClass = g.black.userId === this._currentUserId ? 'pg-result-win' : 'pg-result-loss';
+        } else if (g.result === 'draw') {
+          resultText = 'Draw';
+          resultClass = 'pg-result-draw';
+        } else if (g.result === 'abandoned') {
+          resultText = 'Abandoned';
+          resultClass = 'pg-result-abandoned';
+        }
 
         row.innerHTML = `
           <span class="pg-players">${this._esc(g.white.name)} vs ${this._esc(g.black.name)}</span>
-          <span class="pg-result ${resultClass}">${result}</span>
+          <span class="pg-result ${resultClass}">${resultText}</span>
           <span class="pg-type">${g.gameType}</span>
           <span class="pg-date">${date}</span>
         `;

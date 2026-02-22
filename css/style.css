@@ -3052,8 +3052,16 @@ button.replay-summary-btn {
 
 .profile-games-filters {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   margin-bottom: 10px;
+}
+
+.profile-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
 }
 
 .profile-filter-select {
@@ -3066,6 +3074,39 @@ button.replay-summary-btn {
   cursor: pointer;
 }
 .profile-filter-select:hover { border-color: var(--border-hover); }
+
+.profile-filter-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.profile-filter-elo {
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  width: 70px;
+}
+.profile-filter-elo:hover { border-color: var(--border-hover); }
+
+.profile-filter-dash {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.profile-filter-clear-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  margin-left: auto;
+}
+.profile-filter-clear-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
 
 .profile-game-row {
   display: flex;
@@ -3089,6 +3130,7 @@ button.replay-summary-btn {
 .pg-result-win { color: var(--accent-soft); }
 .pg-result-loss { color: var(--danger); }
 .pg-result-draw { color: var(--text-secondary); }
+.pg-result-abandoned { color: var(--text-muted); }
 .pg-type { min-width: 60px; }
 .pg-date { min-width: 70px; text-align: right; }
 
