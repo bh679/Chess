@@ -1,0 +1,152 @@
+name: Weekly Chess Blog
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Every Monday at 9:00 AM UTC
+  workflow_dispatch: # Manual trigger for testing
+
+permissions:
+  contents: write
+
+jobs:
+  generate-blog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch project data
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+        run: bash .github/scripts/fetch-chess-data.sh
+
+      - name: Generate blog post
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          DATA=$(cat /tmp/chess-blog-data.json)
+
+          # Read existing posts for style reference
+          EXISTING_POSTS=""
+          for f in $(ls -t blog/posts/*.md 2>/dev/null | head -2); do
+            EXISTING_POSTS="$EXISTING_POSTS
+          --- Previous post: $f ---
+          $(cat "$f")
+          "
+          done
+
+          # Build the prompt
+          PROMPT=$(cat <<PROMPT_EOF
+          You are the Chess project blog writer. Generate a weekly development blog post
+          based on the data below.
+
+          ## Data
+
+          \`\`\`json
+          $DATA
+          \`\`\`
+
+          ## Previous Posts (for style reference)
+
+          $EXISTING_POSTS
+
+          ## Instructions
+
+          Generate a markdown blog post for the week of $TODAY. The post should:
+
+          1. Start with YAML frontmatter:
+             ---
+             title: "This Week in Chess: <descriptive title>"
+             date: $TODAY
+             summary: "<one-sentence summary>"
+             ---
+
+          2. Use this structure:
+             # This Week in Chess: <title>
+             ## Completed This Week
+             - List features that moved to Done since last week (compare to previous_state)
+             ## Progress
+             - Features that changed status (moved forward)
+             - Notable commits or PRs merged
+             ## Coming Up
+             - High-priority items still in Idea/Planned/In Development
+             ## Stats
+             - Total features, done count, in-progress count, planned count
+
+          3. Keep it 300-600 words, conversational, and technical
+          4. If there's no activity this week, write a brief "quiet week" post
+          5. Output ONLY the markdown content, nothing else
+
+          PROMPT_EOF
+          )
+
+          # Call Anthropic API
+          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "$(jq -n \
+              --arg prompt "$PROMPT" \
+              '{
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 2048,
+                messages: [{role: "user", content: $prompt}]
+              }')")
+
+          # Extract the text content
+          BLOG_CONTENT=$(echo "$RESPONSE" | jq -r '.content[0].text')
+
+          if [ -z "$BLOG_CONTENT" ] || [ "$BLOG_CONTENT" = "null" ]; then
+            echo "ERROR: Failed to generate blog post"
+            echo "API response: $RESPONSE"
+            exit 1
+          fi
+
+          # Write the blog post
+          echo "$BLOG_CONTENT" > "blog/posts/${TODAY}.md"
+          echo "Blog post written to blog/posts/${TODAY}.md"
+
+      - name: Update blog index
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          POST_FILE="blog/posts/${TODAY}.md"
+
+          # Extract title from frontmatter
+          TITLE=$(sed -n 's/^title: *"\(.*\)"/\1/p' "$POST_FILE" | head -1)
+          if [ -z "$TITLE" ]; then
+            TITLE="Weekly Update $TODAY"
+          fi
+
+          # Add new row to README.md after the header row
+          sed -i "/<!-- New posts are added above this line/i | [$TODAY](posts/${TODAY}.md) | $TITLE |" blog/README.md
+
+          echo "Index updated with: $TITLE"
+
+      - name: Update state snapshot
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          DATA=$(cat /tmp/chess-blog-data.json)
+
+          # Extract current items for the snapshot
+          echo "$DATA" | jq "{
+            last_run: \"$TODAY\",
+            project_board_snapshot: {
+              items: .project_board.items
+            }
+          }" > blog/state.json
+
+          echo "State snapshot updated"
+
+      - name: Commit and push
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blog/
+          git diff --staged --quiet && echo "No changes to commit" && exit 0
+          git commit -m "blog: weekly chess update $TODAY"
+          git push
