@@ -2345,16 +2345,16 @@ function enterLiveReview() {
   replayControlsEl.classList.remove('hidden');
 
   // Hide replay-specific elements, show live review elements
-  replayPlayBtn.classList.add('hidden');
+  replayPlayBtn.style.display = 'none';
   replayCritPrevBtn.classList.add('hidden');
   replayCritNextBtn.classList.add('hidden');
-  if (replayAnalyzeToggleEl) replayAnalyzeToggleEl.classList.add('hidden');
-  if (replayProgressEl) replayProgressEl.classList.add('hidden');
-  if (replayDetailEl) replayDetailEl.classList.add('hidden');
-  if (replayAccuracyEl) replayAccuracyEl.classList.add('hidden');
+  if (replayAnalyzeToggleEl) replayAnalyzeToggleEl.style.display = 'none';
+  if (replayProgressEl) replayProgressEl.style.display = 'none';
+  if (replayDetailEl) replayDetailEl.style.display = 'none';
+  if (replayAccuracyEl) replayAccuracyEl.style.display = 'none';
   if (replaySummaryBtn) replaySummaryBtn.classList.add('hidden');
   replayResultEl.style.display = 'none';
-  liveResumeBtn.classList.remove('hidden');
+  liveResumeBtn.style.display = 'inline-flex';
   updateLiveResumeButton();
 
   // Build move list
@@ -2402,9 +2402,12 @@ function exitLiveReview() {
 
   // Hide replay controls and restore hidden elements
   replayControlsEl.classList.add('hidden');
-  replayPlayBtn.classList.remove('hidden');
-  if (replayAnalyzeToggleEl) replayAnalyzeToggleEl.classList.remove('hidden');
-  liveResumeBtn.classList.add('hidden');
+  replayPlayBtn.style.display = '';
+  if (replayAnalyzeToggleEl) replayAnalyzeToggleEl.style.display = '';
+  if (replayProgressEl) replayProgressEl.style.display = '';
+  if (replayDetailEl) replayDetailEl.style.display = '';
+  if (replayAccuracyEl) replayAccuracyEl.style.display = '';
+  liveResumeBtn.style.display = 'none';
 
   // Clear arrows
   board.getArrowOverlay().clear();

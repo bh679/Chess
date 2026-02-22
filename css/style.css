@@ -2343,7 +2343,7 @@ body {
   color: #10b981 !important;
   font-weight: bold;
   gap: 4px;
-  display: inline-flex;
+  display: none;
   align-items: center;
 }
 
