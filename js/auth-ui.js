@@ -1,17 +1,16 @@
 /**
- * AuthUI — login modal and user menu in the header.
+ * AuthUI — login/register modal and user menu in the header.
  *
  * Logged out: shows "Sign In" button in the header.
  * Logged in: shows avatar + username with dropdown menu.
  */
-
-const WP_REGISTER_URL = '/wp/wp-login.php?action=register';
 
 export class AuthUI {
   constructor(auth, { onProfileClick, onFriendsClick } = {}) {
     this._auth = auth;
     this._onProfileClick = onProfileClick;
     this._onFriendsClick = onFriendsClick;
+    this._isRegisterMode = false;
     this._buildDOM();
     this._bindEvents();
     this._auth.onAuthChange(() => this._updateUI());
@@ -52,25 +51,49 @@ export class AuthUI {
     `;
     this._container.appendChild(this._dropdown);
 
-    // Login modal
+    // Auth modal (login + register)
     this._modal = document.createElement('div');
     this._modal.className = 'auth-modal hidden';
     this._modal.innerHTML = `
       <div class="auth-modal-backdrop"></div>
       <div class="auth-modal-content">
-        <h3>Sign In</h3>
+        <h3 class="auth-modal-title">Sign In</h3>
         <div class="auth-error hidden"></div>
-        <label>
-          <span>Username</span>
-          <input type="text" class="auth-input" id="auth-username" autocomplete="username">
-        </label>
-        <label>
-          <span>Password</span>
-          <input type="password" class="auth-input" id="auth-password" autocomplete="current-password">
-        </label>
-        <button class="auth-submit-btn" id="auth-submit">Sign In</button>
-        <div class="auth-register-link">
-          Don't have an account? <a href="${WP_REGISTER_URL}" target="_blank" rel="noopener">Register</a>
+        <div class="auth-login-form">
+          <label>
+            <span>Username</span>
+            <input type="text" class="auth-input" id="auth-username" autocomplete="username">
+          </label>
+          <label>
+            <span>Password</span>
+            <input type="password" class="auth-input" id="auth-password" autocomplete="current-password">
+          </label>
+          <button class="auth-submit-btn" id="auth-submit">Sign In</button>
+          <div class="auth-switch-link">
+            Don't have an account? <a href="#" class="auth-switch-to-register">Register</a>
+          </div>
+        </div>
+        <div class="auth-register-form hidden">
+          <label>
+            <span>Username</span>
+            <input type="text" class="auth-input" id="auth-reg-username" autocomplete="username" maxlength="30">
+          </label>
+          <label>
+            <span>Display Name</span>
+            <input type="text" class="auth-input" id="auth-reg-display" maxlength="50">
+          </label>
+          <label>
+            <span>Password</span>
+            <input type="password" class="auth-input" id="auth-reg-password" autocomplete="new-password">
+          </label>
+          <label>
+            <span>Confirm Password</span>
+            <input type="password" class="auth-input" id="auth-reg-confirm" autocomplete="new-password">
+          </label>
+          <button class="auth-submit-btn" id="auth-reg-submit">Create Account</button>
+          <div class="auth-switch-link">
+            Already have an account? <a href="#" class="auth-switch-to-login">Sign In</a>
+          </div>
         </div>
       </div>
     `;
@@ -79,12 +102,28 @@ export class AuthUI {
 
   _bindEvents() {
     // Open login modal
-    this._signInBtn.addEventListener('click', () => this._showModal());
+    this._signInBtn.addEventListener('click', () => this._showModal(false));
 
     // Submit login
     this._modal.querySelector('#auth-submit').addEventListener('click', () => this._handleLogin());
     this._modal.querySelector('#auth-password').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this._handleLogin();
+    });
+
+    // Submit register
+    this._modal.querySelector('#auth-reg-submit').addEventListener('click', () => this._handleRegister());
+    this._modal.querySelector('#auth-reg-confirm').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this._handleRegister();
+    });
+
+    // Switch between login and register
+    this._modal.querySelector('.auth-switch-to-register').addEventListener('click', (e) => {
+      e.preventDefault();
+      this._switchMode(true);
+    });
+    this._modal.querySelector('.auth-switch-to-login').addEventListener('click', (e) => {
+      e.preventDefault();
+      this._switchMode(false);
     });
 
     // Close modal on backdrop click
@@ -111,16 +150,44 @@ export class AuthUI {
     });
   }
 
-  _showModal() {
+  _showModal(registerMode) {
     this._modal.classList.remove('hidden');
     this._modal.querySelector('.auth-error').classList.add('hidden');
-    this._modal.querySelector('#auth-username').value = '';
-    this._modal.querySelector('#auth-password').value = '';
-    this._modal.querySelector('#auth-username').focus();
+    this._switchMode(registerMode);
+    if (registerMode) {
+      this._modal.querySelector('#auth-reg-username').value = '';
+      this._modal.querySelector('#auth-reg-display').value = '';
+      this._modal.querySelector('#auth-reg-password').value = '';
+      this._modal.querySelector('#auth-reg-confirm').value = '';
+      this._modal.querySelector('#auth-reg-username').focus();
+    } else {
+      this._modal.querySelector('#auth-username').value = '';
+      this._modal.querySelector('#auth-password').value = '';
+      this._modal.querySelector('#auth-username').focus();
+    }
   }
 
   _hideModal() {
     this._modal.classList.add('hidden');
+  }
+
+  _switchMode(registerMode) {
+    this._isRegisterMode = registerMode;
+    const title = this._modal.querySelector('.auth-modal-title');
+    const loginForm = this._modal.querySelector('.auth-login-form');
+    const regForm = this._modal.querySelector('.auth-register-form');
+    const errorEl = this._modal.querySelector('.auth-error');
+    errorEl.classList.add('hidden');
+
+    if (registerMode) {
+      title.textContent = 'Create Account';
+      loginForm.classList.add('hidden');
+      regForm.classList.remove('hidden');
+    } else {
+      title.textContent = 'Sign In';
+      loginForm.classList.remove('hidden');
+      regForm.classList.add('hidden');
+    }
   }
 
   async _handleLogin() {
@@ -148,6 +215,48 @@ export class AuthUI {
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Sign In';
+    }
+  }
+
+  async _handleRegister() {
+    const username = this._modal.querySelector('#auth-reg-username').value.trim();
+    const displayName = this._modal.querySelector('#auth-reg-display').value.trim();
+    const password = this._modal.querySelector('#auth-reg-password').value;
+    const confirm = this._modal.querySelector('#auth-reg-confirm').value;
+    const errorEl = this._modal.querySelector('.auth-error');
+    const submitBtn = this._modal.querySelector('#auth-reg-submit');
+
+    if (!username || !password) {
+      errorEl.textContent = 'Username and password are required';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    if (password !== confirm) {
+      errorEl.textContent = 'Passwords do not match';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    if (password.length < 6) {
+      errorEl.textContent = 'Password must be at least 6 characters';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account...';
+    errorEl.classList.add('hidden');
+
+    try {
+      await this._auth.register(username, password, displayName || username);
+      this._hideModal();
+    } catch (e) {
+      errorEl.textContent = e.message || 'Registration failed';
+      errorEl.classList.remove('hidden');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account';
     }
   }
 

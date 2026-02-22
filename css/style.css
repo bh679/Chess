@@ -2892,14 +2892,15 @@ button.replay-summary-btn {
 .auth-sign-in-btn.hidden { display: none; }
 .auth-user-badge.hidden { display: none; }
 
-.auth-register-link {
+.auth-switch-link {
   margin-top: 12px;
   text-align: center;
   font-size: 0.8rem;
   color: var(--text-secondary);
 }
-
-.auth-register-link a { color: var(--accent-soft); }
+.auth-switch-link a { color: var(--accent-soft); cursor: pointer; }
+.auth-login-form.hidden { display: none; }
+.auth-register-form.hidden { display: none; }
 
 /* =========================================
    Profile Modal

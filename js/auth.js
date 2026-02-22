@@ -43,6 +43,24 @@ export class Auth {
     return this._user;
   }
 
+  async register(username, password, displayName) {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, displayName })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Registration failed');
+    }
+    const data = await res.json();
+    this._token = data.token;
+    this._user = data.user;
+    this._saveToStorage();
+    this._notifyChange();
+    return this._user;
+  }
+
   logout() {
     this._token = null;
     this._user = null;
