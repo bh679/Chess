@@ -128,6 +128,15 @@ const replayLineEl = document.getElementById('replay-analysis-line');
 const replayCritPrevBtn = document.getElementById('replay-crit-prev');
 const replayCritNextBtn = document.getElementById('replay-crit-next');
 const replaySummaryBtn = document.getElementById('replay-summary-btn');
+const replayAnalyzeToggleEl = document.getElementById('replay-analyze-toggle');
+
+// Live move bar elements (persistent during live games)
+const liveMoveBarEl = document.getElementById('live-move-bar');
+const liveMoveListEl = document.getElementById('live-move-list');
+const liveStartBtn = document.getElementById('live-start-btn');
+const livePrevBtn = document.getElementById('live-prev-btn');
+const liveNextBtn = document.getElementById('live-next-btn');
+const liveEndBtn = document.getElementById('live-end-btn');
 
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
@@ -168,6 +177,14 @@ let replayPlaying = false;
 let replayTimer = null;
 let replayMoveDetails = [];
 let replayClockSnapshots = [];
+
+// Live review state (review past moves during an active game)
+let isLiveReview = false;
+let liveReviewMoves = [];           // { san, fen, from, to, side }
+let liveReviewPly = -1;
+let liveReviewStartingFen = null;
+let liveReviewSavedPgn = null;
+let liveReviewPendingMoves = [];    // buffered opponent moves during review
 
 // Analysis state for main-board replay
 let replayAnalysisData = null;
@@ -287,6 +304,7 @@ function getTimeConfig() {
 
 function triggerAIMove() {
   if (!ai.isEnabled()) return;
+  if (isLiveReview) return;
   if (game.isGameOver()) return;
   const turn = game.getTurn();
   if (!ai.isAITurn(turn)) return;
@@ -460,7 +478,8 @@ async function startNewGame() {
   }
 
 
-  // Exit replay mode if active
+  // Exit live review or replay mode if active
+  if (isLiveReview) exitLiveReview();
   if (isReplayMode) {
     exitReplayMode(false);
   }
@@ -474,6 +493,7 @@ async function startNewGame() {
   ai.stop();
   board.clearPremove();
   newGameBtn.classList.remove('game-ended');
+  resetLiveMoveBar();
 
   const chess960 = chess960Toggle.checked;
   game.newGame(chess960);
@@ -601,6 +621,7 @@ function startMultiplayerGame(color, fen, timeControl, opponentName) {
 
   // Close any open panels/overlays
   if (postGameSummary.isOpen()) postGameSummary.close();
+  if (isLiveReview) exitLiveReview();
   if (isReplayMode) exitReplayMode(false);
 
   // End current local game if in progress
@@ -681,7 +702,7 @@ function startMultiplayerGame(color, fen, timeControl, opponentName) {
 }
 
 board.onMove((result) => {
-  if (isReplayMode) return;
+  if (isReplayMode || isLiveReview) return;
   moveCount++;
   showingGameInfo = false;
 
@@ -693,6 +714,12 @@ board.onMove((result) => {
   }
 
   renderCaptured();
+
+  // Update the persistent live move bar
+  const moveSide = game.getTurn() === 'w' ? 'b' : 'w'; // side that just moved
+  appendLiveMove(result.san, moveSide, moveCount - 1);
+  if (moveCount === 1) activateLiveMoveBar();
+  updateLiveMoveBarButtons();
 
   // Multiplayer: send move to server, disable board until opponent moves
   if (mp.isActive()) {
@@ -716,6 +743,7 @@ board.onMove((result) => {
     // Check for game over (checkmate/stalemate detected client-side, server will confirm)
     if (game.isGameOver()) {
       board.clearPremove();
+      fadeLiveMoveBar();
       newGameBtn.classList.add('game-ended');
       updateStatus();
     }
@@ -750,6 +778,7 @@ board.onMove((result) => {
   if (game.isGameOver()) {
     timer.stop();
     board.clearPremove();
+    fadeLiveMoveBar();
     newGameBtn.classList.add('game-ended');
     updateStatus();
 
@@ -780,6 +809,8 @@ board.onMove((result) => {
 });
 
 timer.onTimeout((loser) => {
+  if (isLiveReview) exitLiveReview();
+  fadeLiveMoveBar();
   ai.stop();
   game.setTimedOut();
   newGameBtn.classList.add('game-ended');
@@ -824,7 +855,7 @@ startGameBtn.addEventListener('click', () => {
 // --- Editable Player Names ---
 
 function startNameEdit(nameEl, side) {
-  if (isReplayMode) return;
+  if (isReplayMode || isLiveReview) return;
   // Prevent double-editing
   if (nameEl.querySelector('.player-name-input')) return;
 
@@ -1542,6 +1573,8 @@ async function enterReplayMode(gameRecord) {
   }
 
   if (isReplayMode) exitReplayMode(false);
+  if (isLiveReview) exitLiveReview();
+  fadeLiveMoveBar();
 
   ai.stop();
   timer.stop();
@@ -2318,6 +2351,296 @@ function updateMainEvalBar() {
   mainEvalBar.update(replayAnalysisData.positions[posIdx].eval);
 }
 
+// --- Live Move Bar (persistent move list during live games) ---
+
+function activateLiveMoveBar() {
+  if (liveMoveBarEl) liveMoveBarEl.classList.remove('faded');
+}
+
+function fadeLiveMoveBar() {
+  if (liveMoveBarEl) liveMoveBarEl.classList.add('faded');
+}
+
+function resetLiveMoveBar() {
+  if (liveMoveBarEl) liveMoveBarEl.classList.add('faded');
+  if (liveMoveListEl) liveMoveListEl.innerHTML = '';
+  updateLiveMoveBarButtons();
+}
+
+/** Append a move to the persistent live move list */
+function appendLiveMove(san, side, plyIndex) {
+  if (!liveMoveListEl) return;
+  const moveNum = Math.floor(plyIndex / 2) + 1;
+  const isWhite = side === 'w';
+
+  if (isWhite) {
+    const numEl = document.createElement('span');
+    numEl.className = 'strip-move-num';
+    numEl.textContent = `${moveNum}.`;
+    liveMoveListEl.appendChild(numEl);
+  }
+
+  const moveEl = document.createElement('span');
+  moveEl.className = 'strip-move';
+  moveEl.textContent = san;
+  moveEl.dataset.ply = plyIndex;
+  moveEl.addEventListener('click', () => {
+    const ply = parseInt(moveEl.dataset.ply, 10);
+    if (isLiveReview) {
+      liveReviewGoToMove(ply);
+    } else {
+      // Clicking a past move enters live review at that ply
+      enterLiveReview(ply);
+    }
+  });
+  liveMoveListEl.appendChild(moveEl);
+
+  // Auto-scroll to the latest move
+  liveMoveListEl.scrollLeft = liveMoveListEl.scrollWidth;
+}
+
+function updateLiveMoveBarButtons() {
+  if (!liveStartBtn) return;
+
+  if (isLiveReview) {
+    const atStart = liveReviewPly === -1;
+    const atEnd = liveReviewPly >= liveReviewMoves.length - 1;
+    liveStartBtn.disabled = atStart;
+    livePrevBtn.disabled = atStart;
+    liveNextBtn.disabled = atEnd;
+    liveEndBtn.disabled = false;
+  } else {
+    // Not reviewing — back buttons enabled if moves exist, forward disabled
+    liveStartBtn.disabled = moveCount === 0;
+    livePrevBtn.disabled = moveCount === 0;
+    liveNextBtn.disabled = true;
+    liveEndBtn.disabled = true;
+  }
+}
+
+function highlightLiveMoveBarPly(plyIndex) {
+  if (!liveMoveListEl) return;
+  liveMoveListEl.querySelectorAll('.strip-move-active').forEach(el => {
+    el.classList.remove('strip-move-active');
+  });
+
+  if (plyIndex >= 0) {
+    const el = liveMoveListEl.querySelector(`.strip-move[data-ply="${plyIndex}"]`);
+    if (el) {
+      el.classList.add('strip-move-active');
+      el.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+    }
+  } else {
+    liveMoveListEl.scrollLeft = 0;
+  }
+}
+
+// --- Live Review (review past moves during a live game) ---
+
+function enterLiveReview(targetPly) {
+  if (isLiveReview || isReplayMode || moveCount === 0 || game.isGameOver()) return;
+
+  isLiveReview = true;
+  liveReviewPendingMoves = [];
+
+  // Save the starting FEN (before any moves)
+  const history = game.chess.history({ verbose: true });
+  liveReviewStartingFen = history.length > 0 ? history[0].before : game.chess.fen();
+
+  // Save full game state via PGN for later restoration
+  liveReviewSavedPgn = game.chess.pgn();
+
+  // Build move details from chess.js history
+  liveReviewMoves = history.map(m => ({
+    san: m.san,
+    fen: m.after,
+    from: m.from,
+    to: m.to,
+    side: m.color,
+  }));
+
+  // Stop AI (will re-trigger on exit)
+  ai.stop();
+
+  // Clear premoves (board position will change)
+  board.clearPremove();
+
+  // Disable board interaction
+  board.setInteractive(false);
+  boardEl.classList.add('live-review-border');
+
+  // Navigate to the target ply (default: one before latest)
+  const ply = targetPly !== undefined ? targetPly : liveReviewMoves.length - 2;
+  liveReviewPly = liveReviewMoves.length - 1;
+  liveReviewGoToMove(ply);
+
+  // Register keyboard handler
+  document.addEventListener('keydown', liveReviewKeyHandler);
+}
+
+function exitLiveReview() {
+  if (!isLiveReview) return;
+
+  isLiveReview = false;
+
+  // Remove keyboard handler
+  document.removeEventListener('keydown', liveReviewKeyHandler);
+
+  // Restore game state from saved PGN
+  game.chess.loadPgn(liveReviewSavedPgn);
+
+  // Apply any buffered opponent moves
+  for (const pending of liveReviewPendingMoves) {
+    game.makeMoveSan(pending.san);
+    if (pending.clocks && timer.isEnabled()) {
+      timer.setTime('w', pending.clocks.w);
+      timer.setTime('b', pending.clocks.b);
+    }
+  }
+  liveReviewPendingMoves = [];
+
+  // Clear review state
+  liveReviewMoves = [];
+  liveReviewPly = -1;
+  liveReviewStartingFen = null;
+  liveReviewSavedPgn = null;
+
+  // Re-enable board
+  board.setInteractive(true);
+  boardEl.classList.remove('live-review-border');
+
+  // Update live move bar — clear highlight, update buttons, hide LIVE badge
+  highlightLiveMoveBarPly(-1);
+  updateLiveMoveBarButtons();
+
+  // Clear arrows
+  board.getArrowOverlay().clear();
+
+  // Render the restored position
+  board.render();
+  renderCaptured();
+
+  // Restore normal status
+  updateStatus();
+
+  // Resume eval bar
+  if (evalBarToggle && evalBarToggle.checked) liveEval();
+
+  // For multiplayer, check if it's our turn and update board interactivity
+  if (mp.isActive()) {
+    const isMyTurn = game.getTurn() === mp.color;
+    board.setInteractive(isMyTurn);
+    if (isMyTurn) {
+      updateStatus('Your turn');
+    } else {
+      updateStatus("Opponent's turn");
+    }
+    // Check for game over after applying buffered moves
+    if (game.isGameOver()) {
+      board.setInteractive(false);
+      newGameBtn.classList.add('game-ended');
+      updateStatus();
+    }
+  } else {
+    // Local game — re-trigger AI if needed
+    triggerAIMove();
+  }
+}
+
+function liveReviewGoToMove(plyIndex) {
+  if (!isLiveReview) return;
+  const maxPly = liveReviewMoves.length - 1;
+  liveReviewPly = Math.max(-1, Math.min(plyIndex, maxPly));
+
+  if (liveReviewPly === -1) {
+    game.chess.load(liveReviewStartingFen);
+    game._lastMove = null;
+  } else {
+    const detail = liveReviewMoves[liveReviewPly];
+    game.chess.load(detail.fen);
+    game._lastMove = { from: detail.from, to: detail.to };
+  }
+
+  board.render();
+  highlightLiveMoveBarPly(liveReviewPly);
+  updateLiveMoveBarButtons();
+
+  // Update status
+  if (liveReviewPly === -1) {
+    statusEl.textContent = 'Reviewing \u2014 Starting Position';
+  } else {
+    const moveNum = Math.floor(liveReviewPly / 2) + 1;
+    const side = liveReviewMoves[liveReviewPly].side === 'w' ? '' : '...';
+    statusEl.textContent = `Reviewing \u2014 ${moveNum}${side} ${liveReviewMoves[liveReviewPly].san}`;
+  }
+  statusEl.className = 'status live-review';
+
+  // Update eval bar for the reviewed position
+  if (evalBarToggle && evalBarToggle.checked) liveEval();
+
+  // Auto-exit when at the latest move and no pending moves
+  if (liveReviewPly === maxPly && liveReviewPendingMoves.length === 0) {
+    exitLiveReview();
+  }
+}
+
+function liveReviewNext() {
+  if (!isLiveReview) return;
+  liveReviewGoToMove(liveReviewPly + 1);
+}
+
+function liveReviewPrev() {
+  if (!isLiveReview) return;
+  liveReviewGoToMove(liveReviewPly - 1);
+}
+
+function liveReviewGoToStart() {
+  if (!isLiveReview) return;
+  liveReviewGoToMove(-1);
+}
+
+function liveReviewGoToEnd() {
+  if (!isLiveReview) return;
+  // Go to end = exit review (return to live position)
+  exitLiveReview();
+}
+
+function liveReviewKeyHandler(e) {
+  if (!isLiveReview) return;
+
+  switch (e.key) {
+    case 'ArrowLeft':
+      e.preventDefault();
+      liveReviewPrev();
+      break;
+    case 'ArrowRight':
+      e.preventDefault();
+      liveReviewNext();
+      break;
+    case 'Escape':
+      e.preventDefault();
+      exitLiveReview();
+      break;
+    case 'Home':
+      e.preventDefault();
+      liveReviewGoToStart();
+      break;
+    case 'End':
+      e.preventDefault();
+      liveReviewGoToEnd();
+      break;
+  }
+}
+
+// Global keydown listener for entering live review via arrow key
+document.addEventListener('keydown', (e) => {
+  if (isLiveReview || isReplayMode) return;
+  if (e.key === 'ArrowLeft' && moveCount > 0 && !game.isGameOver()) {
+    e.preventDefault();
+    enterLiveReview();
+  }
+});
+
 // --- Replay Keyboard Handler ---
 
 function replayKeyHandler(e) {
@@ -2347,12 +2670,28 @@ function replayKeyHandler(e) {
   }
 }
 
-// Wire up replay control buttons
+// Wire up replay/live-review control buttons (dispatch based on active mode)
 replayStartBtn.addEventListener('click', replayGoToStart);
 replayPrevBtn.addEventListener('click', replayPrev);
 replayPlayBtn.addEventListener('click', toggleReplayPlayback);
 replayNextBtn.addEventListener('click', replayNext);
 replayEndBtn.addEventListener('click', replayGoToEnd);
+
+// Wire up live move bar buttons (persistent bar during live games)
+if (liveStartBtn) liveStartBtn.addEventListener('click', () => {
+  if (isLiveReview) liveReviewGoToStart();
+  else if (moveCount > 0 && !game.isGameOver()) enterLiveReview(0);
+});
+if (livePrevBtn) livePrevBtn.addEventListener('click', () => {
+  if (isLiveReview) liveReviewPrev();
+  else if (moveCount > 0 && !game.isGameOver()) enterLiveReview();
+});
+if (liveNextBtn) liveNextBtn.addEventListener('click', () => {
+  if (isLiveReview) liveReviewNext();
+});
+if (liveEndBtn) liveEndBtn.addEventListener('click', () => {
+  if (isLiveReview) exitLiveReview();
+});
 
 // Wire up analysis toggle and critical nav buttons
 if (replayAnalyzeCheckbox) {
@@ -2510,11 +2849,52 @@ mp.onQueueJoined = (payload) => {
 mp.onOpponentMove = (payload) => {
   const { san, fen, clocks } = payload;
 
+  // If in live review, buffer the move instead of applying immediately
+  if (isLiveReview) {
+    liveReviewPendingMoves.push(payload);
+    moveCount++;
+
+    // Compute the FEN for this move using a scratch chess instance
+    const lastFen = liveReviewMoves.length > 0
+      ? liveReviewMoves[liveReviewMoves.length - 1].fen
+      : liveReviewStartingFen;
+    const scratch = new Chess(lastFen);
+    const result = scratch.move(san);
+
+    if (result) {
+      liveReviewMoves.push({
+        san,
+        fen: scratch.fen(),
+        from: result.from,
+        to: result.to,
+        side: result.color,
+      });
+
+      // Append to the live move bar UI
+      const idx = liveReviewMoves.length - 1;
+      appendLiveMove(san, result.color, idx);
+      updateLiveMoveBarButtons();
+    }
+
+    // Sync clocks even during review
+    if (clocks && timer.isEnabled()) {
+      timer.setTime('w', clocks.w);
+      timer.setTime('b', clocks.b);
+    }
+    return;
+  }
+
   // Apply the opponent's move to local game state
   game.makeMoveSan(san);
   moveCount++;
   board.render();
   renderCaptured();
+
+  // Update the persistent live move bar
+  const opponentSide = game.getTurn() === 'w' ? 'b' : 'w';
+  appendLiveMove(san, opponentSide, moveCount - 1);
+  if (moveCount === 1) activateLiveMoveBar();
+  updateLiveMoveBarButtons();
 
   // Disable pre-game state
   if (moveCount === 1) {
@@ -2540,6 +2920,7 @@ mp.onOpponentMove = (payload) => {
   // Check for game over
   if (game.isGameOver()) {
     board.clearPremove();
+    fadeLiveMoveBar();
     newGameBtn.classList.add('game-ended');
     board.setInteractive(false);
     updateStatus();
@@ -2566,6 +2947,8 @@ mp.onMoveAck = (payload) => {
 
 // Game ended (from server — timeout, resignation, draw, checkmate)
 mp.onGameEnd = (payload) => {
+  if (isLiveReview) exitLiveReview();
+  fadeLiveMoveBar();
   multiplayerActive = false;
   timer.stop();
   board.clearPremove();
