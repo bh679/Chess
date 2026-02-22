@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # fetch-chess-data.sh
 # Collects project board data, recent commits, and merged PRs for the
-# weekly chess blog agent. Writes a single JSON file to /tmp/chess-blog-data.json.
+# weekly chess blog agent. Covers both chess-client and chess-api repos.
+# Writes a single JSON file to /tmp/chess-blog-data.json.
 #
 # Requires: gh CLI authenticated with project access (GH_TOKEN env var)
 
@@ -70,32 +71,42 @@ echo "Found $ITEM_COUNT project board items."
 # Summary by status
 STATUS_SUMMARY=$(echo "$ITEMS" | jq '[.[] | select(.status != null)] | group_by(.status) | map({key: .[0].status, value: length}) | from_entries')
 
-# --- 2. Recent commits on main ---
-echo "Fetching recent commits..."
+# --- 2. Recent commits on main (chess-client) ---
+echo "Fetching chess-client commits..."
 
-COMMITS=$(git log --since="$SEVEN_DAYS_AGO" --format='{"hash": "%h", "subject": "%s", "author": "%an", "date": "%aI"}' origin/main 2>/dev/null | jq -s '.' 2>/dev/null || echo '[]')
-COMMIT_COUNT=$(echo "$COMMITS" | jq 'length')
-echo "Found $COMMIT_COUNT recent commits."
+CLIENT_COMMITS=$(git log --since="$SEVEN_DAYS_AGO" --format='{"hash": "%h", "subject": "%s", "author": "%an", "date": "%aI"}' origin/main 2>/dev/null | jq -s '.' 2>/dev/null || echo '[]')
+CLIENT_COMMIT_COUNT=$(echo "$CLIENT_COMMITS" | jq 'length')
+echo "Found $CLIENT_COMMIT_COUNT chess-client commits."
 
-# --- 3. Merged PRs ---
+# --- 3. Recent commits (chess-api) ---
+echo "Fetching chess-api commits..."
+
+API_COMMITS=$(gh api "repos/bh679/chess-api/commits?since=$SEVEN_DAYS_AGO&per_page=30" --jq '[.[] | {hash: .sha[0:7], subject: .commit.message, author: .commit.author.name, date: .commit.author.date}]' 2>/dev/null || echo '[]')
+API_COMMIT_COUNT=$(echo "$API_COMMITS" | jq 'length')
+echo "Found $API_COMMIT_COUNT chess-api commits."
+
+# --- 4. Merged PRs (both repos) ---
 echo "Fetching merged PRs..."
 
-MERGED_PRS=$(gh pr list --repo bh679/chess-client --state merged --json number,title,mergedAt,author --limit 20 2>/dev/null || echo '[]')
-# Filter to last 7 days
-MERGED_PRS=$(echo "$MERGED_PRS" | jq --arg since "$SEVEN_DAYS_AGO" '[.[] | select(.mergedAt >= $since)]')
-PR_COUNT=$(echo "$MERGED_PRS" | jq 'length')
-echo "Found $PR_COUNT merged PRs in the last 7 days."
+CLIENT_PRS=$(gh pr list --repo bh679/chess-client --state merged --json number,title,mergedAt,author --limit 20 2>/dev/null || echo '[]')
+CLIENT_PRS=$(echo "$CLIENT_PRS" | jq --arg since "$SEVEN_DAYS_AGO" '[.[] | select(.mergedAt >= $since)]')
+CLIENT_PR_COUNT=$(echo "$CLIENT_PRS" | jq 'length')
 
-# --- 4. Closed issues ---
+API_PRS=$(gh pr list --repo bh679/chess-api --state merged --json number,title,mergedAt,author --limit 20 2>/dev/null || echo '[]')
+API_PRS=$(echo "$API_PRS" | jq --arg since "$SEVEN_DAYS_AGO" '[.[] | select(.mergedAt >= $since)]')
+API_PR_COUNT=$(echo "$API_PRS" | jq 'length')
+
+echo "Found $CLIENT_PR_COUNT chess-client PRs and $API_PR_COUNT chess-api PRs."
+
+# --- 5. Closed issues ---
 echo "Fetching closed issues..."
 
 CLOSED_ISSUES=$(gh issue list --repo bh679/chess-client --state closed --json number,title,closedAt --limit 20 2>/dev/null || echo '[]')
-# Filter to last 7 days
 CLOSED_ISSUES=$(echo "$CLOSED_ISSUES" | jq --arg since "$SEVEN_DAYS_AGO" '[.[] | select(.closedAt >= $since)]')
 ISSUE_COUNT=$(echo "$CLOSED_ISSUES" | jq 'length')
 echo "Found $ISSUE_COUNT closed issues in the last 7 days."
 
-# --- 5. Previous state ---
+# --- 6. Previous state ---
 echo "Reading previous state..."
 
 if [ -f "blog/state.json" ]; then
@@ -115,8 +126,10 @@ jq -n \
   --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --argjson items "$ITEMS" \
   --argjson status_summary "$STATUS_SUMMARY" \
-  --argjson commits "$COMMITS" \
-  --argjson merged_prs "$MERGED_PRS" \
+  --argjson client_commits "$CLIENT_COMMITS" \
+  --argjson api_commits "$API_COMMITS" \
+  --argjson client_prs "$CLIENT_PRS" \
+  --argjson api_prs "$API_PRS" \
   --argjson closed_issues "$CLOSED_ISSUES" \
   --argjson previous_state "$PREVIOUS_STATE" \
   '{
@@ -129,8 +142,14 @@ jq -n \
         by_status: $status_summary
       }
     },
-    recent_commits: $commits,
-    merged_prs: $merged_prs,
+    chess_client: {
+      recent_commits: $client_commits,
+      merged_prs: $client_prs
+    },
+    chess_api: {
+      recent_commits: $api_commits,
+      merged_prs: $api_prs
+    },
     closed_issues: $closed_issues,
     previous_state: $previous_state
   }' > "$OUTPUT"
@@ -138,4 +157,4 @@ jq -n \
 echo ""
 echo "=== Done ==="
 echo "Output: $OUTPUT"
-echo "Items: $ITEM_COUNT | Commits: $COMMIT_COUNT | PRs: $PR_COUNT | Issues: $ISSUE_COUNT"
+echo "Items: $ITEM_COUNT | Client commits: $CLIENT_COMMIT_COUNT | API commits: $API_COMMIT_COUNT | Client PRs: $CLIENT_PR_COUNT | API PRs: $API_PR_COUNT | Issues: $ISSUE_COUNT"
