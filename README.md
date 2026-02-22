@@ -91,7 +91,7 @@ The client uses a local-first architecture: all game data is written to localSto
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
-| chess-api server | >= 1.0.0 | Game storage REST API (SQLite) |
+| chess-api server | >= 1.10.0000 | Game storage REST API (SQLite) |
 | Apache mod_proxy | any | Proxies `/api/*` to the Node.js server |
 
 ### Client-side (bundled, no install needed)
