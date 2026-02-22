@@ -3111,18 +3111,104 @@ button.replay-summary-btn {
   color: var(--text-secondary);
 }
 
-/* Step 2: Time control */
-.ng-tc-section {
+/* Online / Friend steps */
+.ng-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.ng-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.ng-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.ng-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.ng-divider::before,
+.ng-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.ng-join-row {
+  display: flex;
+  gap: 8px;
+}
+.ng-code-input {
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Step 2: Time control — collapsible categories */
+.ng-tc-categories {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
   margin-bottom: 12px;
 }
-.ng-tc-label {
-  font-size: 0.7rem;
+.ng-tc-cat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  background: var(--bg-sunken);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.ng-tc-cat:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+.ng-tc-cat.selected {
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+}
+.ng-tc-cat-icon {
+  font-size: 1.3rem;
+}
+.ng-tc-cat-label {
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: 6px;
+  letter-spacing: 0.05em;
 }
+.ng-tc-options {
+  min-height: 42px;
+}
+.ng-tc-option-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ng-tc-option-group.hidden { display: none; }
+
 .ng-tc-row {
   display: flex;
   flex-wrap: wrap;

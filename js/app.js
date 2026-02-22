@@ -2779,7 +2779,7 @@ newGameMenu.onStart((config) => {
   startNewGame();
 });
 
-newGameMenu.onOnline(async () => {
+newGameMenu.onOnline(async (tc, name) => {
   if (!mp.ws || mp.ws.readyState !== WebSocket.OPEN) {
     try {
       await mp.connect();
@@ -2788,10 +2788,14 @@ newGameMenu.onOnline(async () => {
       return;
     }
   }
-  mpUI.open();
+  // Auto matchmaking — go straight to searching
+  mp.quickMatch(tc, name);
+  mpUI.showSearching();
+  mpUI.modal.classList.remove('hidden');
+  mpUI.backdrop.classList.remove('hidden');
 });
 
-newGameMenu.onFriend(async () => {
+newGameMenu.onFriend(async (action, tc, name, code) => {
   if (!mp.ws || mp.ws.readyState !== WebSocket.OPEN) {
     try {
       await mp.connect();
@@ -2800,7 +2804,14 @@ newGameMenu.onFriend(async () => {
       return;
     }
   }
-  mpUI.open();
+  if (action === 'create') {
+    mp.createRoom(tc, name);
+    // mpUI will show waiting view via the room-created event
+    mpUI.modal.classList.remove('hidden');
+    mpUI.backdrop.classList.remove('hidden');
+  } else if (action === 'join') {
+    mp.joinRoom(code, name);
+  }
 });
 
 newGameMenu.onCustomTime(() => {

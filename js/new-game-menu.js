@@ -2,7 +2,9 @@
  * NewGameMenu — multi-step wizard for starting a new game.
  *
  * Step 1: Choose opponent (bot, shared device, online, friend)
- * Step 2: Pick time control
+ * Step Online: Name + time control + Find Opponent (auto matchmaking)
+ * Step Friend: Name + time control + Create Room / Join Room
+ * Step 2: Pick time control (collapsible categories)
  * Step 3: Game settings (variant, eval bar, bot config)
  *
  * Follows the same pattern as MultiplayerUI.
@@ -11,12 +13,13 @@ import { getAllEngines, getEngineInfo } from './engines/registry.js';
 
 export class NewGameMenu {
   constructor() {
-    this._step = 'opponent'; // 'opponent' | 'time' | 'settings'
+    this._step = 'opponent'; // 'opponent' | 'online' | 'friend' | 'time' | 'settings'
     this._mode = null;       // 'bot' | 'local' | 'online' | 'friend'
     this._timeControl = '0'; // pipe-delimited string, '0' for no timer, 'custom'
+    this._selectedCat = 'bullet'; // currently selected time category
     this._onStart = null;    // (config) => void
-    this._onOnline = null;   // () => void
-    this._onFriend = null;   // () => void
+    this._onOnline = null;   // (tc, name) => void  — auto matchmaking
+    this._onFriend = null;   // (action, tc, name, code?) => void  — create or join
     this._onCustomTime = null; // () => void
     this._pendingCustomTime = false;
 
@@ -71,13 +74,34 @@ export class NewGameMenu {
     this.closeBtn = document.getElementById('ng-close');
     this.titleEl = document.getElementById('ng-title');
 
+    // Step views
     this.stepOpponent = document.getElementById('ng-step-opponent');
+    this.stepOnline = document.getElementById('ng-step-online');
+    this.stepFriend = document.getElementById('ng-step-friend');
     this.stepTime = document.getElementById('ng-step-time');
     this.stepSettings = document.getElementById('ng-step-settings');
 
     this.opponentBtns = this.stepOpponent.querySelectorAll('.ng-opponent-btn');
-    this.tcBtns = this.stepTime.querySelectorAll('.ng-tc-btn');
 
+    // Online step elements
+    this.onlineNameInput = document.getElementById('ng-online-name');
+    this.onlineTcSelect = document.getElementById('ng-online-tc');
+    this.findOpponentBtn = document.getElementById('ng-find-opponent');
+
+    // Friend step elements
+    this.friendNameInput = document.getElementById('ng-friend-name');
+    this.friendTcSelect = document.getElementById('ng-friend-tc');
+    this.createRoomBtn = document.getElementById('ng-create-room');
+    this.joinCodeInput = document.getElementById('ng-join-code');
+    this.joinRoomBtn = document.getElementById('ng-join-room');
+
+    // Time control elements
+    this.tcCatBtns = this.stepTime.querySelectorAll('.ng-tc-cat');
+    this.tcOptionGroups = this.stepTime.querySelectorAll('.ng-tc-option-group');
+    this.tcBtns = this.stepTime.querySelectorAll('.ng-tc-btn');
+    this.tcNextBtn = document.getElementById('ng-tc-next');
+
+    // Settings elements
     this.chess960Checkbox = document.getElementById('ng-chess960');
     this.evalBarCheckbox = document.getElementById('ng-eval-bar');
     this.botSettings = document.getElementById('ng-bot-settings');
@@ -114,13 +138,11 @@ export class NewGameMenu {
         this._mode = btn.dataset.mode;
 
         if (this._mode === 'online') {
-          this.close();
-          if (this._onOnline) this._onOnline();
+          this._showStep('online');
           return;
         }
         if (this._mode === 'friend') {
-          this.close();
-          if (this._onFriend) this._onFriend();
+          this._showStep('friend');
           return;
         }
 
@@ -128,7 +150,42 @@ export class NewGameMenu {
       });
     });
 
-    // Time control selection
+    // --- Online step: Find Opponent ---
+    this.findOpponentBtn.addEventListener('click', () => {
+      const tc = this.onlineTcSelect.value;
+      const name = this.onlineNameInput.value.trim() || null;
+      this.close();
+      if (this._onOnline) this._onOnline(tc, name);
+    });
+
+    // --- Friend step: Create Room / Join Room ---
+    this.createRoomBtn.addEventListener('click', () => {
+      const tc = this.friendTcSelect.value;
+      const name = this.friendNameInput.value.trim() || null;
+      this.close();
+      if (this._onFriend) this._onFriend('create', tc, name);
+    });
+
+    this.joinRoomBtn.addEventListener('click', () => {
+      const code = this.joinCodeInput.value.trim().toUpperCase();
+      if (!code || code.length < 4) return;
+      const name = this.friendNameInput.value.trim() || null;
+      this.close();
+      if (this._onFriend) this._onFriend('join', null, name, code);
+    });
+
+    this.joinCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.joinRoomBtn.click();
+    });
+
+    // --- Time control: category selection ---
+    this.tcCatBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._selectCategory(btn.dataset.cat);
+      });
+    });
+
+    // Time control: specific option selection
     this.tcBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const tc = btn.dataset.tc;
@@ -140,13 +197,32 @@ export class NewGameMenu {
           return;
         }
 
-        // Deselect all, select this one
-        this.tcBtns.forEach(b => b.classList.remove('selected'));
+        if (tc === '0') {
+          // No Timer — deselect all categories and options
+          this.tcCatBtns.forEach(c => c.classList.remove('selected'));
+          this.tcOptionGroups.forEach(g => g.classList.add('hidden'));
+          // Deselect all tc-btns, select No Timer
+          this.tcBtns.forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          this._timeControl = '0';
+          return;
+        }
+
+        // Select within the active group
+        const group = btn.closest('.ng-tc-option-group');
+        if (group) {
+          group.querySelectorAll('.ng-tc-btn').forEach(b => b.classList.remove('selected'));
+        }
+        // Also deselect No Timer
+        this.stepTime.querySelector('.ng-tc-none')?.classList.remove('selected');
         btn.classList.add('selected');
         this._timeControl = tc;
-
-        this._showStep('settings');
       });
+    });
+
+    // Next button on time control step
+    this.tcNextBtn.addEventListener('click', () => {
+      this._showStep('settings');
     });
 
     // Color picker
@@ -173,6 +249,32 @@ export class NewGameMenu {
     });
   }
 
+  _selectCategory(cat) {
+    this._selectedCat = cat;
+
+    // Highlight the selected category
+    this.tcCatBtns.forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.cat === cat);
+    });
+
+    // Show/hide option groups
+    this.tcOptionGroups.forEach(group => {
+      group.classList.toggle('hidden', group.dataset.cat !== cat);
+    });
+
+    // Deselect No Timer
+    this.stepTime.querySelector('.ng-tc-none')?.classList.remove('selected');
+
+    // Update _timeControl to the first selected option in this category
+    const activeGroup = this.stepTime.querySelector(`.ng-tc-option-group[data-cat="${cat}"]`);
+    if (activeGroup) {
+      const sel = activeGroup.querySelector('.ng-tc-btn.selected');
+      if (sel) {
+        this._timeControl = sel.dataset.tc;
+      }
+    }
+  }
+
   _loadDefaults() {
     // Sync with existing settings panel defaults
     const chess960Pref = document.getElementById('chess960-toggle');
@@ -182,6 +284,9 @@ export class NewGameMenu {
     this.evalBarCheckbox.checked = evalBarPref === 'true';
 
     this._updateEloRange();
+
+    // Default time category: bullet
+    this._selectCategory('bullet');
   }
 
   _updateEloRange() {
@@ -205,14 +310,24 @@ export class NewGameMenu {
   _showStep(step) {
     this._step = step;
 
-    this.stepOpponent.classList.toggle('hidden', step !== 'opponent');
-    this.stepTime.classList.toggle('hidden', step !== 'time');
-    this.stepSettings.classList.toggle('hidden', step !== 'settings');
+    const steps = ['opponent', 'online', 'friend', 'time', 'settings'];
+    const stepEls = {
+      opponent: this.stepOpponent,
+      online: this.stepOnline,
+      friend: this.stepFriend,
+      time: this.stepTime,
+      settings: this.stepSettings,
+    };
+    for (const [key, el] of Object.entries(stepEls)) {
+      el.classList.toggle('hidden', key !== step);
+    }
 
     this.backBtn.classList.toggle('hidden', step === 'opponent');
 
     const titles = {
       opponent: 'New Game',
+      online: 'Play Online',
+      friend: 'Play with Friend',
       time: 'Time Control',
       settings: 'Game Settings',
     };
@@ -224,7 +339,9 @@ export class NewGameMenu {
   }
 
   _goBack() {
-    if (this._step === 'time') {
+    if (this._step === 'online' || this._step === 'friend') {
+      this._showStep('opponent');
+    } else if (this._step === 'time') {
       this._showStep('opponent');
     } else if (this._step === 'settings') {
       this._showStep('time');

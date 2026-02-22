@@ -222,42 +222,100 @@
         </div>
       </div>
 
-      <!-- Step 2: Time Control -->
+      <!-- Step: Online (auto matchmaking) -->
+      <div id="ng-step-online" class="ng-view hidden">
+        <div class="ng-field">
+          <label>Your Name</label>
+          <input type="text" id="ng-online-name" class="ng-input" placeholder="Anonymous" maxlength="20">
+        </div>
+        <div class="ng-field">
+          <label>Time Control</label>
+          <select id="ng-online-tc" class="ng-select">
+            <option value="any">Any</option>
+            <option value="1+0">Bullet 1+0</option>
+            <option value="3+2">Blitz 3+2</option>
+            <option value="5+0" selected>Rapid 5+0</option>
+            <option value="10+0">Rapid 10+0</option>
+            <option value="15+10">Classical 15+10</option>
+            <option value="30+0">Classical 30+0</option>
+            <option value="none">No Timer</option>
+          </select>
+        </div>
+        <button id="ng-find-opponent" class="ng-btn ng-btn-primary ng-btn-block">Find Opponent</button>
+      </div>
+
+      <!-- Step: Friend (room join/create) -->
+      <div id="ng-step-friend" class="ng-view hidden">
+        <div class="ng-field">
+          <label>Your Name</label>
+          <input type="text" id="ng-friend-name" class="ng-input" placeholder="Anonymous" maxlength="20">
+        </div>
+        <div class="ng-field">
+          <label>Time Control</label>
+          <select id="ng-friend-tc" class="ng-select">
+            <option value="any">Any</option>
+            <option value="1+0">Bullet 1+0</option>
+            <option value="3+2">Blitz 3+2</option>
+            <option value="5+0" selected>Rapid 5+0</option>
+            <option value="10+0">Rapid 10+0</option>
+            <option value="15+10">Classical 15+10</option>
+            <option value="30+0">Classical 30+0</option>
+            <option value="none">No Timer</option>
+          </select>
+        </div>
+        <button id="ng-create-room" class="ng-btn ng-btn-primary ng-btn-block">Create Room</button>
+        <div class="ng-divider"><span>or</span></div>
+        <div class="ng-join-row">
+          <input type="text" id="ng-join-code" class="ng-input ng-code-input" placeholder="Room code" maxlength="6">
+          <button id="ng-join-room" class="ng-btn">Join</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Time Control (collapsible categories) -->
       <div id="ng-step-time" class="ng-view hidden">
-        <div class="ng-tc-section">
-          <div class="ng-tc-label">Bullet</div>
-          <div class="ng-tc-row">
-            <button class="ng-tc-btn" data-tc="60|0">1+0</button>
+        <div class="ng-tc-categories">
+          <button class="ng-tc-cat" data-cat="bullet">
+            <span class="ng-tc-cat-icon">⚡</span>
+            <span class="ng-tc-cat-label">Bullet</span>
+          </button>
+          <button class="ng-tc-cat" data-cat="blitz">
+            <span class="ng-tc-cat-icon">🔥</span>
+            <span class="ng-tc-cat-label">Blitz</span>
+          </button>
+          <button class="ng-tc-cat" data-cat="rapid">
+            <span class="ng-tc-cat-icon">⏱️</span>
+            <span class="ng-tc-cat-label">Rapid</span>
+          </button>
+          <button class="ng-tc-cat" data-cat="classical">
+            <span class="ng-tc-cat-icon">🏛️</span>
+            <span class="ng-tc-cat-label">Classical</span>
+          </button>
+        </div>
+        <div class="ng-tc-options" id="ng-tc-options">
+          <div class="ng-tc-option-group" data-cat="bullet">
+            <button class="ng-tc-btn selected" data-tc="60|0">1+0</button>
             <button class="ng-tc-btn" data-tc="120|1">2+1</button>
           </div>
-        </div>
-        <div class="ng-tc-section">
-          <div class="ng-tc-label">Blitz</div>
-          <div class="ng-tc-row">
-            <button class="ng-tc-btn" data-tc="180|0">3+0</button>
+          <div class="ng-tc-option-group hidden" data-cat="blitz">
+            <button class="ng-tc-btn selected" data-tc="180|0">3+0</button>
             <button class="ng-tc-btn" data-tc="180|2">3+2</button>
             <button class="ng-tc-btn" data-tc="300|0">5+0</button>
             <button class="ng-tc-btn" data-tc="300|3">5+3</button>
           </div>
-        </div>
-        <div class="ng-tc-section">
-          <div class="ng-tc-label">Rapid</div>
-          <div class="ng-tc-row">
-            <button class="ng-tc-btn" data-tc="600|0">10+0</button>
+          <div class="ng-tc-option-group hidden" data-cat="rapid">
+            <button class="ng-tc-btn selected" data-tc="600|0">10+0</button>
             <button class="ng-tc-btn" data-tc="900|10">15+10</button>
           </div>
-        </div>
-        <div class="ng-tc-section">
-          <div class="ng-tc-label">Classical</div>
-          <div class="ng-tc-row">
-            <button class="ng-tc-btn" data-tc="1800|0">30+0</button>
+          <div class="ng-tc-option-group hidden" data-cat="classical">
+            <button class="ng-tc-btn selected" data-tc="1800|0">30+0</button>
             <button class="ng-tc-btn" data-tc="2700|0">45+0</button>
           </div>
         </div>
         <div class="ng-tc-row ng-tc-special-row">
-          <button class="ng-tc-btn ng-tc-none selected" data-tc="0">No Timer</button>
+          <button class="ng-tc-btn ng-tc-none" data-tc="0">No Timer</button>
           <button class="ng-tc-btn ng-tc-custom" data-tc="custom">Custom...</button>
         </div>
+        <button id="ng-tc-next" class="ng-btn ng-btn-primary ng-btn-block">Next</button>
       </div>
 
       <!-- Step 3: Game Settings -->
