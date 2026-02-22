@@ -11,6 +11,8 @@ import { AnalysisEngine } from './analysis.js';
 import { EvalBar } from './eval-bar.js';
 import { PostGameSummary } from './post-game-summary.js';
 import { Router } from './router.js';
+import { MultiplayerClient } from './multiplayer.js';
+import { MultiplayerUI } from './multiplayer-ui.js';
 
 const PIECE_ORDER = { q: 0, r: 1, b: 2, n: 3, p: 4 };
 const PIECE_VALUES = { q: 9, r: 5, b: 3, n: 3, p: 1 };
@@ -142,6 +144,11 @@ gameBrowser.setOnClose(() => {
     router.silentUpdate('/');
   }
 });
+
+// Multiplayer
+const mp = new MultiplayerClient();
+const mpUI = new MultiplayerUI(mp);
+const playOnlineBtn = document.getElementById('play-online-btn');
 
 let moveCount = 0;
 let gameId = 0;
@@ -546,6 +553,93 @@ async function startNewGame() {
   router.silentUpdate('/');
 }
 
+/** Start a multiplayer game (called by multiplayer event handlers) */
+function startMultiplayerGame(color, fen, timeControl, opponentName) {
+  // Close any open panels/overlays
+  if (postGameSummary.isOpen()) postGameSummary.close();
+  if (isReplayMode) exitReplayMode(false);
+
+  // End current local game if in progress
+  if (currentDbGameId && moveCount > 0 && !game.isGameOver()) {
+    db.endGame(currentDbGameId, 'abandoned', 'abandoned');
+  }
+
+  gameId++;
+  ai.stop();
+  board.clearPremove();
+  newGameBtn.classList.remove('game-ended');
+  startGameBtn.classList.add('hidden');
+
+  // Set up the game with the given FEN (default starting position)
+  game.newGame(false, fen);
+  board.getArrowOverlay().clear();
+
+  // Flip board if playing black
+  board.setFlipped(color === 'b');
+  board.render();
+  moveCount = 0;
+
+  // Disable AI
+  ai.configure({ whiteEnabled: false, blackEnabled: false });
+  board.setAI(ai);
+
+  // Configure timer from multiplayer time control (format: "5+0")
+  const tcMatch = timeControl ? timeControl.match(/^(\d+)\+(\d+)$/) : null;
+  if (tcMatch) {
+    const minutes = parseInt(tcMatch[1], 10);
+    const increment = parseInt(tcMatch[2], 10);
+    timer.configure(minutes * 60, increment);
+    timer.setServerAuthoritative(true);
+    board.setAnimationsEnabled(false);
+    animationsToggle.checked = false;
+  } else {
+    timer.configure(0, 0);
+    timer.setServerAuthoritative(false);
+  }
+
+  // Update game type label
+  gameTypeLabel.textContent = 'Online';
+
+  // Player names and icons
+  const myName = color === 'w' ? 'You' : opponentName || 'Opponent';
+  const oppName = color === 'w' ? opponentName || 'Opponent' : 'You';
+  playerIconWhite.textContent = '\uD83C\uDF10';
+  playerIconBlack.textContent = '\uD83C\uDF10';
+  playerNameWhite.textContent = color === 'w' ? 'You' : opponentName || 'Opponent';
+  playerNameBlack.textContent = color === 'b' ? 'You' : opponentName || 'Opponent';
+  playerEloWhite.classList.add('hidden');
+  playerEloBlack.classList.add('hidden');
+
+  // Enable pre-game state
+  appEl.classList.add('pre-game');
+  closeAllPopups();
+  renderCaptured();
+
+  // DB persistence — let the server handle it for multiplayer
+  currentDbGameId = null;
+
+  // Eval bar
+  if (evalBarToggle && evalBarToggle.checked) {
+    mainEvalBar.show();
+    mainEvalBar.reset();
+    liveEval();
+  } else {
+    mainEvalBar.hide();
+    mainEvalBar.reset();
+  }
+
+  // Set board interactivity based on whose turn it is
+  const isMyTurn = mp.isMyTurn(game.getTurn());
+  board.setInteractive(isMyTurn);
+
+  // Show multiplayer in-game controls
+  mpUI.showGameControls();
+  mpUI.close(); // close the modal
+
+  updateStatus(isMyTurn ? 'Your turn' : "Opponent's turn");
+  router.silentUpdate('/');
+}
+
 board.onMove((result) => {
   if (isReplayMode) return;
   moveCount++;
@@ -559,6 +653,34 @@ board.onMove((result) => {
   }
 
   renderCaptured();
+
+  // Multiplayer: send move to server, disable board until opponent moves
+  if (mp.isActive()) {
+    mp.sendMove(result.san);
+    board.setInteractive(false);
+    updateStatus("Opponent's turn");
+
+    // Start/switch timer locally for visual feedback (server will sync)
+    if (timer.isEnabled()) {
+      const currentTurn = game.getTurn();
+      if (moveCount === 1) {
+        timer.start(currentTurn);
+      } else {
+        timer.switchTo(currentTurn);
+      }
+    }
+
+    // Update live eval bar
+    if (evalBarToggle && evalBarToggle.checked) liveEval();
+
+    // Check for game over (checkmate/stalemate detected client-side, server will confirm)
+    if (game.isGameOver()) {
+      board.clearPremove();
+      newGameBtn.classList.add('game-ended');
+      updateStatus();
+    }
+    return;
+  }
 
   // Save move to local-first database
   const side = game.getTurn() === 'w' ? 'b' : 'w'; // side that just moved
@@ -2297,6 +2419,213 @@ loadEngineSelection();
 updateEloSliderRange('w');
 updateEloSliderRange('b');
 
+// --- Multiplayer wiring ---
+
+playOnlineBtn.addEventListener('click', async () => {
+  if (!mp.ws || mp.ws.readyState !== WebSocket.OPEN) {
+    try {
+      await mp.connect();
+    } catch (e) {
+      alert('Could not connect to the multiplayer server. Please try again.');
+      return;
+    }
+  }
+  mpUI.open();
+});
+
+// When the server says a game has started
+mp.onGameStart = (payload) => {
+  startMultiplayerGame(payload.color, payload.fen, payload.timeControl, payload.opponentName);
+};
+
+// Room created — show waiting screen
+mp.onRoomCreated = (payload) => {
+  mpUI.showWaiting(payload.roomId);
+};
+
+// Queue joined
+mp.onQueueJoined = (payload) => {
+  mpUI.showSearching();
+};
+
+// Opponent made a move
+mp.onOpponentMove = (payload) => {
+  const { san, fen, clocks } = payload;
+
+  // Apply the opponent's move to local game state
+  game.makeMoveSan(san);
+  moveCount++;
+  board.render();
+  renderCaptured();
+
+  // Disable pre-game state
+  if (moveCount === 1) {
+    appEl.classList.remove('pre-game');
+    closeAllPopups();
+  }
+
+  // Sync clocks from server
+  if (clocks && timer.isEnabled()) {
+    timer.setTime('w', clocks.w);
+    timer.setTime('b', clocks.b);
+    const currentTurn = game.getTurn();
+    if (moveCount === 1) {
+      timer.start(currentTurn);
+    } else {
+      timer.switchTo(currentTurn);
+    }
+  }
+
+  // Update eval bar
+  if (evalBarToggle && evalBarToggle.checked) liveEval();
+
+  // Check for game over
+  if (game.isGameOver()) {
+    board.clearPremove();
+    newGameBtn.classList.add('game-ended');
+    board.setInteractive(false);
+    updateStatus();
+    return;
+  }
+
+  // Enable board for our turn
+  board.setInteractive(true);
+  updateStatus('Your turn');
+
+  // Execute premove if queued
+  if (board.getPremove()) {
+    setTimeout(() => board.executePremove(), 50);
+  }
+};
+
+// Our move acknowledged with clock sync
+mp.onMoveAck = (payload) => {
+  if (payload.clocks && timer.isEnabled()) {
+    timer.setTime('w', payload.clocks.w);
+    timer.setTime('b', payload.clocks.b);
+  }
+};
+
+// Game ended (from server — timeout, resignation, draw, checkmate)
+mp.onGameEnd = (payload) => {
+  timer.stop();
+  board.clearPremove();
+  board.setInteractive(false);
+  newGameBtn.classList.add('game-ended');
+
+  const { result, reason } = payload;
+  let statusText;
+  if (result === '1/2-1/2') {
+    statusText = `Draw — ${reason}`;
+  } else {
+    const winnerSide = result === '1-0' ? 'w' : 'b';
+    const iWin = mp.color === winnerSide;
+    statusText = iWin ? `You win! (${reason})` : `You lose (${reason})`;
+  }
+  updateStatus(statusText);
+  mpUI.hideGameControls();
+  mpUI.showRematchControls();
+};
+
+// Draw offered by opponent
+mp.onDrawOffered = () => {
+  mpUI.showDrawOffer();
+};
+
+// Draw declined
+mp.onDrawDeclined = () => {
+  mpUI.hideDrawOffer();
+  updateStatus("Draw declined — your turn");
+};
+
+// Rematch offered
+mp.onRematchOffered = () => {
+  mpUI.showRematchOffer();
+};
+
+// Rematch declined
+mp.onRematchDeclined = () => {
+  mpUI.rematchStatus.textContent = 'Rematch declined';
+};
+
+// Rematch starting
+mp.onRematchStart = (payload) => {
+  mpUI.hideGameControls();
+  startMultiplayerGame(payload.color, payload.fen, payload.timeControl, payload.opponentName);
+};
+
+// Reconnection
+mp.onReconnect = (payload) => {
+  startMultiplayerGame(payload.color, payload.fen, payload.timeControl, payload.opponentName);
+
+  // Replay all moves to catch up
+  for (const san of payload.moves) {
+    game.makeMoveSan(san);
+    moveCount++;
+  }
+  board.render();
+  renderCaptured();
+
+  // Sync clocks
+  if (payload.clocks && timer.isEnabled()) {
+    timer.setTime('w', payload.clocks.w);
+    timer.setTime('b', payload.clocks.b);
+    timer.start(game.getTurn());
+  }
+
+  const isMyTurn = mp.isMyTurn(game.getTurn());
+  board.setInteractive(isMyTurn);
+  updateStatus(isMyTurn ? 'Your turn (reconnected)' : "Opponent's turn (reconnected)");
+  mpUI.setConnectionStatus('connected');
+};
+
+// Opponent disconnected
+mp.onOpponentDisconnected = (payload) => {
+  mpUI.setConnectionStatus('opponent-disconnected');
+  updateStatus(`Opponent disconnected — ${payload.timeout}s to reconnect`);
+};
+
+// Opponent reconnected
+mp.onOpponentReconnected = () => {
+  mpUI.setConnectionStatus('connected');
+  const isMyTurn = mp.isMyTurn(game.getTurn());
+  updateStatus(isMyTurn ? 'Your turn' : "Opponent's turn");
+};
+
+// Connection status
+mp.onConnected = () => {
+  mpUI.setConnectionStatus('connected');
+};
+
+mp.onDisconnected = () => {
+  if (mp.isActive()) {
+    mpUI.setConnectionStatus('reconnecting');
+  }
+};
+
+mp.onError = (msg) => {
+  console.warn('Multiplayer error:', msg);
+};
+
+// Check URL for room code parameter (joining via shared link)
+function checkRoomCodeInUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const roomCode = params.get('room');
+  if (roomCode) {
+    // Remove the param from URL
+    const url = new URL(window.location);
+    url.searchParams.delete('room');
+    window.history.replaceState({}, '', url.pathname + url.hash);
+
+    // Connect and join the room
+    mp.connect().then(() => {
+      mp.joinRoom(roomCode);
+    }).catch(() => {
+      alert('Could not connect to the multiplayer server.');
+    });
+  }
+}
+
 // --- Route handlers ---
 
 // Helper: fetch a game by server ID and enter replay mode
@@ -2352,4 +2681,5 @@ Promise.all([
   db.open().catch(e => { console.warn('Database unavailable:', e); }),
 ]).then(() => {
   router.start();
+  checkRoomCodeInUrl();
 });
