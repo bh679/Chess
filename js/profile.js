@@ -10,11 +10,18 @@ const API_BASE = '/api';
 const CATEGORIES = ['bullet', 'blitz', 'rapid', 'classical'];
 const CATEGORY_ICONS = { bullet: '\u26A1', blitz: '\u23F1', rapid: '\u23F0', classical: '\u265A' };
 const PROVISIONAL_THRESHOLD = 15;
+const PAGE_SIZE = 10;
 
 export class Profile {
-  constructor(auth) {
+  constructor(auth, { onGameClick } = {}) {
     this._auth = auth;
+    this._onGameClick = onGameClick;
     this._modal = null;
+    this._currentUsername = null;
+    this._currentUserId = null;
+    this._filters = { result: 'all', gameType: 'all' };
+    this._page = 0;
+    this._totalGames = 0;
     this._buildDOM();
   }
 
@@ -24,6 +31,9 @@ export class Profile {
     }
     if (!username) return;
 
+    this._currentUsername = username;
+    this._filters = { result: 'all', gameType: 'all' };
+    this._page = 0;
     this._modal.classList.remove('hidden');
     this._modal.querySelector('.profile-body').innerHTML = '<div class="profile-loading">Loading...</div>';
 
@@ -35,6 +45,7 @@ export class Profile {
         return;
       }
       const data = await res.json();
+      this._currentUserId = data.user.id;
       this._renderProfile(data.user, data.ratings);
     } catch (e) {
       this._modal.querySelector('.profile-body').innerHTML = '<div class="profile-error">Failed to load profile</div>';
@@ -62,7 +73,6 @@ export class Profile {
   }
 
   _renderProfile(user, ratings) {
-    const isOwn = this._auth.isLoggedIn && this._auth.user.id === user.id;
     const body = this._modal.querySelector('.profile-body');
 
     // Header
@@ -84,8 +94,10 @@ export class Profile {
       </div>
       <div class="profile-ratings"></div>
       <div class="profile-games-section">
-        <h3>Recent Games</h3>
+        <h3>Games</h3>
+        <div class="profile-games-filters"></div>
         <div class="profile-games-list"></div>
+        <div class="profile-games-pagination"></div>
       </div>
     `;
 
@@ -127,37 +139,124 @@ export class Profile {
       ratingsContainer.appendChild(card);
     }
 
-    // Load recent games
-    this._loadRecentGames(user.username, body.querySelector('.profile-games-list'));
+    // Build filter UI
+    this._buildFilters(body.querySelector('.profile-games-filters'));
+
+    // Load games
+    this._loadGames();
   }
 
-  async _loadRecentGames(username, container) {
+  _buildFilters(container) {
+    container.innerHTML = `
+      <select class="profile-filter-select" data-filter="result">
+        <option value="all">All Results</option>
+        <option value="win">Wins</option>
+        <option value="loss">Losses</option>
+        <option value="draw">Draws</option>
+      </select>
+      <select class="profile-filter-select" data-filter="gameType">
+        <option value="all">All Types</option>
+        <option value="standard">Standard</option>
+        <option value="chess960">Chess960</option>
+      </select>
+    `;
+
+    container.querySelectorAll('.profile-filter-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        this._filters[sel.dataset.filter] = sel.value;
+        this._page = 0;
+        this._loadGames();
+      });
+    });
+  }
+
+  async _loadGames() {
+    const container = this._modal.querySelector('.profile-games-list');
+    const pagination = this._modal.querySelector('.profile-games-pagination');
+    if (!container) return;
+
+    container.innerHTML = '<div class="profile-loading">Loading...</div>';
+
     try {
       const headers = this._auth.isLoggedIn ? this._auth.getAuthHeaders() : {};
-      const res = await fetch(`${API_BASE}/users/${encodeURIComponent(username)}/games?limit=10`, { headers });
+      const params = new URLSearchParams({
+        limit: PAGE_SIZE,
+        offset: this._page * PAGE_SIZE,
+      });
+      if (this._filters.result !== 'all') params.set('result', this._filters.result);
+      if (this._filters.gameType !== 'all') params.set('gameType', this._filters.gameType);
+
+      const res = await fetch(
+        `${API_BASE}/users/${encodeURIComponent(this._currentUsername)}/games?${params}`,
+        { headers }
+      );
       if (!res.ok) {
         container.textContent = 'Could not load games';
+        if (pagination) pagination.innerHTML = '';
         return;
       }
       const data = await res.json();
+      this._totalGames = data.total || 0;
+
       if (!data.games || data.games.length === 0) {
         container.textContent = 'No games yet';
+        if (pagination) pagination.innerHTML = '';
         return;
       }
-      container.innerHTML = data.games.map(g => {
+
+      container.innerHTML = '';
+      for (const g of data.games) {
+        const row = document.createElement('a');
+        row.className = 'profile-game-row';
+        row.href = `/#/game/${g.id}`;
         const date = new Date(g.startTime).toLocaleDateString();
         const result = g.result || 'ongoing';
-        return `
-          <div class="profile-game-row">
-            <span class="pg-players">${this._esc(g.white.name)} vs ${this._esc(g.black.name)}</span>
-            <span class="pg-result">${result}</span>
-            <span class="pg-type">${g.gameType}</span>
-            <span class="pg-date">${date}</span>
-          </div>
+
+        // Determine result class for the current user
+        let resultClass = '';
+        if (g.result === '1-0' && g.white.userId === this._currentUserId) resultClass = 'pg-result-win';
+        else if (g.result === '0-1' && g.black.userId === this._currentUserId) resultClass = 'pg-result-win';
+        else if (g.result === '1/2-1/2') resultClass = 'pg-result-draw';
+        else if (g.result) resultClass = 'pg-result-loss';
+
+        row.innerHTML = `
+          <span class="pg-players">${this._esc(g.white.name)} vs ${this._esc(g.black.name)}</span>
+          <span class="pg-result ${resultClass}">${result}</span>
+          <span class="pg-type">${g.gameType}</span>
+          <span class="pg-date">${date}</span>
         `;
-      }).join('');
+
+        row.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (this._onGameClick) {
+            this.hide();
+            this._onGameClick(g.id);
+          }
+        });
+
+        container.appendChild(row);
+      }
+
+      // Pagination
+      const totalPages = Math.ceil(this._totalGames / PAGE_SIZE);
+      if (totalPages > 1 && pagination) {
+        pagination.innerHTML = `
+          <button class="profile-page-btn profile-page-prev" ${this._page === 0 ? 'disabled' : ''}>Previous</button>
+          <span class="profile-page-info">Page ${this._page + 1} of ${totalPages}</span>
+          <button class="profile-page-btn profile-page-next" ${this._page >= totalPages - 1 ? 'disabled' : ''}>Next</button>
+        `;
+        pagination.querySelector('.profile-page-prev')?.addEventListener('click', () => {
+          if (this._page > 0) { this._page--; this._loadGames(); }
+        });
+        pagination.querySelector('.profile-page-next')?.addEventListener('click', () => {
+          if (this._page < totalPages - 1) { this._page++; this._loadGames(); }
+        });
+      } else if (pagination) {
+        pagination.innerHTML = '';
+      }
     } catch (e) {
       container.textContent = 'Failed to load games';
+      if (pagination) pagination.innerHTML = '';
     }
   }
 

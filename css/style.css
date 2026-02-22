@@ -3050,20 +3050,72 @@ button.replay-summary-btn {
   margin-bottom: 8px;
 }
 
+.profile-games-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.profile-filter-select {
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.profile-filter-select:hover { border-color: var(--border-hover); }
+
 .profile-game-row {
   display: flex;
   gap: 8px;
   align-items: center;
-  padding: 6px 0;
+  padding: 6px 4px;
   border-bottom: 1px solid var(--border);
   font-size: 0.75rem;
   color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+.profile-game-row:hover {
+  background: var(--bg-hover);
 }
 
 .pg-players { flex: 1; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pg-result { min-width: 50px; text-align: center; }
+.pg-result { min-width: 50px; text-align: center; font-weight: 600; }
+.pg-result-win { color: var(--accent-soft); }
+.pg-result-loss { color: var(--danger); }
+.pg-result-draw { color: var(--text-secondary); }
 .pg-type { min-width: 60px; }
 .pg-date { min-width: 70px; text-align: right; }
+
+.profile-games-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.profile-page-btn {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.profile-page-btn:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-hover); }
+.profile-page-btn:disabled { opacity: 0.4; cursor: default; }
+
+.profile-page-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
 
 .profile-loading, .profile-error {
   text-align: center;

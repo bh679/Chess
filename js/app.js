@@ -139,7 +139,7 @@ db.setAuth(auth);
 const replayViewer = new ReplayViewer();
 const postGameSummary = new PostGameSummary();
 const gameBrowser = new GameBrowser(db, replayViewer, enterReplayMode);
-const profile = new Profile(auth);
+const profile = new Profile(auth, { onGameClick: (id) => loadGameById(id) });
 const friends = new Friends(auth);
 const authUI = new AuthUI(auth, {
   onProfileClick: () => profile.show(),
