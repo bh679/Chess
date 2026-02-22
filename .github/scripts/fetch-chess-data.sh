@@ -68,7 +68,7 @@ ITEM_COUNT=$(echo "$ITEMS" | jq 'length')
 echo "Found $ITEM_COUNT project board items."
 
 # Summary by status
-STATUS_SUMMARY=$(echo "$ITEMS" | jq 'group_by(.status) | map({key: .[0].status, value: length}) | from_entries')
+STATUS_SUMMARY=$(echo "$ITEMS" | jq '[.[] | select(.status != null)] | group_by(.status) | map({key: .[0].status, value: length}) | from_entries')
 
 # --- 2. Recent commits on main ---
 echo "Fetching recent commits..."
@@ -100,7 +100,8 @@ echo "Reading previous state..."
 
 if [ -f "blog/state.json" ]; then
   PREVIOUS_STATE=$(cat blog/state.json)
-  echo "Previous state found (last run: $(echo "$PREVIOUS_STATE" | jq -r '.last_run // "never"))")
+  LAST_RUN=$(echo "$PREVIOUS_STATE" | jq -r '.last_run // "never"')
+  echo "Previous state found (last run: $LAST_RUN)"
 else
   PREVIOUS_STATE='{"last_run": null, "project_board_snapshot": {"items": []}}'
   echo "No previous state found — first run."
