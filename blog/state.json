@@ -1,16 +1,7 @@
 {
-  "last_run": "2026-02-22",
+  "last_run": "2026-02-23",
   "project_board_snapshot": {
     "items": [
-      {
-        "title": "User Account System",
-        "status": "Ready for Testing",
-        "priority": "High",
-        "categories": null,
-        "score": 34.0,
-        "complexity": "Complex",
-        "time_estimate": "2-3 days"
-      },
       {
         "title": "Premoves",
         "status": "Done",
