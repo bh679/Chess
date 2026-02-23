@@ -11,6 +11,10 @@ import { AnalysisEngine } from './analysis.js';
 import { EvalBar } from './eval-bar.js';
 import { PostGameSummary } from './post-game-summary.js';
 import { Router } from './router.js';
+import { Auth } from './auth.js';
+import { AuthUI } from './auth-ui.js';
+import { Profile } from './profile.js';
+import { Friends } from './friends.js';
 import { MultiplayerClient } from './multiplayer.js';
 import { MultiplayerUI } from './multiplayer-ui.js';
 import { NewGameMenu } from './new-game-menu.js';
@@ -141,11 +145,114 @@ const liveEndBtn = document.getElementById('live-end-btn');
 const board = new Board(boardEl, game, promotionModal);
 const timer = new Timer(timerWhiteEl, timerBlackEl);
 const ai = new AI();
+const auth = new Auth();
 const db = new GameDatabase();
+db.setAuth(auth);
 const replayViewer = new ReplayViewer();
 const postGameSummary = new PostGameSummary();
 const gameBrowser = new GameBrowser(db, replayViewer, enterReplayMode);
+const profile = new Profile(auth, { onGameClick: (id) => loadGameById(id) });
+const friends = new Friends(auth);
+const authUI = new AuthUI(auth, {
+  onProfileClick: () => profile.show(),
+  onFriendsClick: () => friends.show()
+});
 const router = new Router();
+
+// Auth state change handler — sync settings and offer game claiming on login
+auth.onAuthChange(async (user) => {
+  if (user) {
+    // Sync settings from server on login
+    try {
+      const res = await fetch('/api/settings', { headers: auth.getAuthHeaders() });
+      if (res.ok) {
+        const { settings } = await res.json();
+        if (settings) {
+          // Apply server settings to UI
+          if (settings.evalBar !== undefined) {
+            evalBarToggle.checked = settings.evalBar;
+            evalBarToggle.dispatchEvent(new Event('change'));
+          }
+          if (settings.premoves !== undefined) {
+            premovesToggle.checked = settings.premoves;
+            premovesToggle.dispatchEvent(new Event('change'));
+          }
+          if (settings.pieceStyle && STYLE_PATHS[settings.pieceStyle]) {
+            window.chessPiecePath = STYLE_PATHS[settings.pieceStyle];
+            const btn = artStylePicker.querySelector(`[data-style="${settings.pieceStyle}"]`);
+            if (btn) {
+              artStylePicker.querySelector('.selected')?.classList.remove('selected');
+              btn.classList.add('selected');
+            }
+            board.redraw();
+          }
+        }
+      }
+    } catch (e) { /* offline — skip */ }
+
+    // Offer to claim existing anonymous games
+    const allGames = db.getAllGames();
+    const claimableIds = [];
+    for (const g of Object.values(allGames)) {
+      if (g.serverId) claimableIds.push(g.serverId);
+    }
+    if (claimableIds.length > 0) {
+      try {
+        const res = await fetch('/api/games/claim-batch', {
+          method: 'POST',
+          headers: auth.getAuthHeaders(),
+          body: JSON.stringify({ gameIds: claimableIds })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.claimed > 0) {
+            console.log(`Claimed ${data.claimed} games for account`);
+          }
+        }
+      } catch (e) { /* silent */ }
+    }
+
+    // Update player name to display name on current board UI
+    const displayName = user.displayName || user.username;
+    if (playerNameWhite.textContent === 'Human') {
+      playerNameWhite.textContent = displayName;
+    }
+
+    // Update local game records so player names sync to server
+    for (const g of Object.values(allGames)) {
+      if (g.metadata?.white && !g.metadata.white.isAI && g.metadata.white.name === 'Human') {
+        db.updatePlayerName(g.localId, 'white', displayName);
+      }
+      if (g.metadata?.black && !g.metadata.black.isAI && g.metadata.black.name === 'Human') {
+        db.updatePlayerName(g.localId, 'black', displayName);
+      }
+    }
+  }
+});
+
+// Save settings to server when they change (debounced)
+let settingsSaveTimer = null;
+function saveSettingsToServer() {
+  if (!auth.isLoggedIn) return;
+  clearTimeout(settingsSaveTimer);
+  settingsSaveTimer = setTimeout(async () => {
+    const selectedStyle = artStylePicker.querySelector('.selected')?.dataset.style || 'classic';
+    const settings = {
+      evalBar: evalBarToggle.checked,
+      premoves: premovesToggle.checked,
+      pieceStyle: selectedStyle,
+      animations: animationsToggle.checked,
+      chess960: chess960Toggle.checked
+    };
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: auth.getAuthHeaders(),
+        body: JSON.stringify({ settings })
+      });
+    } catch (e) { /* offline — skip */ }
+  }, 1000);
+}
 
 // Wire browser close callback to update URL
 gameBrowser.setOnClose(() => {
@@ -1084,6 +1191,7 @@ if (evalBarToggle) {
       mainEvalBar.reset();
       if (liveEvalEngine) liveEvalEngine.stop();
     }
+    saveSettingsToServer();
   });
 }
 
@@ -1094,6 +1202,7 @@ premovesToggle.addEventListener('change', () => {
   localStorage.setItem('chess-premoves', premovesToggle.checked ? 'true' : 'false');
   board.setPremovesEnabled(premovesToggle.checked);
   if (!premovesToggle.checked) board.clearPremove();
+  saveSettingsToServer();
 });
 
 // Settings panel toggle (bottom sheet)
@@ -1137,6 +1246,7 @@ artStylePicker.addEventListener('click', (e) => {
 
   board.render();
   renderCaptured();
+  saveSettingsToServer();
 });
 
 // AI per-side toggles - show/hide engine select + ELO sliders
@@ -3257,9 +3367,19 @@ router.on('/live', ({ params }) => {
   gameBrowser.open({ showLive: true });
 });
 
-// Initialize DB, then start routing (engines load lazily in startNewGame)
+router.on('/profile', ({ params }) => {
+  const username = params.get('user');
+  profile.show(username || undefined);
+});
+
+router.on('/friends', () => {
+  friends.show();
+});
+
+// Initialize DB and auth, then start routing (engines load lazily in startNewGame)
 Promise.all([
   db.open().catch(e => { console.warn('Database unavailable:', e); }),
+  auth.validateToken().catch(() => {}),
 ]).then(() => {
   // Set multiplayerActive BEFORE routing so startNewGame() won't overwrite the join
   const hasRoomCode = new URLSearchParams(window.location.search).has('room');
