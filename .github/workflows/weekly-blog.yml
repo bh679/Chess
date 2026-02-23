@@ -27,9 +27,17 @@ jobs:
       - name: Save data for Claude
         run: cp /tmp/chess-blog-data.json ./blog/data-current.json
 
+      - name: Install Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.18
+          CLAUDE_BIN=$(which claude)
+          echo "CLAUDE_PATH=$CLAUDE_BIN" >> $GITHUB_ENV
+          echo "Claude Code version: $(claude --version)"
+
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          path_to_claude_code_executable: ${{ env.CLAUDE_PATH }}
           prompt: |
             You are the Chess project blog writer. Your task: generate a weekly blog post
             and update the blog index and state.
