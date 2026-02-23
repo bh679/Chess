@@ -71,6 +71,14 @@ A chess game built to practice working with Claude. Runs in the browser with a c
 ### [Automation](https://github.com/bh679/Chess/wiki/Blogging-Agent)
 - [**Weekly blog**](https://github.com/bh679/Chess/wiki/Blogging-Agent) — automated weekly development blog posts generated via GitHub Actions and the Anthropic API; publishes to `blog/` directory every Monday
 
+### [User Accounts](https://github.com/bh679/Chess/wiki/Feature:-User-Accounts)
+- **Local auth** — register and sign in with username/password (bcrypt hashing, JWT tokens)
+- **User profile** — view Glicko-2 ratings (Bullet/Blitz/Rapid/Classical), game history with full filters (result, player type, game type, time control, elo range)
+- **Clickable game rows** — click any game in your profile to replay it
+- **Friends system** — add friends, accept/reject requests, view friend list
+- **Settings sync** — user settings persist across sessions via the server
+- **Game claiming** — games are linked to your account at creation; pre-login games are batch claimed on sign-in
+
 ### UI
 - [**Captured pieces display**](https://github.com/bh679/Chess/wiki/Feature:-Captured-Pieces) — shows captured pieces with material advantage indicators
 - [**Responsive layout**](https://github.com/bh679/Chess/wiki/Feature:-Responsive-Design) — works on desktop and mobile
@@ -129,6 +137,10 @@ js/database.js          Local-first game persistence with background server sync
 js/browser.js           Game history browser UI
 js/analysis.js          Post-game position analysis, 10-type move classification
 js/post-game-summary.js Post-game summary modal (accuracy, classification grid)
+js/auth.js              Auth service (register, login, logout, JWT, batch claim)
+js/auth-ui.js           Sign-in/register modals, user badge with dropdown
+js/profile.js           Profile modal with ratings and filtered game list
+js/friends.js           Friends modal (add, accept, reject, remove)
 js/replay.js            Replay viewer with board, move strip, and clock reconstruction
 js/chess.js             chess.js engine (full rule enforcement)
 js/lib/stockfish.js     Stockfish WASM engine (Web Worker)
