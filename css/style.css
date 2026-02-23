@@ -2814,9 +2814,9 @@ button.replay-summary-btn {
 
 .auth-sign-in-btn {
   width: auto;
-  height: auto;
-  font-size: 0.75rem;
-  padding: 4px 10px;
+  height: 34px;
+  font-size: 0.8rem;
+  padding: 0 10px;
   white-space: nowrap;
 }
 
