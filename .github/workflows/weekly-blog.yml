@@ -25,7 +25,16 @@ jobs:
         run: bash .github/scripts/fetch-chess-data.sh
 
       - name: Save data for Claude
-        run: cp /tmp/chess-blog-data.json ./blog/data-current.json
+        run: cp /tmp/chess-blog-data.json ./data-current.json
+
+      - name: Clone wiki
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/bh679/chess-project.wiki.git wiki-checkout
+          cd wiki-checkout
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Install Claude Code
         run: |
@@ -40,31 +49,35 @@ jobs:
           path_to_claude_code_executable: ${{ env.CLAUDE_PATH }}
           prompt: |
             You are the Chess project blog writer. Your task: generate a weekly blog post
-            and update the blog index and state.
+            and publish it to the chess-project wiki.
 
             ## Steps
 
-            1. Read `blog/data-current.json` — this contains:
+            1. Read `data-current.json` — this contains:
                - Project board items with statuses, priorities, categories (covers both chess-client and chess-api)
                - Recent commits from both chess-client and chess-api
                - Merged PRs from both repos
                - Closed issues
                - Previous week's state for comparison
 
-            2. Read existing blog posts in `blog/posts/` for style reference (if any exist).
+            2. Read existing blog posts in `wiki-checkout/` (files matching `Blog:-*.md`) for style reference.
 
-            3. Create a new file `blog/posts/YYYY-MM-DD.md` using today's date (run `date -u +%Y-%m-%d`).
+            3. Get today's date: `date -u +%Y-%m-%d`
+
+            4. Create a new file `wiki-checkout/Blog:-YYYY-MM-DD.md` (replace YYYY-MM-DD with today's date).
                The post should have:
-               - YAML frontmatter: title, date, summary
+               - First line: `[[Home]] · [[Development-Blog]] · Blog: YYYY-MM-DD`
+               - A blank line, then `# <Post Title>`
                - Sections: Completed This Week, Progress, Coming Up, Stats
                - 300-600 words, conversational, technical
                - Compare current data to `previous_state` to identify what changed
+               - NO YAML frontmatter — this is a wiki page, not a markdown file
 
-            4. Update `blog/README.md` — add a new table row for the post above the
+            5. Update `wiki-checkout/Development-Blog.md` — add a new table row above the
                `<!-- New posts are added above this line -->` comment.
-               Format: `| [YYYY-MM-DD](posts/YYYY-MM-DD.md) | <title> |`
+               Format: `| YYYY-MM-DD | [[Blog:-YYYY-MM-DD|<title>]] |`
 
-            5. Update `blog/state.json` — overwrite with current project board snapshot:
+            6. Update `blog/state.json` — overwrite with current project board snapshot:
                ```json
                {
                  "last_run": "YYYY-MM-DD",
@@ -74,8 +87,16 @@ jobs:
                }
                ```
 
-            6. Delete `blog/data-current.json` (temporary file, not needed in repo).
+            7. Delete `data-current.json` (temporary file).
 
-            7. Commit and push: `git add blog/ && git commit -m "blog: weekly chess update YYYY-MM-DD" && git push`
+            8. Commit and push the wiki:
+               ```bash
+               cd wiki-checkout && git add -A && git commit -m "Blog: weekly chess update YYYY-MM-DD" && git push
+               ```
 
-          claude_args: "--max-turns 25 --allowedTools Edit,Read,Write,Bash(date:*),Bash(git:*),Bash(rm:*)"
+            9. Commit and push state in the main repo:
+               ```bash
+               cd /home/runner/work/chess-client/chess-client && git add blog/state.json && git commit -m "blog: update state YYYY-MM-DD" && git push
+               ```
+
+          claude_args: "--max-turns 25 --allowedTools Edit,Read,Write,Bash(date:*),Bash(git:*),Bash(rm:*),Bash(cd:*),Bash(ls:*)"
