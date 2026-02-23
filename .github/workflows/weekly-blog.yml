@@ -51,53 +51,36 @@ jobs:
             You are the Chess project blog writer. Your task: generate a weekly blog post
             and publish it to the chess-project wiki.
 
-            ## Blog Writing Guidelines
-
-            Structure:
-            - Breadcrumb line: `[[Home]] · [[Development-Blog]] · Blog: YYYY-MM-DD`
-            - H1 title — sharp and descriptive
-            - Link to relevant project(s): `[Chess](https://brennan.games/chess/) | [GitHub](https://github.com/bh679/chess-client)`
-
-            Headings (H2):
-            - Tell the full story in the headings, as short as possible
-            - Short, sharp, and to the point
-            - Use subheadings (H3) the same way if needed
-
-            For every heading section:
-            - A short paragraph (1-5 sentences max) OR concise bullet points — no fluff
-            - Include an image every second heading (use `![alt](URL)` with relevant screenshots or diagrams if available)
-            - Bullet points are good to show extent of content — link to feature wiki docs where relevant (e.g. `[[Feature:-Premoves]]`)
-            - End each section with a relevant call to action when appropriate
-
-            Paragraphs: 1-5 sentences only. Keep short, engaging, and to the point. No fluff.
-
-            End the whole blog with a call to action:
-            - "Try the latest here: [brennan.games/chess](https://brennan.games/chess/)"
-            - Identify a target audience this should be shared with
-
-            NO YAML frontmatter — this is a wiki page.
-
             ## Steps
 
-            1. Read `data-current.json` — this contains:
+            1. Read `blog/blog-post-guidelines.md` — these are the writing guidelines you MUST follow for the blog post.
+
+            2. Read `blog/blog-index-template.md` — this is the template you MUST follow when updating the Development-Blog index page.
+
+            3. Read `data-current.json` — this contains:
                - Project board items with statuses, priorities, categories (covers both chess-client and chess-api)
                - Recent commits from both chess-client and chess-api
                - Merged PRs from both repos
                - Closed issues
                - Previous week's state for comparison
 
-            2. Read existing blog posts in `wiki-checkout/` (files matching `Blog:-*.md`) for style reference.
+            4. Read existing blog posts in `wiki-checkout/` (files matching `Blog:-*.md`) for style reference.
 
-            3. Get today's date: `date -u +%Y-%m-%d`
+            5. Get today's date: `date -u +%Y-%m-%d`
 
-            4. Create a new file `wiki-checkout/Blog:-YYYY-MM-DD.md` (replace YYYY-MM-DD with today's date).
-               Follow the Blog Writing Guidelines above. Compare current data to `previous_state` to identify what changed.
+            6. Create a new file `wiki-checkout/Blog:-YYYY-MM-DD.md` (replace YYYY-MM-DD with today's date).
+               Follow the blog post guidelines from step 1. Compare current data to `previous_state` to identify what changed.
 
-            5. Update `wiki-checkout/Development-Blog.md` — add a new table row above the
+            7. Update `wiki-checkout/Development-Blog.md` — add a new entry above the
                `<!-- New posts are added above this line -->` comment.
-               Format: `| YYYY-MM-DD | [[Blog:-YYYY-MM-DD|<title>]] |`
+               Follow the blog index template from step 2. Format:
+               ```
+               ## [[Blog:-YYYY-MM-DD|<title>]]
+               YYYY-MM-DD — Chess
+               <1-2 sentence abstract>
+               ```
 
-            6. Update `blog/state.json` — overwrite with current project board snapshot:
+            8. Update `blog/state.json` — overwrite with current project board snapshot:
                ```json
                {
                  "last_run": "YYYY-MM-DD",
@@ -107,16 +90,16 @@ jobs:
                }
                ```
 
-            7. Delete `data-current.json` (temporary file).
+            9. Delete `data-current.json` (temporary file).
 
-            8. Commit and push the wiki:
-               ```bash
-               cd wiki-checkout && git add -A && git commit -m "Blog: weekly chess update YYYY-MM-DD" && git push
-               ```
+            10. Commit and push the wiki:
+                ```bash
+                cd wiki-checkout && git add -A && git commit -m "Blog: weekly chess update YYYY-MM-DD" && git push
+                ```
 
-            9. Commit and push state in the main repo:
-               ```bash
-               cd /home/runner/work/chess-client/chess-client && git add blog/state.json && git commit -m "blog: update state YYYY-MM-DD" && git push
-               ```
+            11. Commit and push state in the main repo:
+                ```bash
+                cd /home/runner/work/chess-client/chess-client && git add blog/state.json && git commit -m "blog: update state YYYY-MM-DD" && git push
+                ```
 
           claude_args: "--max-turns 25 --allowedTools Edit,Read,Write,Bash(date:*),Bash(git:*),Bash(rm:*),Bash(cd:*),Bash(ls:*)"
