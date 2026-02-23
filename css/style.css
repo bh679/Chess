@@ -3087,7 +3087,9 @@ button.replay-summary-btn {
   justify-content: center;
   gap: 4px;
   margin-bottom: 4px;
+}
 
+/* =========================================
    Multiplayer
    ========================================= */
 
@@ -3746,6 +3748,7 @@ button.replay-summary-btn {
   color: var(--text-muted);
   font-size: 0.8rem;
   padding: 12px 0;
+}
 
 /* Online / Friend steps */
 .ng-input {
