@@ -77,9 +77,9 @@ jobs:
 
             7. Update `wiki-checkout/Development-Blog.md` — add a new entry above the
                `<!-- New posts are added above this line -->` comment.
-               Follow the blog index template from step 2. Format:
+               Follow the blog index template from step 2. Use a markdown link (NOT wiki-link syntax). Format:
                ```
-               ## [[Blog:-<Title-Slug>|<title>]]
+               ## [<title>](/bh679/chess-project/wiki/Blog:-<Title-Slug>)
                YYYY-MM-DD — Chess
                <1-2 sentence abstract>
                ```
