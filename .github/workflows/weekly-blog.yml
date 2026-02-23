@@ -51,6 +51,32 @@ jobs:
             You are the Chess project blog writer. Your task: generate a weekly blog post
             and publish it to the chess-project wiki.
 
+            ## Blog Writing Guidelines
+
+            Structure:
+            - Breadcrumb line: `[[Home]] · [[Development-Blog]] · Blog: YYYY-MM-DD`
+            - H1 title — sharp and descriptive
+            - Link to relevant project(s): `[Chess](https://brennan.games/chess/) | [GitHub](https://github.com/bh679/chess-client)`
+
+            Headings (H2):
+            - Tell the full story in the headings, as short as possible
+            - Short, sharp, and to the point
+            - Use subheadings (H3) the same way if needed
+
+            For every heading section:
+            - A short paragraph (1-5 sentences max) OR concise bullet points — no fluff
+            - Include an image every second heading (use `![alt](URL)` with relevant screenshots or diagrams if available)
+            - Bullet points are good to show extent of content — link to feature wiki docs where relevant (e.g. `[[Feature:-Premoves]]`)
+            - End each section with a relevant call to action when appropriate
+
+            Paragraphs: 1-5 sentences only. Keep short, engaging, and to the point. No fluff.
+
+            End the whole blog with a call to action:
+            - "Try the latest here: [brennan.games/chess](https://brennan.games/chess/)"
+            - Identify a target audience this should be shared with
+
+            NO YAML frontmatter — this is a wiki page.
+
             ## Steps
 
             1. Read `data-current.json` — this contains:
@@ -65,13 +91,7 @@ jobs:
             3. Get today's date: `date -u +%Y-%m-%d`
 
             4. Create a new file `wiki-checkout/Blog:-YYYY-MM-DD.md` (replace YYYY-MM-DD with today's date).
-               The post should have:
-               - First line: `[[Home]] · [[Development-Blog]] · Blog: YYYY-MM-DD`
-               - A blank line, then `# <Post Title>`
-               - Sections: Completed This Week, Progress, Coming Up, Stats
-               - 300-600 words, conversational, technical
-               - Compare current data to `previous_state` to identify what changed
-               - NO YAML frontmatter — this is a wiki page, not a markdown file
+               Follow the Blog Writing Guidelines above. Compare current data to `previous_state` to identify what changed.
 
             5. Update `wiki-checkout/Development-Blog.md` — add a new table row above the
                `<!-- New posts are added above this line -->` comment.
