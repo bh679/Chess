@@ -4,7 +4,7 @@ These guidelines govern how the blogging agent writes each weekly blog post.
 
 ## Structure
 
-1. Breadcrumb line: `[[Home]] · [[Development-Blog]] · Blog: YYYY-MM-DD`
+1. Breadcrumb line: `[[Home]] · [[Development-Blog]] · Post Title`
 2. H1 title — sharp and descriptive
 3. Link to relevant project(s): `[Chess](https://brennan.games/chess/) | [GitHub](https://github.com/bh679/chess-client)`
 
@@ -34,12 +34,13 @@ End the whole blog with a call to action:
 ## Format Rules
 
 - NO YAML frontmatter — this is a wiki page
-- Wiki page filename: `Blog:-YYYY-MM-DD.md`
+- Wiki page filename: `Blog:-<Title-Slug>.md` — use the blog post title as a hyphenated slug (e.g. `Blog:-User-Accounts-Are-Live.md`)
+- Do NOT include dates in the filename
 
 ## Template
 
 ```markdown
-[[Home]] · [[Development-Blog]] · Blog: YYYY-MM-DD
+[[Home]] · [[Development-Blog]] · Post Title Here
 
 # Sharp Descriptive Title
 
