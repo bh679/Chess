@@ -18,7 +18,10 @@ These guidelines govern how the blogging agent writes each weekly blog post.
 
 - A short paragraph (1-5 sentences max) OR concise bullet points — no fluff
 - Include an image every second heading (use `![alt](URL)` with relevant screenshots or diagrams if available)
-- Bullet points are good to show extent of content — link to feature wiki docs where relevant (e.g. `[[Feature:-Premoves]]`)
+- Bullet points are good to show extent of content — link to feature wiki docs where relevant
+- **Feature links MUST use absolute markdown links** — do NOT use `[[wiki-link]]` syntax for feature pages, it breaks on GitHub wikis (wrong URL, wrong display text)
+  - ✅ Correct: `[Chess Board](/bh679/chess-project/wiki/Feature:-Chess-Board)`
+  - ❌ Wrong: `[[Feature:-Chess-Board|Chess Board]]` — the `Feature:-` prefix gets stripped from the URL
 - End each section with a relevant call to action when appropriate
 
 ## Paragraphs
@@ -37,6 +40,17 @@ End the whole blog with a call to action:
 - Wiki page filename: `Blog:-<Title-Slug>.md` — use the blog post title as a hyphenated slug (e.g. `Blog:-User-Accounts-Are-Live.md`)
 - Do NOT include dates in the filename
 
+## Link Rules
+
+| Link type | Correct format | Wrong format |
+|-----------|---------------|-------------|
+| Breadcrumb (Home, Development-Blog) | `[[Home]]`, `[[Development-Blog]]` | — |
+| Feature docs | `[Display Text](/bh679/chess-project/wiki/Feature:-Name)` | `[[Feature:-Name\|Display Text]]` |
+| Index H2 links | `## [Title](/bh679/chess-project/wiki/Blog:-Slug)` | `## [[Blog:-Slug\|Title]]` |
+| External links | `[text](https://url)` | — |
+
+**Key rule:** Anything with a `Feature:-` prefix in the wiki page name MUST use an absolute markdown link. The `[[wiki-link]]` syntax silently strips `Feature:-` from the URL.
+
 ## Template
 
 ```markdown
@@ -52,7 +66,7 @@ Short paragraph. 1-5 sentences max.
 ## Another Section With Image
 ![description](image-url)
 - Concise bullet points
-- Link to [[Feature:-Name]] docs
+- [Feature Name](/bh679/chess-project/wiki/Feature:-Feature-Name) — description of the feature
 
 ## Coming Up
 What's next.
