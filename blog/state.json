@@ -1,5 +1,5 @@
 {
-  "last_run": "2026-02-23",
+  "last_run": "2026-03-02",
   "project_board_snapshot": {
     "items": [
       {
@@ -39,15 +39,6 @@
         "time_estimate": "1-2 hours"
       },
       {
-        "title": "Roadmap Agent",
-        "status": "In Development",
-        "priority": "High",
-        "categories": null,
-        "score": 51.0,
-        "complexity": "Complex",
-        "time_estimate": "1 week+"
-      },
-      {
         "title": "Local-First Game Persistence",
         "status": "Done",
         "priority": "High",
@@ -55,15 +46,6 @@
         "score": 0.0,
         "complexity": "Medium",
         "time_estimate": "3-5 hours"
-      },
-      {
-        "title": "Dev Agent",
-        "status": "In Development",
-        "priority": "High",
-        "categories": null,
-        "score": 36.0,
-        "complexity": "Hard",
-        "time_estimate": "1 day"
       },
       {
         "title": "Board Analysis",
@@ -174,15 +156,6 @@
         "time_estimate": null
       },
       {
-        "title": "Approval workflow improvement",
-        "status": "Planned",
-        "priority": "Medium",
-        "categories": null,
-        "score": 15.0,
-        "complexity": "Easy",
-        "time_estimate": "3-5 hours"
-      },
-      {
         "title": "Create Dev Agent CLAUDE.md (Chess)",
         "status": "Done",
         "priority": null,
@@ -228,15 +201,6 @@
         "time_estimate": "1-2 hours"
       },
       {
-        "title": "Update READMEs with Wiki Links",
-        "status": "Approved",
-        "priority": "Medium",
-        "categories": null,
-        "score": 17.0,
-        "complexity": "Easy",
-        "time_estimate": "1-2 hours"
-      },
-      {
         "title": "Async Roadmap Agent",
         "status": "Idea",
         "priority": "Low",
@@ -260,15 +224,6 @@
         "priority": "Low",
         "categories": null,
         "score": 0.0,
-        "complexity": null,
-        "time_estimate": null
-      },
-      {
-        "title": "Review CLAUDE.md (Chess)",
-        "status": null,
-        "priority": null,
-        "categories": null,
-        "score": null,
         "complexity": null,
         "time_estimate": null
       },
@@ -361,6 +316,177 @@
         "score": null,
         "complexity": null,
         "time_estimate": null
+      },
+      {
+        "title": "Puzzles Mode",
+        "status": null,
+        "priority": null,
+        "categories": null,
+        "score": null,
+        "complexity": null,
+        "time_estimate": null
+      },
+      {
+        "title": "Puzzles Mode",
+        "status": "Idea",
+        "priority": "High",
+        "categories": null,
+        "score": 14.0,
+        "complexity": "Hard",
+        "time_estimate": "2-3 days"
+      },
+      {
+        "title": "Landing Page",
+        "status": "Idea",
+        "priority": "High",
+        "categories": null,
+        "score": 16.0,
+        "complexity": "Medium",
+        "time_estimate": "1 day"
+      },
+      {
+        "title": "Daily Puzzle",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 13.0,
+        "complexity": "Medium",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Puzzle Rush",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 13.0,
+        "complexity": "Medium",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Board Themes and Piece Sets",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 14.0,
+        "complexity": "Easy",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Opening Explorer",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 9.0,
+        "complexity": "Hard",
+        "time_estimate": "1 week+"
+      },
+      {
+        "title": "Player Profiles and Stats",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 10.0,
+        "complexity": "Hard",
+        "time_estimate": "2-3 days"
+      },
+      {
+        "title": "Game History",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 12.0,
+        "complexity": "Medium",
+        "time_estimate": "1 day"
+      },
+      {
+        "title": "In-Game Chat",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 12.0,
+        "complexity": "Medium",
+        "time_estimate": "1 day"
+      },
+      {
+        "title": "PGN Import and Export",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 14.0,
+        "complexity": "Easy",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Leaderboards",
+        "status": "Idea",
+        "priority": "Low",
+        "categories": null,
+        "score": 10.0,
+        "complexity": "Easy",
+        "time_estimate": "3-5 hours"
+      },
+      {
+        "title": "Tournaments",
+        "status": "Idea",
+        "priority": "Low",
+        "categories": null,
+        "score": 4.0,
+        "complexity": "Complex",
+        "time_estimate": "1 week+"
+      },
+      {
+        "title": "Learn Mode and Lessons",
+        "status": "Idea",
+        "priority": "Low",
+        "categories": null,
+        "score": 4.0,
+        "complexity": "Complex",
+        "time_estimate": "1 week+"
+      },
+      {
+        "title": "Friends and Social",
+        "status": "Idea",
+        "priority": "Low",
+        "categories": null,
+        "score": 6.0,
+        "complexity": "Hard",
+        "time_estimate": "2-3 days"
+      },
+      {
+        "title": "Time Controls and Variants",
+        "status": "Idea",
+        "priority": "Medium",
+        "categories": null,
+        "score": 11.0,
+        "complexity": "Medium",
+        "time_estimate": "2-3 days"
+      },
+      {
+        "title": "Computer Practice Difficulty Levels",
+        "status": "Idea",
+        "priority": "High",
+        "categories": null,
+        "score": 16.0,
+        "complexity": "Medium",
+        "time_estimate": "1 day"
+      },
+      {
+        "title": "Endgame Trainer",
+        "status": "Idea",
+        "priority": "Low",
+        "categories": null,
+        "score": 7.0,
+        "complexity": "Medium",
+        "time_estimate": "2-3 days"
+      },
+      {
+        "title": "Correspondence Chess",
+        "status": "Idea",
+        "priority": "Low",
+        "categories": null,
+        "score": 5.0,
+        "complexity": "Hard",
+        "time_estimate": "1 week+"
       }
     ]
   }
